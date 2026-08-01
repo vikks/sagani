@@ -59,6 +59,14 @@ function M.setup(user_opts)
     end)
   end, { desc = "Set manual target pane ID override" })
 
+  vim.api.nvim_create_user_command("HerdrAgySelectAgent", function(cmd_args)
+    M.select_agent_harness(cmd_args.args, M.options)
+  end, { nargs = "?", desc = "Select target agent harness (agy, codex, opencode, hermes, etc.)" })
+
+  vim.api.nvim_create_user_command("HerdrAgySelectHarness", function(cmd_args)
+    M.select_agent_harness(cmd_args.args, M.options)
+  end, { nargs = "?", desc = "Alias for HerdrAgySelectAgent" })
+
   vim.api.nvim_create_user_command("HerdrAgySpawnPane", function()
     local pane_id, err, _ = topology.spawn_agy_pane(M.options)
     if pane_id then
@@ -66,12 +74,13 @@ function M.setup(user_opts)
     else
       notify.error("Failed to spawn Herdr pane: " .. (err or "Unknown error"), M.options)
     end
-  end, { desc = "Spawn vertical right Herdr pane and start AGY" })
+  end, { desc = "Spawn vertical right Herdr pane and start target agent" })
 
   vim.api.nvim_create_user_command("HerdrAgyPrompt", function(cmd_args)
     local prompt_text = cmd_args.args
     if prompt_text == "" then
-      vim.ui.input({ prompt = "Prompt for AGY: " }, function(input)
+      local agent_name = (M.options.target_agent or "agy"):upper()
+      vim.ui.input({ prompt = string.format("Prompt for %s: ", agent_name) }, function(input)
         if input and input ~= "" then
           M.dispatch_prompt(input)
         end
@@ -79,19 +88,91 @@ function M.setup(user_opts)
     else
       M.dispatch_prompt(prompt_text)
     end
-  end, { nargs = "*", desc = "Send custom prompt to AGY agent pane" })
+  end, { nargs = "*", desc = "Send custom prompt to target agent pane" })
 
   vim.api.nvim_create_user_command("HerdrAgySend", function()
     selection.send_selection_prompt(M.options)
-  end, { range = true, desc = "Send visual selection with instruction prompt to AGY" })
+  end, { range = true, desc = "Send visual selection with instruction prompt to target agent" })
 
   vim.api.nvim_create_user_command("HerdrAgyContext", function()
     selection.send_code_context(M.options)
-  end, { range = true, desc = "Send visual selection code context to AGY" })
+  end, { range = true, desc = "Send visual selection code context to target agent" })
 
   vim.api.nvim_create_user_command("HerdrAgyDiff", function()
     diff.send_diff_comment(M.options)
-  end, { range = true, desc = "Send diff review comment to AGY" })
+  end, { range = true, desc = "Send diff review comment to target agent" })
+end
+
+function M.select_agent_harness(arg, opts)
+  opts = type(opts) == "table" and opts or M.options
+  if type(arg) == "string" and arg ~= "" then
+    local cleaned = vim.trim(arg):lower()
+    M.options.target_agent = cleaned
+    notify.info(string.format("Target agent harness set to '%s'", cleaned), opts)
+    return cleaned
+  end
+
+  local choices = { "agy", "codex", "opencode", "hermes" }
+  local seen = {}
+  for _, c in ipairs(choices) do
+    seen[c] = true
+  end
+
+  if M.options.target_agent and not seen[M.options.target_agent] then
+    table.insert(choices, M.options.target_agent)
+    seen[M.options.target_agent] = true
+  end
+
+  local agents, _ = topology.list_agents(opts.runner)
+  if type(agents) == "table" then
+    for _, a in ipairs(agents) do
+      if type(a) == "table" and type(a.agent) == "string" and a.agent ~= "" then
+        local agent_kind = a.agent:lower()
+        if not seen[agent_kind] then
+          table.insert(choices, agent_kind)
+          seen[agent_kind] = true
+        end
+      end
+    end
+  end
+
+  table.insert(choices, "Other...")
+
+  if vim.ui and vim.ui.select then
+    vim.ui.select(choices, {
+      prompt = string.format("Select Agent Harness (Current: %s):", M.options.target_agent or "agy"),
+      format_item = function(item)
+        if item == M.options.target_agent then
+          return item .. " (active)"
+        end
+        return item
+      end,
+    }, function(choice)
+      if not choice then return end
+      if choice == "Other..." then
+        vim.ui.input({ prompt = "Enter custom agent harness name: " }, function(input)
+          if input and input ~= "" then
+            local custom_agent = vim.trim(input):lower()
+            M.options.target_agent = custom_agent
+            notify.info(string.format("Target agent harness set to '%s'", custom_agent), opts)
+          end
+        end)
+      else
+        M.options.target_agent = choice
+        notify.info(string.format("Target agent harness set to '%s'", choice), opts)
+      end
+    end)
+  else
+    vim.ui.input({ prompt = string.format("Enter agent harness (Current: %s): ", M.options.target_agent or "agy") }, function(input)
+      if input and input ~= "" then
+        local name = vim.trim(input):lower()
+        M.options.target_agent = name
+        notify.info(string.format("Target agent harness set to '%s'", name), opts)
+      end
+    end)
+  end
+
+  return M.options.target_agent
 end
 
 function M.dispatch_prompt(prompt_text, target_pane, opts)
@@ -121,7 +202,7 @@ function M.dispatch_prompt(prompt_text, target_pane, opts)
 
   -- If pane was newly spawned, perform 3-stage readiness detection before prompt delivery
   if meta and meta.spawned and not _G.RUNNING_TEST_SUITE then
-    notify.info("Waiting for AGY CLI to authenticate & render ready prompt...", opts)
+    notify.info(string.format("Waiting for %s CLI to authenticate & render ready prompt...", (opts.target_agent or "agy"):upper()), opts)
     vim.cmd("redraw")
     topology.wait_for_agy_ready(pane_id, 20000, opts)
   end
@@ -156,7 +237,7 @@ function M.dispatch_prompt(prompt_text, target_pane, opts)
     return false, msg
   end
 
-  notify.info(string.format("Prompt dispatched to AGY pane '%s'", pane_id), opts)
+  notify.info(string.format("Prompt dispatched to %s pane '%s'", (opts.target_agent or "agy"):upper(), pane_id), opts)
   return true, nil
 end
 

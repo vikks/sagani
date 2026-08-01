@@ -111,6 +111,8 @@ function M.run()
     local expected_cmds = {
       "HerdrAgyStatus",
       "HerdrAgySelectTarget",
+      "HerdrAgySelectAgent",
+      "HerdrAgySelectHarness",
       "HerdrAgySpawnPane",
       "HerdrAgyPrompt",
       "HerdrAgySend",
@@ -166,6 +168,14 @@ function M.run()
     local k_an = find_key("<leader>an", "n")
     assert_true(k_an ~= nil, "<leader>an keymap defined")
     assert_eq(k_an[2], "<cmd>HerdrAgySpawnPane<cr>", "<leader>an command")
+
+    local k_ah = find_key("<leader>ah", "n")
+    assert_true(k_ah ~= nil, "<leader>ah keymap defined")
+    assert_eq(k_ah[2], "<cmd>HerdrAgySelectAgent<cr>", "<leader>ah command")
+
+    local k_aa = find_key("<leader>aa", "n")
+    assert_true(k_aa ~= nil, "<leader>aa keymap defined")
+    assert_eq(k_aa[2], "<cmd>HerdrAgySelectAgent<cr>", "<leader>aa command")
   end)
 
   -- ==========================================================
@@ -192,10 +202,26 @@ function M.run()
     assert_eq(init.options.target_agent, "spec_test_agent", "setup called with test_opts")
     assert_true(vim.fn.exists(":HerdrAgyStatus") == 2, ":HerdrAgyStatus user command registered")
     assert_true(vim.fn.exists(":HerdrAgySelectTarget") == 2, ":HerdrAgySelectTarget user command registered")
+    assert_true(vim.fn.exists(":HerdrAgySelectAgent") == 2, ":HerdrAgySelectAgent user command registered")
+    assert_true(vim.fn.exists(":HerdrAgySelectHarness") == 2, ":HerdrAgySelectHarness user command registered")
     assert_true(vim.fn.exists(":HerdrAgyPrompt") == 2, ":HerdrAgyPrompt user command registered")
     assert_true(vim.fn.exists(":HerdrAgySend") == 2, ":HerdrAgySend user command registered")
     assert_true(vim.fn.exists(":HerdrAgyContext") == 2, ":HerdrAgyContext user command registered")
     assert_true(vim.fn.exists(":HerdrAgyDiff") == 2, ":HerdrAgyDiff user command registered")
+  end)
+
+  run_test("select_agent_harness: direct argument sets target_agent and choice selection works", function()
+    init.setup({ target_agent = "agy" })
+    assert_eq(init.options.target_agent, "agy", "initial target_agent is agy")
+
+    init.select_agent_harness("codex")
+    assert_eq(init.options.target_agent, "codex", "explicit arg sets target_agent to codex")
+
+    init.select_agent_harness("opencode")
+    assert_eq(init.options.target_agent, "opencode", "explicit arg sets target_agent to opencode")
+
+    init.select_agent_harness("hermes")
+    assert_eq(init.options.target_agent, "hermes", "explicit arg sets target_agent to hermes")
   end)
 
   return {

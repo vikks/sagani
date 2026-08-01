@@ -233,7 +233,8 @@ function M.send_diff_comment(opts)
     return false
   end
 
-  vim.ui.input({ prompt = "AGY Diff Comment: ", default = "" }, function(input)
+  local agent_name = ((opts and opts.target_agent) or "agy"):upper()
+  vim.ui.input({ prompt = string.format("%s Diff Comment: ", agent_name), default = "" }, function(input)
     if input == nil then
       notify.info("Diff comment cancelled", opts)
       return

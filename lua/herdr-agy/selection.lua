@@ -111,7 +111,8 @@ function M.send_selection_prompt(opts)
     return false
   end
 
-  vim.ui.input({ prompt = "AGY Instruction: ", default = "" }, function(input)
+  local agent_name = ((opts and opts.target_agent) or "agy"):upper()
+  vim.ui.input({ prompt = string.format("%s Instruction: ", agent_name), default = "" }, function(input)
     if input == nil or input == "" then
       notify.info("Dispatch cancelled: no instruction entered", opts)
       return

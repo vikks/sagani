@@ -1,8 +1,5 @@
 local plugin_dir = vim.fn.expand("~/CreatorSpace/Coder/OpenSource/NeovimPlugins/herdr-agy.nvim")
 if vim.fn.isdirectory(plugin_dir) == 0 then
-  plugin_dir = vim.fn.expand("~/teamwork_projects/nvim_herdr_agy")
-end
-if vim.fn.isdirectory(plugin_dir) == 0 then
   plugin_dir = "."
 end
 
@@ -26,6 +23,8 @@ return {
     cmd = {
       "HerdrAgyStatus",
       "HerdrAgySelectTarget",
+      "HerdrAgySelectAgent",
+      "HerdrAgySelectHarness",
       "HerdrAgySpawnPane",
       "HerdrAgyPrompt",
       "HerdrAgySend",
@@ -41,6 +40,8 @@ return {
       { "<leader>ap", "<cmd>HerdrAgyPrompt<cr>", desc = "Send Prompt to AGY", mode = { "n", "v" } },
       { "<leader>at", "<cmd>HerdrAgySend<cr>", desc = "Send Selection to AGY", mode = "v" },
       { "<leader>an", "<cmd>HerdrAgySpawnPane<cr>", desc = "Spawn New AGY Pane", mode = "n" },
+      { "<leader>ah", "<cmd>HerdrAgySelectAgent<cr>", desc = "Select Agent Harness", mode = "n" },
+      { "<leader>aa", "<cmd>HerdrAgySelectAgent<cr>", desc = "Select Agent Harness", mode = "n" },
     },
     opts = {
       target_agent = "agy",
