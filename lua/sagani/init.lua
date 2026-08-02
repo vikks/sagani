@@ -125,15 +125,26 @@ function M.setup(user_opts)
 
   vim.api.nvim_create_user_command("SaganiPrompt", function(cmd_args)
     local prompt_text = cmd_args.args
+    local function dispatch(text)
+      if text and text ~= "" then
+        local full_name = vim.api.nvim_buf_get_name(0)
+        if full_name and full_name ~= "" and not text:find("@%[") then
+          local abs_path = vim.fn.fnamemodify(full_name, ":p")
+          if abs_path and abs_path ~= "" then
+            text = string.format("%s @[%s]", text, abs_path)
+          end
+        end
+        M.dispatch_prompt(text)
+      end
+    end
+
     if prompt_text == "" then
       local agent_name = (M.options.target_agent or "agy"):upper()
       vim.ui.input({ prompt = string.format("Prompt for %s: ", agent_name) }, function(input)
-        if input and input ~= "" then
-          M.dispatch_prompt(input)
-        end
+        dispatch(input)
       end)
     else
-      M.dispatch_prompt(prompt_text)
+      dispatch(prompt_text)
     end
   end, { nargs = "*", desc = "Send custom prompt to target agent pane" })
 

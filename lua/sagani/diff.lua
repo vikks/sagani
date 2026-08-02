@@ -502,11 +502,13 @@ function M.get_diff_hunk_at_cursor(win_id)
   local cursor_pos = vim.api.nvim_win_get_cursor(win_id)
   local cur_line = cursor_pos[1]
 
-  -- Determine clean file_path
+  -- Determine clean file_path & abs_path
   local full_path = vim.api.nvim_buf_get_name(bufnr)
   local file_path = "[No Name]"
+  local abs_path = ""
   if full_path ~= "" then
     local clean_path = full_path:gsub("^diffview://.-/%.git/[^:]+:", "")
+    abs_path = vim.fn.fnamemodify(clean_path, ":p")
     file_path = vim.fn.fnamemodify(clean_path, ":~:.")
     if file_path == "" then file_path = full_path end
   end
@@ -561,6 +563,7 @@ function M.get_diff_hunk_at_cursor(win_id)
             local diff_snippet = hunk_texts[i] or string.format("@@ -%d,%d +%d,%d @@", sa, ca, sb, cb)
             return {
               file_path = file_path,
+              abs_path = abs_path,
               start_line = start_line,
               end_line = end_line,
               diff_text = vim.trim(diff_snippet),

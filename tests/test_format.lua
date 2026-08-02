@@ -45,26 +45,28 @@ function M.run()
   run_test("build_context_prompt: Single line selection formatting (L10)", function()
     local selection = {
       file_path = "lua/sagani/init.lua",
+      abs_path = "/Users/test/lua/sagani/init.lua",
       start_line = 10,
       end_line = 10,
       filetype = "lua",
       snippet = "local M = {}",
     }
     local res = format.build_context_prompt("Explain this line", selection)
-    local expected = "Explain this line\n\nContext from `lua/sagani/init.lua` (L10):\n```lua\nlocal M = {}\n```"
+    local expected = "Explain this line @[/Users/test/lua/sagani/init.lua#L10]\n\nContext from `lua/sagani/init.lua` (L10):\n```lua\nlocal M = {}\n```"
     assert_eq(res, expected, "single line selection output matches format")
   end)
 
   run_test("build_context_prompt: Multi-line selection formatting (L10-L25)", function()
     local selection = {
       file_path = "src/main.rs",
+      abs_path = "/Users/test/src/main.rs",
       start_line = 10,
       end_line = 25,
       filetype = "rust",
       snippet = "fn main() {\n    println!(\"Hello\");\n}",
     }
     local res = format.build_context_prompt("Refactor main", selection)
-    local expected = "Refactor main\n\nContext from `src/main.rs` (L10-L25):\n```rust\nfn main() {\n    println!(\"Hello\");\n}\n```"
+    local expected = "Refactor main @[/Users/test/src/main.rs#L10-L25]\n\nContext from `src/main.rs` (L10-L25):\n```rust\nfn main() {\n    println!(\"Hello\");\n}\n```"
     assert_eq(res, expected, "multi-line selection output matches format")
   end)
 
@@ -131,24 +133,26 @@ function M.run()
   run_test("build_diff_prompt: Formats diff comment prompt correctly", function()
     local diff_info = {
       file_path = "lua/sagani/notify.lua",
+      abs_path = "/Users/test/lua/sagani/notify.lua",
       start_line = 12,
       end_line = 15,
       diff_text = "- old line\n+ new line",
     }
     local res = format.build_diff_prompt("Looks good", diff_info)
-    local expected = "Looks good\n\nDiff Context from `lua/sagani/notify.lua` (L12-L15):\n```diff\n- old line\n+ new line\n```"
+    local expected = "Looks good @[/Users/test/lua/sagani/notify.lua#L12-L15]\n\nDiff Context from `lua/sagani/notify.lua` (L12-L15):\n```diff\n- old line\n+ new line\n```"
     assert_eq(res, expected, "build_diff_prompt matches format")
   end)
 
   run_test("build_diff_prompt: Single line diff and nil comment fallbacks", function()
     local diff_info = {
       file_path = "lua/sagani/notify.lua",
+      abs_path = "/Users/test/lua/sagani/notify.lua",
       start_line = 12,
       end_line = 12,
       diff_text = "+ single line addition",
     }
     local res = format.build_diff_prompt(nil, diff_info)
-    local expected = "Diff review comment:\n\nDiff Context from `lua/sagani/notify.lua` (L12):\n```diff\n+ single line addition\n```"
+    local expected = "Diff review comment: @[/Users/test/lua/sagani/notify.lua#L12]\n\nDiff Context from `lua/sagani/notify.lua` (L12):\n```diff\n+ single line addition\n```"
     assert_eq(res, expected, "single line diff and default comment match format")
   end)
 

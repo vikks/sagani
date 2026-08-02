@@ -77,7 +77,9 @@ function M.get_visual_selection(bufnr)
   -- Extract file path and filetype metadata
   local full_name = vim.api.nvim_buf_get_name(bufnr)
   local file_path = "[No Name]"
+  local abs_path = ""
   if full_name and full_name ~= "" then
+    abs_path = vim.fn.fnamemodify(full_name, ":p")
     file_path = vim.fn.fnamemodify(full_name, ":~:.")
     if file_path == "" then
       file_path = full_name
@@ -97,6 +99,7 @@ function M.get_visual_selection(bufnr)
     end_col = end_col,
     mode = mode,
     file_path = file_path,
+    abs_path = abs_path,
     filetype = filetype,
   }
 end
