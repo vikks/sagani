@@ -306,7 +306,7 @@ function M.spawn_agent_popup(opts)
     return nil, "'herdr' CLI executable not found in PATH"
   end
 
-  local split_cmd = { "herdr", "pane", "split", "--current", "--popup", "--cwd", current_cwd }
+  local split_cmd = { "herdr", "pane", "split", "--current", "--direction", "popup", "--cwd", current_cwd }
   local split_out, split_code
   if vim.system then
     local res = vim.system(split_cmd):wait()
@@ -314,6 +314,17 @@ function M.spawn_agent_popup(opts)
   else
     split_out = vim.fn.system(split_cmd)
     split_code = vim.v.shell_error
+  end
+
+  if split_code ~= 0 or split_out == "" then
+    split_cmd = { "herdr", "pane", "split", "--current", "--popup", "--cwd", current_cwd }
+    if vim.system then
+      local res = vim.system(split_cmd):wait()
+      split_out, split_code = res.stdout or "", res.code
+    else
+      split_out = vim.fn.system(split_cmd)
+      split_code = vim.v.shell_error
+    end
   end
 
   if split_code ~= 0 or split_out == "" then
@@ -330,13 +341,30 @@ function M.spawn_agent_popup(opts)
   local new_pane_id = nil
   if split_out and split_out ~= "" then
     local ok, split_json = pcall(vim.json.decode, split_out)
-    if ok and type(split_json) == "table" and type(split_json.result) == "table" and type(split_json.result.pane) == "table" then
-      new_pane_id = split_json.result.pane.pane_id
+    if ok and type(split_json) == "table" then
+      if type(split_json.result) == "table" then
+        if type(split_json.result.pane) == "table" and split_json.result.pane.pane_id then
+          new_pane_id = split_json.result.pane.pane_id
+        elseif split_json.result.pane_id then
+          new_pane_id = split_json.result.pane_id
+        elseif split_json.result.id then
+          new_pane_id = split_json.result.id
+        end
+      elseif split_json.pane_id then
+        new_pane_id = split_json.pane_id
+      end
     end
   end
 
-  if not new_pane_id then
-    new_pane_id = "popup"
+  if not new_pane_id or new_pane_id == "" then
+    local cur_pane = M.get_current_pane_info(runner)
+    if cur_pane and cur_pane.pane_id then
+      new_pane_id = cur_pane.pane_id
+    end
+  end
+
+  if not new_pane_id or new_pane_id == "" or new_pane_id == "popup" then
+    return nil, "Failed to determine valid Herdr pane_id for popup: " .. (split_out ~= "" and split_out or "No CLI response")
   end
 
   local agent_name = target_agent .. "-popup-" .. tostring(math.random(1000, 9999))
