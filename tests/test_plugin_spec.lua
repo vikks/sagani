@@ -210,6 +210,21 @@ function M.run()
     assert_true(vim.fn.exists(":SaganiDiff") == 2, ":SaganiDiff user command registered")
   end)
 
+  run_test("minimal_setup: setup({}) registers default keymaps and user commands cleanly", function()
+    init.setup({})
+    assert_eq(init.options.target_agent, "agy", "minimal setup retains default target_agent agy")
+    assert_eq(init.options.default_keymaps, true, "default_keymaps enabled")
+
+    local maps = vim.api.nvim_get_keymap("n")
+    local found_as_map = false
+    for _, map in ipairs(maps) do
+      if map.rhs and map.rhs:find("SaganiStatus", 1, true) then
+        found_as_map = true
+      end
+    end
+    assert_true(found_as_map, "default <leader>as keymap registered in normal mode")
+  end)
+
   run_test("select_agent_harness: direct argument sets target_agent and choice selection works", function()
     init.setup({ target_agent = "agy" })
     assert_eq(init.options.target_agent, "agy", "initial target_agent is agy")
