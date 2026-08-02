@@ -34,7 +34,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 return {
-  "vikks/sagani.nvim",
+  "vikks/sagani",
   opts = {},
 }
 ```

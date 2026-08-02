@@ -59,7 +59,7 @@ This document serves as the authoritative developer and agent manual for **sagan
 |---|---------|-------------|----------------|--------|
 | 1 | **F1: Herdr Env Detection** | Detect `HERDR_ENV`, `HERDR_PANE_ID`, `HERDR_TAB_ID`, `HERDR_WORKSPACE_ID`, handle missing `herdr` binary gracefully | `lua/sagani/topology.lua` | R4 |
 | 2 | **F2: Topology Auto-Discovery** | Query `herdr agent list` / `herdr pane list`, parse JSON, resolve target agent pane via Tab → Workspace → CWD → Fallback (`wait_for_agent_ready`, `spawn_agent_pane`) | `lua/sagani/topology.lua` | R4 |
-| 3 | **F3: LazyVim Plugin Spec** | Standard plugin specification under `plugins/sagani.lua` with single-line `{ "vikks/sagani.nvim", opts = {} }` integration | `plugins/sagani.lua` | R1 |
+| 3 | **F3: LazyVim Plugin Spec** | Standard plugin specification under `plugins/sagani.lua` with single-line `{ "vikks/sagani", opts = {} }` integration | `plugins/sagani.lua` | R1 |
 | 4 | **F4: WhichKey Integration** | Automatic WhichKey menu group `"Sagani"` and keymap bindings (`<leader>as`, `<leader>ac`, `<leader>ad`, `<leader>ap`, `<leader>an`, `<leader>aa`) | `lua/sagani/init.lua` | R1 |
 | 5 | **F5: Visual Selection Extraction** | Robust extraction of visual selection handling characterwise (`v`), linewise (`V`), and blockwise (`<C-v>`) with mark normalization | `lua/sagani/selection.lua` | R2 |
 | 6 | **F6: Context Dispatch to Agent** | Format selection context (file path, line range, filetype, snippet) with user input (`vim.ui.input`), dispatch via `vim.system` | `lua/sagani/selection.lua` | R2 |
@@ -164,5 +164,5 @@ sagani.nvim/
 ## 🤖 6. Rules for Future Agent Developers
 
 1. **Incremental Edits & Testing**: Run `nvim --headless -u NONE -c "luafile tests/run_tests.lua"` after every code modification. Never declare success without 100% test pass rate.
-2. **Preserve Compatibility**: Keep the single-line installation spec (`{ "vikks/sagani.nvim", opts = {} }`) fully functional by ensuring `require("sagani").setup(opts)` handles default keymap and WhichKey registration out of the box.
+2. **Preserve Compatibility**: Keep the single-line installation spec (`{ "vikks/sagani", opts = {} }`) fully functional by ensuring `require("sagani").setup(opts)` handles default keymap and WhichKey registration out of the box.
 3. **No Unneeded File Churn**: Do not commit local `.agents/` workspace logs to git. Keep `.gitignore` updated.
