@@ -47,7 +47,7 @@ return {
       target_agent = "agy",
       auto_discover = true,
       startup_delay = 5000,
-      auto_spawn = "left", -- Options: "right", "bottom", "down", "left", false, true
+      auto_spawn = "left",
     },
     config = function(_, opts)
       require("sagani").setup(opts)

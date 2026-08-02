@@ -14,6 +14,8 @@ M.defaults = {
   auto_spawn = false,
   startup_delay = 5000,
   pane_override = nil,
+  default_keymaps = true,
+  which_key = true,
   notify = {
     enabled = true,
     title = "sagani.nvim",
@@ -28,6 +30,39 @@ M.diff = diff
 function M.setup(user_opts)
   user_opts = type(user_opts) == "table" and user_opts or {}
   M.options = vim.tbl_deep_extend("force", M.defaults, user_opts)
+
+  -- Register Default Keymaps
+  if M.options.default_keymaps then
+    local set = function(mode, lhs, rhs, desc)
+      vim.keymap.set(mode, lhs, rhs, { silent = true, desc = desc })
+    end
+    set("n", "<leader>as", "<cmd>SaganiStatus<cr>", "Sagani Status")
+    set("v", "<leader>as", "<cmd>SaganiSend<cr>", "Send Selection to Sagani")
+    set("n", "<leader>ac", "<cmd>SaganiSelectTarget<cr>", "Select Sagani Target Pane")
+    set("v", "<leader>ac", "<cmd>SaganiContext<cr>", "Send Context to Sagani")
+    set({ "n", "v" }, "<leader>ad", "<cmd>SaganiDiff<cr>", "Send Diff Comment to Sagani")
+    set({ "n", "v" }, "<leader>ap", "<cmd>SaganiPrompt<cr>", "Send Prompt to Sagani")
+    set("v", "<leader>at", "<cmd>SaganiSend<cr>", "Send Selection to Sagani")
+    set("n", "<leader>an", "<cmd>SaganiSpawnPane<cr>", "Spawn New Sagani Pane")
+    set("n", "<leader>ah", "<cmd>SaganiSelectAgent<cr>", "Select Agent Harness")
+    set("n", "<leader>aa", "<cmd>SaganiSelectAgent<cr>", "Select Agent Harness")
+  end
+
+  -- Register WhichKey Menu Group
+  if M.options.which_key then
+    local ok, wk = pcall(require, "which-key")
+    if ok then
+      if type(wk.add) == "function" then
+        pcall(wk.add, {
+          { "<leader>a", group = "Sagani", mode = { "n", "v" } },
+        })
+      elseif type(wk.register) == "function" then
+        pcall(wk.register, {
+          ["<leader>a"] = { name = "+Sagani" },
+        }, { mode = { "n", "v" } })
+      end
+    end
+  end
 
   -- Register User Commands
   vim.api.nvim_create_user_command("SaganiStatus", function()
