@@ -68,13 +68,15 @@ This document serves as the authoritative developer and agent manual for **sagan
 | 9 | **F9: Automated Testing Suite** | Headless Neovim test runner (`tests/run_tests.lua`) and Plenary test harness (`tests/minimal_init.lua`) covering all `sagani` modules | `tests/` | Acceptance Criteria |
 | 10 | **F10: Harness-Agnostic Agent Selection** | Dynamic agent harness switching (`:SaganiSelectAgent`, `:SaganiSelectHarness`, `<leader>aa`, `<leader>ah`) supporting `agy`, `codex`, `opencode`, `hermes`, etc. | `lua/sagani/init.lua` | User Request |
 | 11 | **F11: Agent Edit Review & Accept/Reject** | Interactive edit review (`:SaganiReview`, `<leader>ar`), hunk navigation (`<leader>a]` / `<leader>a[`), and change acceptance (`:SaganiAccept`, `<leader>ay`) or rejection (`:SaganiReject`, `<leader>ax`) | `lua/sagani/diff.lua` | User Request |
+| 12 | **F12: Ask General Agent in Herdr Popup** | Asks general questions to agent in a Herdr popup pane (`:SaganiAskAgent`, `<leader>aa`), using configurable or session-cached target agent | `lua/sagani/init.lua` | User Request |
 
 ---
 
 ## 🔌 3. Interface Contracts & API Reference
 
 ### `lua/sagani/init.lua`
-- `init.setup(user_opts)`: Initializes default options (including `review = { enabled = true, auto_open = false }`), registers user commands (`:SaganiStatus`, `:SaganiSend`, `:SaganiContext`, `:SaganiDiff`, `:SaganiPrompt`, `:SaganiSpawnPane`, `:SaganiSelectAgent`, `:SaganiSelectHarness`, `:SaganiReview`, `:SaganiAccept`, `:SaganiReject`, `:SaganiNextHunk`, `:SaganiPrevHunk`), binds default keymaps, and registers WhichKey group.
+- `init.setup(user_opts)`: Initializes default options (including `ask_agent = { target_agent = nil, popup = true }` and `review = { enabled = true, auto_open = false, mode = "inline" }`), registers user commands (`:SaganiStatus`, `:SaganiSend`, `:SaganiContext`, `:SaganiDiff`, `:SaganiPrompt`, `:SaganiAskAgent`, `:SaganiSpawnPane`, `:SaganiSelectAgent`, `:SaganiSelectHarness`, `:SaganiReview`, `:SaganiAccept`, `:SaganiReject`, `:SaganiNextHunk`, `:SaganiPrevHunk`), binds default keymaps, and registers WhichKey group.
+- `init.ask_agent_prompt(prompt_text, opts)`: Asks a general question/prompt to an agent inside a Herdr popup pane (`:SaganiAskAgent`, `<leader>aa`). Resolves target agent via `ask_agent.target_agent` -> session cache -> runtime input prompt.
 - `init.select_agent_harness(arg, opts)`: Switches target agent harness (`agy`, `codex`, `opencode`, `hermes`, etc.) interactively or via argument.
 - `init.dispatch_prompt(prompt_text, target_pane, opts)`: Dispatches prompt text to target Herdr agent pane via `herdr agent prompt`. Contains safety guard `_G.RUNNING_TEST_SUITE` to prevent live shell execution during test runs.
 

@@ -16,6 +16,10 @@ M.defaults = {
   pane_override = nil,
   default_keymaps = true,
   which_key = true,
+  ask_agent = {
+    target_agent = nil,
+    popup = true,
+  },
   review = {
     enabled = true,
     auto_open = false,
@@ -28,6 +32,7 @@ M.defaults = {
 }
 
 M.options = vim.tbl_deep_extend("force", {}, M.defaults)
+M._session_ask_agent = nil
 M.format = format
 M.selection = selection
 M.diff = diff
@@ -50,7 +55,7 @@ function M.setup(user_opts)
     set("v", "<leader>at", "<cmd>SaganiSend<cr>", "Send Selection to Sagani")
     set("n", "<leader>an", "<cmd>SaganiSpawnPane<cr>", "Spawn New Sagani Pane")
     set("n", "<leader>ah", "<cmd>SaganiSelectAgent<cr>", "Select Agent Harness")
-    set("n", "<leader>aa", "<cmd>SaganiSelectAgent<cr>", "Select Agent Harness")
+    set({ "n", "v" }, "<leader>aa", "<cmd>SaganiAskAgent<cr>", "Ask Agent (Herdr Popup)")
     set("n", "<leader>ar", "<cmd>SaganiReview<cr>", "Review Agent Edits Diff")
     set("n", "<leader>ay", "<cmd>SaganiAccept<cr>", "Accept Edit Hunk/File")
     set("n", "<leader>ax", "<cmd>SaganiReject<cr>", "Reject Edit Hunk/File")
@@ -109,6 +114,10 @@ function M.setup(user_opts)
   vim.api.nvim_create_user_command("SaganiSelectAgent", function(cmd_args)
     M.select_agent_harness(cmd_args.args, M.options)
   end, { nargs = "?", desc = "Select target agent harness (agy, codex, opencode, hermes, etc.)" })
+
+  vim.api.nvim_create_user_command("SaganiAskAgent", function(cmd_args)
+    M.ask_agent_prompt(cmd_args.args)
+  end, { nargs = "*", range = true, desc = "Ask general question to agent in Herdr popup" })
 
   vim.api.nvim_create_user_command("SaganiSelectHarness", function(cmd_args)
     M.select_agent_harness(cmd_args.args, M.options)
@@ -307,6 +316,68 @@ function M.select_agent_harness(arg, opts)
   end
 
   return M.options.target_agent
+end
+
+--- Asks a general question/prompt to an agent in a Herdr popup.
+--- Resolves target agent via opts.ask_agent.target_agent -> session cache -> runtime input prompt.
+--- @param prompt_text string|nil User prompt or nil to prompt interactively.
+--- @param opts table|nil Options table.
+function M.ask_agent_prompt(prompt_text, opts)
+  opts = type(opts) == "table" and opts or M.options
+  local ask_opts = type(opts.ask_agent) == "table" and opts.ask_agent or {}
+
+  local function do_ask(agent_name, text)
+    if not agent_name or agent_name == "" then
+      notify.warn("No target agent selected for general questions", opts)
+      return
+    end
+
+    if not text or text == "" then
+      vim.ui.input({ prompt = string.format("Ask Agent (%s): ", agent_name:upper()) }, function(input)
+        if input and input ~= "" then
+          do_ask(agent_name, input)
+        end
+      end)
+      return
+    end
+
+    -- Include file mention @[abs_path] if available and not already in prompt
+    local full_name = vim.api.nvim_buf_get_name(0)
+    if full_name and full_name ~= "" and not text:find("@%[") then
+      local abs_path = vim.fn.fnamemodify(full_name, ":p")
+      if abs_path and abs_path ~= "" then
+        text = string.format("%s @[%s]", text, abs_path)
+      end
+    end
+
+    local popup_opts = vim.tbl_deep_extend("force", opts, { target_agent = agent_name })
+    local pane_id, err, _ = topology.spawn_agent_popup(popup_opts)
+
+    if pane_id then
+      M.dispatch_prompt(text, pane_id, popup_opts)
+      notify.info(string.format("Asked '%s' agent in Herdr popup pane '%s'", agent_name, pane_id), opts)
+    else
+      notify.error("Failed to spawn Herdr popup pane: " .. (err or "Unknown error"), opts)
+    end
+  end
+
+  local configured_agent = ask_opts.target_agent
+  if type(configured_agent) == "string" and configured_agent ~= "" then
+    do_ask(configured_agent, prompt_text)
+  elseif M._session_ask_agent and M._session_ask_agent ~= "" then
+    do_ask(M._session_ask_agent, prompt_text)
+  else
+    local default_choice = M.options.target_agent or "agy"
+    vim.ui.input({ prompt = string.format("Select agent for general questions (default: %s): ", default_choice), default = default_choice }, function(choice)
+      if choice and choice ~= "" then
+        local chosen = vim.trim(choice):lower()
+        M._session_ask_agent = chosen
+        do_ask(chosen, prompt_text)
+      else
+        notify.info("Ask Agent cancelled", opts)
+      end
+    end)
+  end
 end
 
 function M.dispatch_prompt(prompt_text, target_pane, opts)

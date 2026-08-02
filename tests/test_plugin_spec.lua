@@ -112,6 +112,7 @@ function M.run()
       "SaganiStatus",
       "SaganiSelectTarget",
       "SaganiSelectAgent",
+      "SaganiAskAgent",
       "SaganiSelectHarness",
       "SaganiSpawnPane",
       "SaganiPrompt",
@@ -186,7 +187,7 @@ function M.run()
 
     local k_aa = find_key("<leader>aa", "n")
     assert_true(k_aa ~= nil, "<leader>aa keymap defined")
-    assert_eq(k_aa[2], "<cmd>SaganiSelectAgent<cr>", "<leader>aa command")
+    assert_eq(k_aa[2], "<cmd>SaganiAskAgent<cr>", "<leader>aa command")
   end)
 
   -- ==========================================================

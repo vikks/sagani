@@ -74,6 +74,12 @@ require("sagani").setup({
   -- Manual target pane ID override (string like "w1:p2", or nil to use auto-discovery)
   pane_override = nil,
 
+  -- General question / popup agent configuration
+  ask_agent = {
+    target_agent = nil, -- Target agent harness for general questions (if nil, prompts on first use & remembers for session)
+    popup = true,       -- Open general question sessions in a Herdr popup pane
+  },
+
   -- Agent edit review configuration
   review = {
     enabled = true,    -- Enable interactive edit review & accept/reject workflow
@@ -104,7 +110,8 @@ require("sagani").setup({
 | `<leader>ad` | Normal / Visual | `:SaganiDiff` | Send diff review comment & Markdown diff block to agent |
 | `<leader>ap` | Normal / Visual | `:SaganiPrompt` | Send custom prompt to target agent |
 | `<leader>an` | Normal | `:SaganiSpawnPane` | Spawn new Herdr pane for active agent harness |
-| `<leader>aa` | Normal | `:SaganiSelectAgent` | Open picker to select agent harness (`agy`, `codex`, etc.) |
+| `<leader>ah` | Normal | `:SaganiSelectAgent` | Open picker to select agent harness (`agy`, `codex`, etc.) |
+| `<leader>aa` | Normal / Visual | `:SaganiAskAgent` | Ask general questions to agent in a Herdr popup pane |
 | `<leader>ar` | Normal | `:SaganiReview` | Toggle side-by-side agent edit review diff view |
 | `<leader>ay` | Normal | `:SaganiAccept` | Accept agent edit change (hunk under cursor or all) |
 | `<leader>ax` | Normal | `:SaganiReject` | Reject agent edit change (revert hunk under cursor or all) |
@@ -120,6 +127,7 @@ require("sagani").setup({
 | `:SaganiContext` | Capture visual selection code context and send directly to agent |
 | `:SaganiDiff` | Capture active diff hunk/selection and send formatted review comment |
 | `:SaganiSelectAgent [harness]` | Select target agent harness interactively or via argument |
+| `:SaganiAskAgent [prompt]` | Ask general questions/prompts to an agent in a Herdr popup pane |
 | `:SaganiSelectHarness [harness]` | Alias for `:SaganiSelectAgent` |
 | `:SaganiSelectTarget` | Prompt interactively to set or clear manual target pane ID |
 | `:SaganiSpawnPane` | Spawn a Herdr pane and initialize the target agent harness |

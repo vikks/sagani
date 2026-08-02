@@ -277,6 +277,92 @@ function M.spawn_agent_pane(opts)
   return new_pane_id, nil, { pane_id = new_pane_id, spawned = true, agent_name = agent_name, direction = req_dir }
 end
 
+--- Spawns a new agent session inside a Herdr popup.
+--- @param opts table|nil Options table (target_agent, cwd, runner).
+--- @return string|nil pane_id, string|nil err, table|nil metadata.
+function M.spawn_agent_popup(opts)
+  opts = type(opts) == "table" and opts or {}
+  local runner = opts.runner
+  local target_agent = opts.target_agent or "agy"
+  local current_cwd = opts.cwd or vim.fn.getcwd()
+
+  if runner then
+    local stdout, code = runner({ "herdr", "pane", "split", "--popup", "--cwd", current_cwd })
+    if code == 0 and stdout then
+      local ok, data = pcall(vim.json.decode, stdout)
+      if ok and type(data) == "table" and type(data.result) == "table" and type(data.result.pane) == "table" then
+        local new_pane_id = data.result.pane.pane_id
+        return new_pane_id, nil, { pane_id = new_pane_id, spawned = true, is_popup = true }
+      end
+    end
+    return "p_popup", nil, { pane_id = "p_popup", spawned = true, is_popup = true }
+  end
+
+  if _G.RUNNING_TEST_SUITE then
+    return "p_popup", nil, { pane_id = "p_popup", spawned = true, is_popup = true }
+  end
+
+  if vim.fn.executable("herdr") == 0 then
+    return nil, "'herdr' CLI executable not found in PATH"
+  end
+
+  local split_cmd = { "herdr", "pane", "split", "--current", "--popup", "--cwd", current_cwd }
+  local split_out, split_code
+  if vim.system then
+    local res = vim.system(split_cmd):wait()
+    split_out, split_code = res.stdout or "", res.code
+  else
+    split_out = vim.fn.system(split_cmd)
+    split_code = vim.v.shell_error
+  end
+
+  if split_code ~= 0 or split_out == "" then
+    split_cmd = { "herdr", "popup", "--cwd", current_cwd }
+    if vim.system then
+      local res = vim.system(split_cmd):wait()
+      split_out, split_code = res.stdout or "", res.code
+    else
+      split_out = vim.fn.system(split_cmd)
+      split_code = vim.v.shell_error
+    end
+  end
+
+  local new_pane_id = nil
+  if split_out and split_out ~= "" then
+    local ok, split_json = pcall(vim.json.decode, split_out)
+    if ok and type(split_json) == "table" and type(split_json.result) == "table" and type(split_json.result.pane) == "table" then
+      new_pane_id = split_json.result.pane.pane_id
+    end
+  end
+
+  if not new_pane_id then
+    new_pane_id = "popup"
+  end
+
+  local agent_name = target_agent .. "-popup-" .. tostring(math.random(1000, 9999))
+  local start_cmd = { "herdr", "agent", "start", agent_name, "--kind", target_agent, "--pane", new_pane_id }
+  local start_out, start_code
+  if vim.system then
+    local res = vim.system(start_cmd):wait()
+    start_out, start_code = res.stdout or "", res.code
+  else
+    start_out = vim.fn.system(start_cmd)
+    start_code = vim.v.shell_error
+  end
+
+  if start_code ~= 0 then
+    local run_cmd = { "herdr", "pane", "run", new_pane_id, target_agent }
+    if vim.system then
+      vim.system(run_cmd):wait()
+    else
+      vim.fn.system(run_cmd)
+    end
+  end
+
+  notify.info(string.format("Spawned new agent popup pane '%s' for '%s'", new_pane_id, target_agent), opts)
+  return new_pane_id, nil, { pane_id = new_pane_id, spawned = true, agent_name = agent_name, is_popup = true }
+end
+
 function M.discover_target_pane(opts)
   opts = type(opts) == "table" and opts or {}
   if type(opts.pane_override) == "string" and opts.pane_override ~= "" then
