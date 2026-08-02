@@ -225,6 +225,23 @@ function M.run()
     assert_true(found_as_map, "default <leader>as keymap registered in normal mode")
   end)
 
+  run_test("custom_setup: setup(user_opts) merges custom settings and propagates to options table", function()
+    init.setup({
+      target_agent = "hermes",
+      auto_spawn = "bottom",
+      startup_delay = 9999,
+      pane_override = "w3:p12",
+      notify = { enabled = false, title = "custom title" },
+    })
+
+    assert_eq(init.options.target_agent, "hermes", "target_agent overridden to hermes")
+    assert_eq(init.options.auto_spawn, "bottom", "auto_spawn overridden to bottom")
+    assert_eq(init.options.startup_delay, 9999, "startup_delay overridden to 9999")
+    assert_eq(init.options.pane_override, "w3:p12", "pane_override set to w3:p12")
+    assert_eq(init.options.notify.enabled, false, "notify.enabled set to false")
+    assert_eq(init.options.notify.title, "custom title", "notify.title overridden to custom title")
+  end)
+
   run_test("select_agent_harness: direct argument sets target_agent and choice selection works", function()
     init.setup({ target_agent = "agy" })
     assert_eq(init.options.target_agent, "agy", "initial target_agent is agy")
