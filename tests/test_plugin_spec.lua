@@ -118,6 +118,17 @@ function M.run()
       "SaganiSend",
       "SaganiContext",
       "SaganiDiff",
+      "SaganiReview",
+      "SaganiReviewToggle",
+      "SaganiAccept",
+      "SaganiAcceptHunk",
+      "SaganiAcceptAll",
+      "SaganiReject",
+      "SaganiRejectHunk",
+      "SaganiRejectAll",
+      "SaganiNextHunk",
+      "SaganiPrevHunk",
+      "SaganiReload",
     }
     assert_eq(#main_spec.cmd, #expected_cmds, "contains expected commands count")
     for _, cmd_name in ipairs(expected_cmds) do
@@ -254,6 +265,15 @@ function M.run()
 
     init.select_agent_harness("hermes")
     assert_eq(init.options.target_agent, "hermes", "explicit arg sets target_agent to hermes")
+  end)
+
+  run_test("runtime_entrypoint: plugin/sagani.lua auto-sources and initializes setup()", function()
+    local runtime_file = project_root .. "/plugin/sagani.lua"
+    assert_eq(vim.fn.filereadable(runtime_file), 1, "plugin/sagani.lua is readable")
+    vim.g.loaded_sagani = nil
+    dofile(runtime_file)
+    assert_eq(vim.g.loaded_sagani, true, "vim.g.loaded_sagani flag set")
+    assert_true(vim.fn.exists(":SaganiStatus") == 2, ":SaganiStatus registered by runtime script")
   end)
 
   return {

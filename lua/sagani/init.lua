@@ -16,6 +16,11 @@ M.defaults = {
   pane_override = nil,
   default_keymaps = true,
   which_key = true,
+  review = {
+    enabled = true,
+    auto_open = false,
+    mode = "inline",
+  },
   notify = {
     enabled = true,
     title = "sagani.nvim",
@@ -46,6 +51,11 @@ function M.setup(user_opts)
     set("n", "<leader>an", "<cmd>SaganiSpawnPane<cr>", "Spawn New Sagani Pane")
     set("n", "<leader>ah", "<cmd>SaganiSelectAgent<cr>", "Select Agent Harness")
     set("n", "<leader>aa", "<cmd>SaganiSelectAgent<cr>", "Select Agent Harness")
+    set("n", "<leader>ar", "<cmd>SaganiReview<cr>", "Review Agent Edits Diff")
+    set("n", "<leader>ay", "<cmd>SaganiAccept<cr>", "Accept Edit Hunk/File")
+    set("n", "<leader>ax", "<cmd>SaganiReject<cr>", "Reject Edit Hunk/File")
+    set("n", "<leader>a]", "<cmd>SaganiNextHunk<cr>", "Next Agent Edit Hunk")
+    set("n", "<leader>a[", "<cmd>SaganiPrevHunk<cr>", "Previous Agent Edit Hunk")
   end
 
   -- Register WhichKey Menu Group
@@ -138,6 +148,82 @@ function M.setup(user_opts)
   vim.api.nvim_create_user_command("SaganiDiff", function()
     diff.send_diff_comment(M.options)
   end, { range = true, desc = "Send diff review comment to target agent" })
+
+  vim.api.nvim_create_user_command("SaganiReview", function(cmd_args)
+    diff.toggle_review(nil, M.options, cmd_args.args)
+  end, { nargs = "?", desc = "Toggle agent edit review diff view (inline or split)" })
+
+  vim.api.nvim_create_user_command("SaganiReviewToggle", function()
+    diff.toggle_review(nil, M.options)
+  end, { desc = "Alias for SaganiReview" })
+
+  vim.api.nvim_create_user_command("SaganiAccept", function(cmd_args)
+    diff.accept_change(cmd_args.args, nil, M.options)
+  end, { nargs = "?", desc = "Accept agent edit change (hunk under cursor or all)" })
+
+  vim.api.nvim_create_user_command("SaganiAcceptHunk", function()
+    diff.accept_change("hunk", nil, M.options)
+  end, { desc = "Accept agent edit hunk under cursor position" })
+
+  vim.api.nvim_create_user_command("SaganiAcceptAll", function()
+    diff.accept_change("all", nil, M.options)
+  end, { desc = "Accept all agent edit changes in buffer" })
+
+  vim.api.nvim_create_user_command("SaganiReject", function(cmd_args)
+    diff.reject_change(cmd_args.args, nil, M.options)
+  end, { nargs = "?", desc = "Reject agent edit change (revert hunk under cursor or all)" })
+
+  vim.api.nvim_create_user_command("SaganiRejectHunk", function()
+    diff.reject_change("hunk", nil, M.options)
+  end, { desc = "Reject agent edit hunk under cursor position" })
+
+  vim.api.nvim_create_user_command("SaganiRejectAll", function()
+    diff.reject_change("all", nil, M.options)
+  end, { desc = "Reject all agent edit changes in buffer" })
+
+  vim.api.nvim_create_user_command("SaganiNextHunk", function()
+    diff.next_hunk(nil, M.options)
+  end, { desc = "Jump cursor to next agent edit hunk" })
+
+  vim.api.nvim_create_user_command("SaganiPrevHunk", function()
+    diff.prev_hunk(nil, M.options)
+  end, { desc = "Jump cursor to previous agent edit hunk" })
+
+  vim.api.nvim_create_user_command("SaganiReload", function()
+    local saved_opts = vim.tbl_deep_extend("force", {}, M.options)
+    for mod_name, _ in pairs(package.loaded) do
+      if mod_name:sub(1, 6) == "sagani" or mod_name == "sagani" then
+        package.loaded[mod_name] = nil
+      end
+    end
+    local fresh_sagani = require("sagani")
+    fresh_sagani.setup(saved_opts)
+    notify.info("sagani.nvim reloaded successfully", saved_opts)
+  end, { desc = "Hot-reload sagani.nvim Lua modules live without restarting Neovim" })
+
+  -- Register File Change Watcher for Agent Edits
+  local group = vim.api.nvim_create_augroup("SaganiReviewWatcher", { clear = true })
+  vim.api.nvim_create_autocmd({ "FileChangedShellPost", "BufReadPost" }, {
+    group = group,
+    callback = function(ev)
+      local opts = M.options
+      local review_opts = type(opts.review) == "table" and opts.review or {}
+      local enabled = (type(opts.review) == "boolean" and opts.review) or (review_opts.enabled ~= false)
+      local auto_open = (type(review_opts) == "table") and review_opts.auto_open or false
+
+      if enabled and auto_open then
+        local bufnr = ev.buf
+        if bufnr and vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buftype == "" then
+          vim.schedule(function()
+            local hunks = diff.get_hunks(bufnr)
+            if #hunks > 0 then
+              diff.open_review(bufnr, opts)
+            end
+          end)
+        end
+      end
+    end,
+  })
 end
 
 function M.select_agent_harness(arg, opts)
@@ -220,6 +306,12 @@ function M.dispatch_prompt(prompt_text, target_pane, opts)
     return false, err_msg
   end
 
+  -- Pre-capture baseline snapshot of current buffer before agent touches files
+  local cur_buf = vim.api.nvim_get_current_buf()
+  if cur_buf and vim.api.nvim_buf_is_valid(cur_buf) then
+    diff.take_snapshot(cur_buf)
+  end
+
   if target_pane == "" then
     target_pane = nil
   end
@@ -281,6 +373,22 @@ function M.dispatch_prompt(prompt_text, target_pane, opts)
   end
 
   notify.info(string.format("Prompt dispatched to %s pane '%s'", (opts.target_agent or "agy"):upper(), pane_id), opts)
+
+  -- Post-dispatch check for file edits and auto-open review split
+  vim.schedule(function()
+    pcall(vim.cmd, "checktime")
+    local review_opts = type(opts.review) == "table" and opts.review or {}
+    local enabled = (type(opts.review) == "boolean" and opts.review) or (review_opts.enabled ~= false)
+    local auto_open = (type(review_opts) == "table") and review_opts.auto_open or false
+
+    if enabled and auto_open then
+      local hunks = diff.get_hunks(cur_buf)
+      if #hunks > 0 then
+        diff.open_review(cur_buf, opts)
+      end
+    end
+  end)
+
   return true, nil
 end
 

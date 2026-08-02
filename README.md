@@ -14,6 +14,7 @@ A harness-agnostic Neovim plugin (tailored for [LazyVim](https://www.lazyvim.org
 - **🧩 Automatic Topology Discovery**: Automatically detects your active `herdr` terminal environment (pane, tab, workspace IDs) and discovers active agent target panes.
 - **✨ Visual Selection & Code Context**: Dispatch visual selections (`v`, `V`, `<C-v>`) formatted with file path, line range, syntax highlighting, and instruction prompts directly to your agent.
 - **🔍 Structured Diff Review**: Review git diffs (via `diffview.nvim` or native Neovim diff split), calculate hunks, and submit formatted Markdown diff review comments to your agent.
+- **🔎 Interactive Edit Review & Accept/Reject**: See exactly where agent edits occurred in your buffer via side-by-side diff review splits (`:SaganiReview`), navigate hunks (`]c` / `[c`), and accept (`<leader>ay` / `:SaganiAccept`) or reject (`<leader>ax` / `:SaganiReject`) individual edit hunks or all file changes.
 - **⌨️ LazyVim & WhichKey Integration**: Includes pre-configured LazyVim plugin specs with optional `folke/which-key.nvim` menu grouping (`<leader>a` → `"Sagani"`).
 - **🧪 Headless Test Suite**: Fully covered by a headless Neovim unit and integration test suite.
 
@@ -35,7 +36,16 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 return {
   "vikks/sagani",
-  opts = {},
+  opts = {
+    target_agent = "agy",
+    auto_discover = true,
+    auto_spawn = "left",
+    startup_delay = 5000,
+    review = {
+      enabled = true,
+      auto_open = false,
+    },
+  },
 }
 ```
 
@@ -64,6 +74,13 @@ require("sagani").setup({
   -- Manual target pane ID override (string like "w1:p2", or nil to use auto-discovery)
   pane_override = nil,
 
+  -- Agent edit review configuration
+  review = {
+    enabled = true,    -- Enable interactive edit review & accept/reject workflow
+    auto_open = false, -- Automatically open review view when agent edits occur
+    mode = "inline",   -- Review display style: "inline" (virtual text & line highlights) or "split" (side-by-side vsplit)
+  },
+
   -- Notification settings
   notify = {
     enabled = true,
@@ -88,6 +105,11 @@ require("sagani").setup({
 | `<leader>ap` | Normal / Visual | `:SaganiPrompt` | Send custom prompt to target agent |
 | `<leader>an` | Normal | `:SaganiSpawnPane` | Spawn new Herdr pane for active agent harness |
 | `<leader>aa` | Normal | `:SaganiSelectAgent` | Open picker to select agent harness (`agy`, `codex`, etc.) |
+| `<leader>ar` | Normal | `:SaganiReview` | Toggle side-by-side agent edit review diff view |
+| `<leader>ay` | Normal | `:SaganiAccept` | Accept agent edit change (hunk under cursor or all) |
+| `<leader>ax` | Normal | `:SaganiReject` | Reject agent edit change (revert hunk under cursor or all) |
+| `<leader>a]` | Normal | `:SaganiNextHunk` | Jump cursor to next agent edit hunk |
+| `<leader>a[` | Normal | `:SaganiPrevHunk` | Jump cursor to previous agent edit hunk |
 
 ### User Commands Reference
 
@@ -102,6 +124,25 @@ require("sagani").setup({
 | `:SaganiSelectTarget` | Prompt interactively to set or clear manual target pane ID |
 | `:SaganiSpawnPane` | Spawn a Herdr pane and initialize the target agent harness |
 | `:SaganiPrompt [text]` | Dispatch custom prompt text directly to target agent pane |
+| `:SaganiReview` | Toggle side-by-side agent edit review diff split against baseline |
+| `:SaganiAccept [hunk\|all]` | Accept edit hunk at cursor (or all pending edits in buffer) |
+| `:SaganiReject [hunk\|all]` | Reject edit hunk at cursor (or revert all edits to baseline) |
+| `:SaganiNextHunk` | Navigate cursor to next change hunk in buffer |
+| `:SaganiPrevHunk` | Navigate cursor to previous change hunk in buffer |
+
+### ❓ Troubleshooting Missing Keymaps
+
+If typing `<leader>a...` does not trigger any commands after installing:
+
+1. **Ensure `opts = {}` or `config = true` is in your plugin spec**:
+   Lazy.nvim will **not** invoke `require("sagani").setup()` automatically unless `opts = {}` or `config = true` (or a custom `config` function) is specified:
+   ```lua
+   { "vikks/sagani.nvim", opts = {} }
+   ```
+2. **Order of `vim.g.mapleader`**:
+   Ensure `vim.g.mapleader = " "` (or your preferred leader key) is defined **before** lazy.nvim or plugin setups in your `init.lua`. If `mapleader` is set after setup runs, Neovim maps `<leader>` to default `\` (backslash).
+3. **Lazy-loading without `keys` declared**:
+   If using `lazy = true` or `cmd = { ... }`, lazy.nvim delays loading the plugin until a trigger occurs. Declare `keys` in your spec or load on startup.
 
 ---
 

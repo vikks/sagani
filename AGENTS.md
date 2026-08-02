@@ -67,13 +67,14 @@ This document serves as the authoritative developer and agent manual for **sagan
 | 8 | **F8: Structured Diff Formatting** | Format diff feedback as markdown diff blocks (````diff ````) with file path, line range, and user commentary sent to agent | `lua/sagani/format.lua` | R3 |
 | 9 | **F9: Automated Testing Suite** | Headless Neovim test runner (`tests/run_tests.lua`) and Plenary test harness (`tests/minimal_init.lua`) covering all `sagani` modules | `tests/` | Acceptance Criteria |
 | 10 | **F10: Harness-Agnostic Agent Selection** | Dynamic agent harness switching (`:SaganiSelectAgent`, `:SaganiSelectHarness`, `<leader>aa`, `<leader>ah`) supporting `agy`, `codex`, `opencode`, `hermes`, etc. | `lua/sagani/init.lua` | User Request |
+| 11 | **F11: Agent Edit Review & Accept/Reject** | Interactive edit review (`:SaganiReview`, `<leader>ar`), hunk navigation (`<leader>a]` / `<leader>a[`), and change acceptance (`:SaganiAccept`, `<leader>ay`) or rejection (`:SaganiReject`, `<leader>ax`) | `lua/sagani/diff.lua` | User Request |
 
 ---
 
 ## 🔌 3. Interface Contracts & API Reference
 
 ### `lua/sagani/init.lua`
-- `init.setup(user_opts)`: Initializes default options, registers user commands (`:SaganiStatus`, `:SaganiSend`, `:SaganiContext`, `:SaganiDiff`, `:SaganiPrompt`, `:SaganiSpawnPane`, `:SaganiSelectAgent`, `:SaganiSelectHarness`), binds default keymaps, and registers WhichKey group.
+- `init.setup(user_opts)`: Initializes default options (including `review = { enabled = true, auto_open = false }`), registers user commands (`:SaganiStatus`, `:SaganiSend`, `:SaganiContext`, `:SaganiDiff`, `:SaganiPrompt`, `:SaganiSpawnPane`, `:SaganiSelectAgent`, `:SaganiSelectHarness`, `:SaganiReview`, `:SaganiAccept`, `:SaganiReject`, `:SaganiNextHunk`, `:SaganiPrevHunk`), binds default keymaps, and registers WhichKey group.
 - `init.select_agent_harness(arg, opts)`: Switches target agent harness (`agy`, `codex`, `opencode`, `hermes`, etc.) interactively or via argument.
 - `init.dispatch_prompt(prompt_text, target_pane, opts)`: Dispatches prompt text to target Herdr agent pane via `herdr agent prompt`. Contains safety guard `_G.RUNNING_TEST_SUITE` to prevent live shell execution during test runs.
 
@@ -90,6 +91,13 @@ This document serves as the authoritative developer and agent manual for **sagan
 - `selection.send_code_context(opts)`: Dispatches visual selection context directly to agent with default review prompt.
 
 ### `lua/sagani/diff.lua`
+- `diff.take_snapshot(bufnr)`: Captures baseline snapshot lines array of current buffer.
+- `diff.get_baseline_lines(bufnr)`: Retrieves baseline lines (from snapshot, git HEAD, or file on disk).
+- `diff.get_hunks(bufnr)`: Calculates hunks between baseline lines and current buffer lines.
+- `diff.toggle_review(bufnr, opts)`: Opens or closes side-by-side split review diff view.
+- `diff.accept_change(target, bufnr, opts)`: Accepts change hunk under cursor or all pending buffer changes.
+- `diff.reject_change(target, bufnr, opts)`: Reverts change hunk under cursor or all buffer changes back to baseline.
+- `diff.next_hunk(win_id, opts)` / `diff.prev_hunk(win_id, opts)`: Navigates cursor to next/previous change hunk.
 - `diff.get_diff_hunk_at_cursor()`: Extracts current diff hunk context (`file_path`, `start_line`, `end_line`, `diff_text`).
 - `diff.send_diff_comment(opts)`: Captures diff review comment and dispatches formatted diff block to agent.
 
