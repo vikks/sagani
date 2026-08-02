@@ -1,8 +1,8 @@
--- Headless Neovim Unit Test Suite for herdr-agy.nvim LazyVim Spec & WhichKey Config
+-- Headless Neovim Unit Test Suite for sagani.nvim LazyVim Spec & WhichKey Config
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
-local init = require("herdr-agy")
+local init = require("sagani")
 
 local M = {}
 
@@ -42,7 +42,7 @@ function M.run()
     end
   end
 
-  local plugin_spec_path = project_root .. "/plugins/herdr-agy.lua"
+  local plugin_spec_path = project_root .. "/plugins/sagani.lua"
 
   local function find_spec(specs, name)
     if type(specs) ~= "table" then return nil end
@@ -59,28 +59,28 @@ function M.run()
   -- ==========================================================
 
   run_test("plugin_spec: File exists and loads cleanly", function()
-    assert_eq(vim.fn.filereadable(plugin_spec_path), 1, "plugins/herdr-agy.lua readable")
+    assert_eq(vim.fn.filereadable(plugin_spec_path), 1, "plugins/sagani.lua readable")
     local specs = dofile(plugin_spec_path)
     assert_true(type(specs) == "table", "returns lua table")
     assert_eq(#specs, 2, "spec array contains 2 elements")
   end)
 
-  run_test("plugin_spec: Contains specs for which-key and herdr-agy", function()
+  run_test("plugin_spec: Contains specs for which-key and sagani", function()
     local specs = dofile(plugin_spec_path)
     local wk_spec = find_spec(specs, "folke/which-key.nvim")
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
 
     assert_true(wk_spec ~= nil, "folke/which-key.nvim spec exists")
-    assert_true(main_spec ~= nil, "herdr-agy.nvim spec exists")
+    assert_true(main_spec ~= nil, "sagani.nvim spec exists")
     assert_true(main_spec.dir ~= nil, "main spec dir is specified")
-    assert_eq(main_spec.name, "herdr-agy.nvim", "main spec name is 'herdr-agy.nvim'")
+    assert_eq(main_spec.name, "sagani.nvim", "main spec name is 'sagani.nvim'")
   end)
 
   -- ==========================================================
   -- 2. WHICHKEY INTEGRATION SPEC
   -- ==========================================================
 
-  run_test("which_key_spec: Registers <leader>a group for AGY / Herdr", function()
+  run_test("which_key_spec: Registers <leader>a group for Sagani", function()
     local specs = dofile(plugin_spec_path)
     local wk_spec = find_spec(specs, "folke/which-key.nvim")
     assert_true(wk_spec ~= nil and type(wk_spec.opts) == "table", "which-key opts is table")
@@ -89,14 +89,14 @@ function M.run()
 
     local group_found = false
     for _, item in ipairs(wk_spec.opts.spec) do
-      if item[1] == "<leader>a" and item.group == "AGY / Herdr" then
+      if item[1] == "<leader>a" and item.group == "Sagani" then
         group_found = true
         assert_true(type(item.mode) == "table", "mode is table")
         assert_true(vim.tbl_contains(item.mode, "n"), "mode contains 'n'")
         assert_true(vim.tbl_contains(item.mode, "v"), "mode contains 'v'")
       end
     end
-    assert_true(group_found, "<leader>a AGY / Herdr group registered")
+    assert_true(group_found, "<leader>a Sagani group registered")
   end)
 
   -- ==========================================================
@@ -105,19 +105,19 @@ function M.run()
 
   run_test("main_spec: Defines lazy loading cmd list", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
     assert_true(main_spec ~= nil and type(main_spec.cmd) == "table", "cmd property is table")
 
     local expected_cmds = {
-      "HerdrAgyStatus",
-      "HerdrAgySelectTarget",
-      "HerdrAgySelectAgent",
-      "HerdrAgySelectHarness",
-      "HerdrAgySpawnPane",
-      "HerdrAgyPrompt",
-      "HerdrAgySend",
-      "HerdrAgyContext",
-      "HerdrAgyDiff",
+      "SaganiStatus",
+      "SaganiSelectTarget",
+      "SaganiSelectAgent",
+      "SaganiSelectHarness",
+      "SaganiSpawnPane",
+      "SaganiPrompt",
+      "SaganiSend",
+      "SaganiContext",
+      "SaganiDiff",
     }
     assert_eq(#main_spec.cmd, #expected_cmds, "contains expected commands count")
     for _, cmd_name in ipairs(expected_cmds) do
@@ -131,7 +131,7 @@ function M.run()
 
   run_test("main_spec: Defines lazy loading keys list", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
     assert_true(main_spec ~= nil and type(main_spec.keys) == "table", "keys property is table")
 
     local function find_key(lhs, mode)
@@ -151,31 +151,31 @@ function M.run()
 
     local k_as_n = find_key("<leader>as", nil)
     assert_true(k_as_n ~= nil, "<leader>as normal keymap defined")
-    assert_eq(k_as_n[2], "<cmd>HerdrAgyStatus<cr>", "<leader>as normal command")
+    assert_eq(k_as_n[2], "<cmd>SaganiStatus<cr>", "<leader>as normal command")
 
     local k_as_v = find_key("<leader>as", "v")
     assert_true(k_as_v ~= nil, "<leader>as visual keymap defined")
-    assert_eq(k_as_v[2], "<cmd>HerdrAgySend<cr>", "<leader>as visual command")
+    assert_eq(k_as_v[2], "<cmd>SaganiSend<cr>", "<leader>as visual command")
 
     local k_ac_v = find_key("<leader>ac", "v")
     assert_true(k_ac_v ~= nil, "<leader>ac visual keymap defined")
-    assert_eq(k_ac_v[2], "<cmd>HerdrAgyContext<cr>", "<leader>ac visual command")
+    assert_eq(k_ac_v[2], "<cmd>SaganiContext<cr>", "<leader>ac visual command")
 
     local k_at = find_key("<leader>at", "v")
     assert_true(k_at ~= nil, "<leader>at keymap defined")
-    assert_eq(k_at[2], "<cmd>HerdrAgySend<cr>", "<leader>at command")
+    assert_eq(k_at[2], "<cmd>SaganiSend<cr>", "<leader>at command")
 
     local k_an = find_key("<leader>an", "n")
     assert_true(k_an ~= nil, "<leader>an keymap defined")
-    assert_eq(k_an[2], "<cmd>HerdrAgySpawnPane<cr>", "<leader>an command")
+    assert_eq(k_an[2], "<cmd>SaganiSpawnPane<cr>", "<leader>an command")
 
     local k_ah = find_key("<leader>ah", "n")
     assert_true(k_ah ~= nil, "<leader>ah keymap defined")
-    assert_eq(k_ah[2], "<cmd>HerdrAgySelectAgent<cr>", "<leader>ah command")
+    assert_eq(k_ah[2], "<cmd>SaganiSelectAgent<cr>", "<leader>ah command")
 
     local k_aa = find_key("<leader>aa", "n")
     assert_true(k_aa ~= nil, "<leader>aa keymap defined")
-    assert_eq(k_aa[2], "<cmd>HerdrAgySelectAgent<cr>", "<leader>aa command")
+    assert_eq(k_aa[2], "<cmd>SaganiSelectAgent<cr>", "<leader>aa command")
   end)
 
   -- ==========================================================
@@ -184,7 +184,7 @@ function M.run()
 
   run_test("main_spec: Default opts matches init.defaults", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
     assert_true(main_spec ~= nil and type(main_spec.opts) == "table", "opts is table")
 
     assert_eq(main_spec.opts.target_agent, "agy", "default target_agent")
@@ -193,21 +193,21 @@ function M.run()
 
   run_test("main_spec: config function executes setup(opts) and creates user commands", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
     assert_true(main_spec ~= nil and type(main_spec.config) == "function", "config is function")
 
     local test_opts = { target_agent = "spec_test_agent" }
     main_spec.config(main_spec, test_opts)
 
     assert_eq(init.options.target_agent, "spec_test_agent", "setup called with test_opts")
-    assert_true(vim.fn.exists(":HerdrAgyStatus") == 2, ":HerdrAgyStatus user command registered")
-    assert_true(vim.fn.exists(":HerdrAgySelectTarget") == 2, ":HerdrAgySelectTarget user command registered")
-    assert_true(vim.fn.exists(":HerdrAgySelectAgent") == 2, ":HerdrAgySelectAgent user command registered")
-    assert_true(vim.fn.exists(":HerdrAgySelectHarness") == 2, ":HerdrAgySelectHarness user command registered")
-    assert_true(vim.fn.exists(":HerdrAgyPrompt") == 2, ":HerdrAgyPrompt user command registered")
-    assert_true(vim.fn.exists(":HerdrAgySend") == 2, ":HerdrAgySend user command registered")
-    assert_true(vim.fn.exists(":HerdrAgyContext") == 2, ":HerdrAgyContext user command registered")
-    assert_true(vim.fn.exists(":HerdrAgyDiff") == 2, ":HerdrAgyDiff user command registered")
+    assert_true(vim.fn.exists(":SaganiStatus") == 2, ":SaganiStatus user command registered")
+    assert_true(vim.fn.exists(":SaganiSelectTarget") == 2, ":SaganiSelectTarget user command registered")
+    assert_true(vim.fn.exists(":SaganiSelectAgent") == 2, ":SaganiSelectAgent user command registered")
+    assert_true(vim.fn.exists(":SaganiSelectHarness") == 2, ":SaganiSelectHarness user command registered")
+    assert_true(vim.fn.exists(":SaganiPrompt") == 2, ":SaganiPrompt user command registered")
+    assert_true(vim.fn.exists(":SaganiSend") == 2, ":SaganiSend user command registered")
+    assert_true(vim.fn.exists(":SaganiContext") == 2, ":SaganiContext user command registered")
+    assert_true(vim.fn.exists(":SaganiDiff") == 2, ":SaganiDiff user command registered")
   end)
 
   run_test("select_agent_harness: direct argument sets target_agent and choice selection works", function()

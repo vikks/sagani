@@ -1,10 +1,10 @@
--- Headless Neovim Unit Test Suite for herdr-agy.nvim diff module
+-- Headless Neovim Unit Test Suite for sagani.nvim diff module
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
-local diff = require("herdr-agy.diff")
-local format = require("herdr-agy.format")
-local init = require("herdr-agy")
+local diff = require("sagani.diff")
+local format = require("sagani.format")
+local init = require("sagani")
 
 local M = {}
 
@@ -101,7 +101,7 @@ function M.run()
     local fix = setup_split_diff(
       { "line 1", "old line 2", "line 3" },
       { "line 1", "new line 2", "line 3" },
-      project_root .. "/lua/herdr-agy/diff.lua"
+      project_root .. "/lua/sagani/diff.lua"
     )
 
     vim.api.nvim_win_set_cursor(fix.win_cur, { 2, 0 })
@@ -243,7 +243,7 @@ function M.run()
     local fix = setup_split_diff(
       { "old code" },
       { "new code" },
-      project_root .. "/lua/herdr-agy/diff.lua"
+      project_root .. "/lua/sagani/diff.lua"
     )
     vim.api.nvim_win_set_cursor(fix.win_cur, { 1, 0 })
 
@@ -320,13 +320,13 @@ function M.run()
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 
-  run_test("init.setup: HerdrAgyDiff user command execution", function()
+  run_test("init.setup: SaganiDiff user command execution", function()
     init.setup({ notify = { enabled = false } })
 
     local fix = setup_split_diff(
       { "old code" },
       { "new code" },
-      project_root .. "/lua/herdr-agy/diff.lua"
+      project_root .. "/lua/sagani/diff.lua"
     )
     vim.api.nvim_win_set_cursor(fix.win_cur, { 1, 0 })
 
@@ -342,12 +342,12 @@ function M.run()
       return true, nil
     end
 
-    vim.cmd("HerdrAgyDiff")
+    vim.cmd("SaganiDiff")
 
     vim.ui.input = orig_input
     init.dispatch_prompt = orig_dispatch
 
-    assert_true(dispatched_payload ~= nil, "HerdrAgyDiff command triggered dispatch_prompt")
+    assert_true(dispatched_payload ~= nil, "SaganiDiff command triggered dispatch_prompt")
     assert_true(dispatched_payload:find("User command diff review comment", 1, true) ~= nil, "payload contains user command comment")
 
     cleanup_split_diff(fix)

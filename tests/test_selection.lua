@@ -1,9 +1,9 @@
--- Headless Neovim Unit Test Suite for herdr-agy.nvim visual selection module
+-- Headless Neovim Unit Test Suite for sagani.nvim visual selection module
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
-local selection = require("herdr-agy.selection")
-local init = require("herdr-agy")
+local selection = require("sagani.selection")
+local init = require("sagani")
 
 local M = {}
 

@@ -1,13 +1,13 @@
--- Headless Neovim Empirical Stress Test Suite for herdr-agy.nvim
+-- Headless Neovim Empirical Stress Test Suite for sagani.nvim
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
-local init = require("herdr-agy")
-local topology = require("herdr-agy.topology")
-local selection = require("herdr-agy.selection")
-local diff = require("herdr-agy.diff")
-local format = require("herdr-agy.format")
-local notify = require("herdr-agy.notify")
+local init = require("sagani")
+local topology = require("sagani.topology")
+local selection = require("sagani.selection")
+local diff = require("sagani.diff")
+local format = require("sagani.format")
+local notify = require("sagani.notify")
 
 local M = {}
 
@@ -334,9 +334,9 @@ function M.run()
   run_test("diff_stress: filetype diff patch block parsing", function()
     local buf = vim.api.nvim_create_buf(false, true)
     local diff_content = {
-      "diff --git a/lua/herdr-agy/init.lua b/lua/herdr-agy/init.lua",
-      "--- a/lua/herdr-agy/init.lua",
-      "+++ b/lua/herdr-agy/init.lua",
+      "diff --git a/lua/sagani/init.lua b/lua/sagani/init.lua",
+      "--- a/lua/sagani/init.lua",
+      "+++ b/lua/sagani/init.lua",
       "@@ -10,3 +10,4 @@",
       " local M = {}",
       "+-- Added comment line",
@@ -351,7 +351,7 @@ function M.run()
 
     local hunk = diff.get_diff_hunk_at_cursor(win)
     assert_true(hunk ~= nil, "found diff hunk in diff filetype buffer")
-    assert_eq(hunk.file_path, "lua/herdr-agy/init.lua", "extracted patch file path correctly")
+    assert_eq(hunk.file_path, "lua/sagani/init.lua", "extracted patch file path correctly")
     assert_eq(hunk.start_line, 10, "start_line is 10")
     assert_true(hunk.diff_text:find("+-- Added comment line", 1, true) ~= nil, "hunk contains added line")
   end)

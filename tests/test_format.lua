@@ -1,8 +1,8 @@
--- Headless Neovim Unit Test Suite for herdr-agy.nvim format module
+-- Headless Neovim Unit Test Suite for sagani.nvim format module
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
-local format = require("herdr-agy.format")
+local format = require("sagani.format")
 
 local M = {}
 
@@ -44,14 +44,14 @@ function M.run()
 
   run_test("build_context_prompt: Single line selection formatting (L10)", function()
     local selection = {
-      file_path = "lua/herdr-agy/init.lua",
+      file_path = "lua/sagani/init.lua",
       start_line = 10,
       end_line = 10,
       filetype = "lua",
       snippet = "local M = {}",
     }
     local res = format.build_context_prompt("Explain this line", selection)
-    local expected = "Explain this line\n\nContext from `lua/herdr-agy/init.lua` (L10):\n```lua\nlocal M = {}\n```"
+    local expected = "Explain this line\n\nContext from `lua/sagani/init.lua` (L10):\n```lua\nlocal M = {}\n```"
     assert_eq(res, expected, "single line selection output matches format")
   end)
 
@@ -130,25 +130,25 @@ function M.run()
 
   run_test("build_diff_prompt: Formats diff comment prompt correctly", function()
     local diff_info = {
-      file_path = "lua/herdr-agy/notify.lua",
+      file_path = "lua/sagani/notify.lua",
       start_line = 12,
       end_line = 15,
       diff_text = "- old line\n+ new line",
     }
     local res = format.build_diff_prompt("Looks good", diff_info)
-    local expected = "Looks good\n\nDiff Context from `lua/herdr-agy/notify.lua` (L12-L15):\n```diff\n- old line\n+ new line\n```"
+    local expected = "Looks good\n\nDiff Context from `lua/sagani/notify.lua` (L12-L15):\n```diff\n- old line\n+ new line\n```"
     assert_eq(res, expected, "build_diff_prompt matches format")
   end)
 
   run_test("build_diff_prompt: Single line diff and nil comment fallbacks", function()
     local diff_info = {
-      file_path = "lua/herdr-agy/notify.lua",
+      file_path = "lua/sagani/notify.lua",
       start_line = 12,
       end_line = 12,
       diff_text = "+ single line addition",
     }
     local res = format.build_diff_prompt(nil, diff_info)
-    local expected = "Diff review comment:\n\nDiff Context from `lua/herdr-agy/notify.lua` (L12):\n```diff\n+ single line addition\n```"
+    local expected = "Diff review comment:\n\nDiff Context from `lua/sagani/notify.lua` (L12):\n```diff\n+ single line addition\n```"
     assert_eq(res, expected, "single line diff and default comment match format")
   end)
 

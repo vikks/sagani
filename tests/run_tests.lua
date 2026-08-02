@@ -1,4 +1,5 @@
--- Master Headless Test Runner for herdr-agy.nvim
+-- Master Headless Test Runner for sagani.nvim
+-- Target modules: sagani.topology, sagani.selection, sagani.diff, sagani.format, sagani.init
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. project_root .. "/?.lua;" .. package.path
 
@@ -15,7 +16,7 @@ vim.ui.input = function(opts, cb)
 end
 
 print("==========================================================")
-print("  herdr-agy.nvim Master Test Runner")
+print("  sagani.nvim Master Test Runner")
 print("==========================================================")
 
 local tests_dir = project_root .. "/tests"

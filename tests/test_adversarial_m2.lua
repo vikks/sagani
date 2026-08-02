@@ -1,8 +1,8 @@
--- Headless Neovim Adversarial Test Suite for herdr-agy.nvim LazyVim Spec (M2)
+-- Headless Neovim Adversarial Test Suite for sagani.nvim LazyVim Spec (M2)
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
-local init = require("herdr-agy")
+local init = require("sagani")
 
 local M = {}
 
@@ -42,7 +42,7 @@ function M.run()
     end
   end
 
-  local plugin_spec_path = project_root .. "/plugins/herdr-agy.lua"
+  local plugin_spec_path = project_root .. "/plugins/sagani.lua"
 
   local function find_spec(specs, name)
     if type(specs) ~= "table" then return nil end
@@ -64,7 +64,7 @@ function M.run()
     package.loaded["folke/which-key.nvim"] = nil
 
     local ok, specs = pcall(dofile, plugin_spec_path)
-    assert_true(ok, "plugins/herdr-agy.lua executes cleanly without which-key loaded")
+    assert_true(ok, "plugins/sagani.lua executes cleanly without which-key loaded")
     assert_true(type(specs) == "table" and #specs == 2, "returns spec array with 2 entries")
 
     local wk_spec = find_spec(specs, "folke/which-key.nvim")
@@ -72,7 +72,7 @@ function M.run()
     assert_eq(wk_spec.optional, true, "which-key spec is optional=true")
 
     -- Ensure lazy.nvim can filter or evaluate specs independently
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
     assert_true(main_spec ~= nil, "main spec present independently of which-key")
   end)
 
@@ -85,7 +85,7 @@ function M.run()
 
     local group_item = wk_spec.opts.spec[1]
     assert_eq(group_item[1], "<leader>a", "group prefix is <leader>a")
-    assert_eq(group_item.group, "AGY / Herdr", "group name is AGY / Herdr")
+    assert_eq(group_item.group, "Sagani", "group name is Sagani")
   end)
 
   -- ==========================================================
@@ -94,7 +94,7 @@ function M.run()
 
   run_test("adversarial_opts: custom options table merging and overrides", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
 
     local custom_opts = {
       target_agent = "my_custom_agy",
@@ -116,7 +116,7 @@ function M.run()
 
   run_test("adversarial_opts: partial user options leave defaults intact", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
 
     main_spec.config(main_spec, { target_agent = "partial_agent" })
 
@@ -132,7 +132,7 @@ function M.run()
 
   run_test("adversarial_keymaps: keymap modes in spec and command coverage", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
 
     local function find_key(lhs, mode)
       for _, k in ipairs(main_spec.keys) do
@@ -171,7 +171,7 @@ function M.run()
 
   run_test("adversarial_keymaps: user commands execution from normal mode", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
     main_spec.config(main_spec, { notify = { enabled = false } })
 
     local orig_input = vim.ui.input
@@ -182,24 +182,24 @@ function M.run()
     end
 
     -- Test executing user commands without error
-    local ok1 = pcall(vim.cmd, "HerdrAgyStatus")
-    assert_true(ok1, "HerdrAgyStatus executes in normal mode")
+    local ok1 = pcall(vim.cmd, "SaganiStatus")
+    assert_true(ok1, "SaganiStatus executes in normal mode")
 
-    local ok2 = pcall(vim.cmd, "HerdrAgySend")
-    assert_true(ok2, "HerdrAgySend executes in normal mode")
+    local ok2 = pcall(vim.cmd, "SaganiSend")
+    assert_true(ok2, "SaganiSend executes in normal mode")
 
-    local ok3 = pcall(vim.cmd, "HerdrAgyContext")
-    assert_true(ok3, "HerdrAgyContext executes in normal mode")
+    local ok3 = pcall(vim.cmd, "SaganiContext")
+    assert_true(ok3, "SaganiContext executes in normal mode")
 
-    local ok4 = pcall(vim.cmd, "HerdrAgyDiff")
-    assert_true(ok4, "HerdrAgyDiff executes in normal mode")
+    local ok4 = pcall(vim.cmd, "SaganiDiff")
+    assert_true(ok4, "SaganiDiff executes in normal mode")
 
     vim.ui.input = orig_input
   end)
 
   run_test("adversarial_keymaps: user commands range execution in visual mode", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
     main_spec.config(main_spec, { notify = { enabled = false } })
 
     local orig_input = vim.ui.input
@@ -215,19 +215,19 @@ function M.run()
     vim.api.nvim_set_current_buf(buf)
 
     -- Test range command execution with range
-    local ok1 = pcall(vim.cmd, "1,2HerdrAgySend")
-    assert_true(ok1, "1,2HerdrAgySend with range succeeds (range = true)")
+    local ok1 = pcall(vim.cmd, "1,2SaganiSend")
+    assert_true(ok1, "1,2SaganiSend with range succeeds (range = true)")
 
-    local ok1_ctx = pcall(vim.cmd, "1,2HerdrAgyContext")
-    assert_true(ok1_ctx, "1,2HerdrAgyContext with range succeeds (range = true)")
+    local ok1_ctx = pcall(vim.cmd, "1,2SaganiContext")
+    assert_true(ok1_ctx, "1,2SaganiContext with range succeeds (range = true)")
 
-    -- Test whether HerdrAgyDiff or HerdrAgyPrompt accept ranges
-    local ok2, err2 = pcall(vim.cmd, "1,2HerdrAgyDiff")
-    -- Note: HerdrAgyDiff lacks range = true, so command mode visual ranges fail with E481
-    print("  ℹ Note: 1,2HerdrAgyDiff with range ok=" .. tostring(ok2) .. (err2 and (" err=" .. tostring(err2)) or ""))
+    -- Test whether SaganiDiff or SaganiPrompt accept ranges
+    local ok2, err2 = pcall(vim.cmd, "1,2SaganiDiff")
+    -- Note: SaganiDiff lacks range = true, so command mode visual ranges fail with E481
+    print("  ℹ Note: 1,2SaganiDiff with range ok=" .. tostring(ok2) .. (err2 and (" err=" .. tostring(err2)) or ""))
 
-    local ok3, err3 = pcall(vim.cmd, "1,2HerdrAgyPrompt Test")
-    print("  ℹ Note: 1,2HerdrAgyPrompt with range ok=" .. tostring(ok3) .. (err3 and (" err=" .. tostring(err3)) or ""))
+    local ok3, err3 = pcall(vim.cmd, "1,2SaganiPrompt Test")
+    print("  ℹ Note: 1,2SaganiPrompt with range ok=" .. tostring(ok3) .. (err3 and (" err=" .. tostring(err3)) or ""))
 
     vim.ui.input = orig_input
   end)
@@ -238,7 +238,7 @@ function M.run()
 
   run_test("adversarial_config: handles nil opts without crashing", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
 
     local ok = pcall(main_spec.config, main_spec, nil)
     assert_true(ok, "config(spec, nil) executes without exception")
@@ -247,7 +247,7 @@ function M.run()
 
   run_test("adversarial_config: handles primitive non-table opts without crashing", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
 
     local ok_str = pcall(main_spec.config, main_spec, "string_opts")
     assert_true(ok_str, "config(spec, 'string') succeeds")
@@ -261,7 +261,7 @@ function M.run()
 
   run_test("adversarial_config: handles invalid first argument (nil or dummy)", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
 
     local ok = pcall(main_spec.config, nil, { target_agent = "dummy_agent" })
     assert_true(ok, "config(nil, opts) succeeds since first argument is unused")
@@ -270,7 +270,7 @@ function M.run()
 
   run_test("adversarial_config: handles invalid types inside opts fields", function()
     local specs = dofile(plugin_spec_path)
-    local main_spec = find_spec(specs, "herdr-agy.nvim")
+    local main_spec = find_spec(specs, "sagani.nvim")
 
     local invalid_inner_opts = {
       target_agent = nil, -- nil field in table

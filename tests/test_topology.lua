@@ -1,10 +1,10 @@
--- Headless Neovim Test Suite for herdr-agy.nvim Topology Module
+-- Headless Neovim Test Suite for sagani.nvim Topology Module
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
-local topology = require("herdr-agy.topology")
-local notify = require("herdr-agy.notify")
-local init = require("herdr-agy.init")
+local topology = require("sagani.topology")
+local notify = require("sagani.notify")
+local init = require("sagani.init")
 
 local M = {}
 
@@ -328,11 +328,11 @@ function M.run()
 
     assert_eq(init.options.target_agent, "custom_agy", "setup target_agent")
     assert_eq(init.options.notify.title, "Custom Title", "setup notify title")
-    assert_true(vim.fn.exists(":HerdrAgyStatus") == 2, ":HerdrAgyStatus user command registered")
-    assert_true(vim.fn.exists(":HerdrAgySelectTarget") == 2, ":HerdrAgySelectTarget user command registered")
-    assert_true(vim.fn.exists(":HerdrAgyPrompt") == 2, ":HerdrAgyPrompt user command registered")
-    assert_true(vim.fn.exists(":HerdrAgySend") == 2, ":HerdrAgySend user command registered")
-    assert_true(vim.fn.exists(":HerdrAgyDiff") == 2, ":HerdrAgyDiff user command registered")
+    assert_true(vim.fn.exists(":SaganiStatus") == 2, ":SaganiStatus user command registered")
+    assert_true(vim.fn.exists(":SaganiSelectTarget") == 2, ":SaganiSelectTarget user command registered")
+    assert_true(vim.fn.exists(":SaganiPrompt") == 2, ":SaganiPrompt user command registered")
+    assert_true(vim.fn.exists(":SaganiSend") == 2, ":SaganiSend user command registered")
+    assert_true(vim.fn.exists(":SaganiDiff") == 2, ":SaganiDiff user command registered")
   end)
 
   run_test("notify: info/warn/error helpers execute without throwing errors", function()

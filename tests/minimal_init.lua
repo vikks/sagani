@@ -1,4 +1,4 @@
--- Minimal init for Plenary test harness and headless test execution
+-- Minimal init for Plenary test harness and headless test execution for sagani.nvim
 vim.opt.rtp:append('.')
 
 -- Add plenary.nvim path if present in stdpath("data") or site/pack paths
