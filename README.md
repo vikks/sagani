@@ -132,7 +132,7 @@ require("sagani").setup({
 
   -- General question agent configuration
   ask_agent = {
-    target_agent = nil, -- Target agent harness for general questions (if nil, prompts on first use & remembers for session)
+    target_agent = nil, -- Specific target agent for general questions (if nil, uses active session agent set via <leader>ah or target_agent)
   },
 
   -- Agent edit review configuration

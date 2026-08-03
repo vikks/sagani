@@ -93,6 +93,7 @@ Every backend adapter **must** implement the following interface:
   spawn_popup(opts)                   -- returns agent_target, err, metadata
                                       -- (for Herdr: agent_target is the agent name used by `herdr agent prompt`)
   prompt_target(id, text, opts)       -- returns ok (bool), err
+  wait_for_ready(id, opts)            -- returns ok (bool), waits for agent initialization/readiness
 }
 ```
 
@@ -130,7 +131,7 @@ Every backend adapter **must** implement the following interface:
 ### `lua/sagani/init.lua`
 - `init.setup(user_opts)`: Initializes default options, registers all user commands, binds default keymaps, and registers WhichKey group. Routes all dispatch through `backend.get_backend(opts)` rather than calling topology or herdr directly. **Called exclusively via the `config` function in `plugins/sagani.lua`** — there is no `plugin/` auto-init.
 - `init.dispatch_prompt(prompt_text, target_pane, opts)`: Main dispatch entry point. Calls `adapter.discover_target(opts)` if no pane given, then `adapter.prompt_target(pane_id, text, opts)`. Pre-captures diff baseline snapshot. Contains safety guard `_G.RUNNING_TEST_SUITE`.
-- `init.ask_agent_prompt(prompt_text, opts)`: Spawns a popup via `adapter.spawn_popup(popup_opts)` and dispatches prompt. Resolves agent via `ask_agent.target_agent` → session cache (`M._session_ask_agent`) → runtime input prompt. Appends `@[abs_path]` file reference.
+- `init.ask_agent_prompt(prompt_text, opts)`: Spawns a popup via `adapter.spawn_popup(popup_opts)` and dispatches prompt. Resolves target agent via `ask_agent.target_agent` → `M.options.target_agent` (set via `<leader>ah` / `:SaganiSelectAgent` or config). Appends `@[abs_path]` file reference.
 - `init.select_agent_harness(arg, opts)`: Switches target agent harness interactively (`vim.ui.select`) or via argument.
 
 **Registered Commands:**
