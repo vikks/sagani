@@ -123,7 +123,8 @@ function M.send_selection_prompt(opts)
 
     local payload = format.build_context_prompt(input, selection)
     local main = require("sagani")
-    main.dispatch_prompt(payload, nil, opts)
+    local dispatch_opts = vim.tbl_deep_extend("force", opts or {}, { task_type = "code" })
+    main.dispatch_prompt(payload, nil, dispatch_opts)
   end)
 end
 
@@ -139,7 +140,8 @@ function M.send_code_context(opts)
 
   local payload = format.build_context_prompt("Context snippet for review:", selection)
   local main = require("sagani")
-  return main.dispatch_prompt(payload, nil, opts)
+  local dispatch_opts = vim.tbl_deep_extend("force", opts or {}, { task_type = "code" })
+  return main.dispatch_prompt(payload, nil, dispatch_opts)
 end
 
 return M

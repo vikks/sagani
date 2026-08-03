@@ -711,7 +711,8 @@ function M.send_diff_comment(opts)
 
     local payload = format.build_diff_prompt(input, diff_info)
     local main = require("sagani")
-    main.dispatch_prompt(payload, nil, opts)
+    local dispatch_opts = vim.tbl_deep_extend("force", opts or {}, { task_type = "review" })
+    main.dispatch_prompt(payload, nil, dispatch_opts)
   end)
 
   return true

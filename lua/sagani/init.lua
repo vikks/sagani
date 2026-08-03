@@ -422,7 +422,15 @@ function M.ask_agent_prompt(prompt_text, opts)
 
     local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(opts, "ask")
     local harness = agent_name or agent_opts.harness
-    local popup_opts = vim.tbl_deep_extend("force", opts, { target_agent = harness, placement = placement, ui_opts = ui_opts, agent_opts = agent_opts })
+    local popup_opts = vim.tbl_deep_extend("force", opts, {
+      adapter = adapter,
+      backend_name = backend_name,
+      task_type = "ask",
+      target_agent = harness,
+      placement = placement,
+      ui_opts = ui_opts,
+      agent_opts = agent_opts,
+    })
 
     local agent_target, err, meta
     if placement == "popup" or placement == "floating" then
@@ -525,7 +533,12 @@ function M.dispatch_prompt(prompt_text, target_pane, opts)
     target_pane = nil
   end
 
-  local adapter, backend_name = backend.get_backend(opts)
+  local adapter = opts.adapter
+  local backend_name = opts.backend_name
+  if not adapter then
+    local task_type = opts.task_type or "chat"
+    adapter, backend_name = backend.get_backend(opts, task_type)
+  end
 
   local pane_override = (type(opts.pane_override) == "string" and opts.pane_override ~= "") and opts.pane_override or (type(opts.pane_override) == "number" and tostring(opts.pane_override) or nil)
   local pane_id = target_pane or pane_override
