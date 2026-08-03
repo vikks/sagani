@@ -36,6 +36,48 @@ function M.build_acp_command(harness, prompt_text, agent_opts)
   return cmd
 end
 
+--- Checks if OpenCode ACP server is healthy, and auto-spawns it in background if missing
+--- @param port number Port number (default 4096)
+--- @return boolean ready True if server is healthy and ready
+function M.ensure_opencode_server(port)
+  if _G.RUNNING_TEST_SUITE then
+    return false
+  end
+
+  port = port or 4096
+  local url = string.format("http://127.0.0.1:%d", port)
+
+  if vim.fn.executable("curl") == 0 or vim.fn.executable("opencode") == 0 then
+    return false
+  end
+
+  -- Check if server is already running and healthy
+  local health_cmd = { "curl", "-s", "-m", "1", url .. "/global/health" }
+  local h_res = vim.system and vim.system(health_cmd):wait()
+  if h_res and h_res.code == 0 and h_res.stdout and h_res.stdout:find("healthy") then
+    return true
+  end
+
+  -- Auto-spawn opencode acp server in background
+  local spawn_cmd = { "opencode", "acp", "--port", tostring(port) }
+  if vim.system then
+    pcall(function() vim.system(spawn_cmd, { detach = true }) end)
+  else
+    pcall(function() vim.fn.jobstart(spawn_cmd, { detach = true }) end)
+  end
+
+  -- Poll health for up to 3000ms
+  if vim.wait then
+    local ok = vim.wait(3000, function()
+      local check = vim.system and vim.system(health_cmd):wait()
+      return check and check.code == 0 and check.stdout and check.stdout:find("healthy") ~= nil
+    end, 200)
+    return ok
+  end
+
+  return false
+end
+
 --- Attempts execution via running OpenCode ACP HTTP server (default port 4096)
 --- @param prompt_text string Prompt text
 --- @param agent_opts table Agent execution options
@@ -49,14 +91,7 @@ function M.try_opencode_http_acp(prompt_text, agent_opts, callback)
   local port = (agent_opts and agent_opts.port) or 4096
   local url = string.format("http://127.0.0.1:%d", port)
 
-  if vim.fn.executable("curl") == 0 then
-    return false
-  end
-
-  -- Check server health
-  local health_cmd = { "curl", "-s", "-m", "1", url .. "/global/health" }
-  local h_res = vim.system and vim.system(health_cmd):wait()
-  if not h_res or h_res.code ~= 0 or not (h_res.stdout and h_res.stdout:find("healthy")) then
+  if not M.ensure_opencode_server(port) then
     return false
   end
 
