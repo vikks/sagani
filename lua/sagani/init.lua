@@ -495,6 +495,13 @@ function M.dispatch_prompt(prompt_text, target_pane, opts)
     return false, err
   end
 
+  if meta and meta.spawned then
+    notify.info(string.format("Agent initializing... Prompt queued for automatic delivery to %s", pane_id), opts)
+    if type(adapter.wait_for_ready) == "function" then
+      adapter.wait_for_ready(pane_id, opts)
+    end
+  end
+
   local ok, send_err = adapter.prompt_target(pane_id, prompt_text, opts)
   if not ok then
     local msg = string.format("Failed to prompt agent pane '%s' (%s)", pane_id, send_err or "Unknown error")

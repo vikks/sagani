@@ -143,4 +143,8 @@ function M.prompt_target(target_id, prompt_text, opts)
   return true, nil
 end
 
+function M.wait_for_ready(_, _)
+  return true
+end
+
 return M

@@ -144,6 +144,17 @@ function M.run()
     vim.env.HERDR_ENV = original_herdr
   end)
 
+  test("built-in backend adapters implement wait_for_ready contract", function()
+    local names = { "native", "herdr", "tmux", "zellij" }
+    for _, bname in ipairs(names) do
+      local adapter = backend.backends[bname]
+      assert(adapter ~= nil, "Adapter " .. bname .. " exists")
+      assert(type(adapter.wait_for_ready) == "function", "Adapter " .. bname .. " implements wait_for_ready")
+      local ok = adapter.wait_for_ready("p1", { timeout_ms = 100 })
+      assert(ok == true or ok == false, "wait_for_ready returns boolean")
+    end
+  end)
+
   return { passed = passed, failed = failed, failures = failures }
 end
 

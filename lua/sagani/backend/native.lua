@@ -187,6 +187,43 @@ function M.prompt_target(target_id, prompt_text, opts)
   return false, "Invalid target window/buffer for native backend"
 end
 
+function M.wait_for_ready(target_id, opts)
+  opts = type(opts) == "table" and opts or {}
+  if _G.RUNNING_TEST_SUITE then
+    return true
+  end
+
+  local win = tonumber(target_id)
+  local buf = win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) or M._active_buf
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    return true
+  end
+
+  local timeout = opts.timeout_ms or 15000
+  local start_time = (vim.loop and vim.loop.now and vim.loop.now()) or 0
+
+  while true do
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    local text = table.concat(lines, "\n")
+    if text:match("(Tip:|esc to cancel|ctrl%+g|>|Gemini|Opencode|Codex|Hermes)") then
+      return true
+    end
+
+    local now = (vim.loop and vim.loop.now and vim.loop.now()) or (start_time + timeout + 1)
+    if (now - start_time) >= timeout then
+      return true
+    end
+
+    if vim.wait then
+      vim.wait(200)
+    else
+      break
+    end
+  end
+
+  return true
+end
+
 --- Reset session popup buffer for an agent harness
 --- @param agent string|nil Agent harness name
 function M.reset_popup(agent)

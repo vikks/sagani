@@ -81,4 +81,9 @@ function M.prompt_target(target_id, prompt_text, opts)
 	return true, nil
 end
 
+function M.wait_for_ready(target_id, opts)
+	opts = type(opts) == "table" and opts or {}
+	return topology.wait_for_agent_ready(target_id, opts.timeout_ms or 20000, opts)
+end
+
 return M
