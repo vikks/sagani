@@ -440,6 +440,12 @@ function M.ask_agent_prompt(prompt_text, opts)
       local win, buf = markdown_popup.open(string.format("Sagani Agent (%s)", harness:upper()), popup_opts)
       markdown_popup.set_prompt_header(buf, text, harness)
 
+      local progress_cb = function(status_msg)
+        vim.schedule(function()
+          markdown_popup.update_status(buf, status_msg)
+        end)
+      end
+
       acp.execute_prompt(harness, text, agent_opts, function(resp, acp_err)
         if resp then
           markdown_popup.set_response(buf, resp)
@@ -448,7 +454,7 @@ function M.ask_agent_prompt(prompt_text, opts)
           markdown_popup.set_response(buf, "❌ Error: " .. (acp_err or "Unknown ACP error"))
           notify.error(string.format("ACP request to '%s' failed: %s", harness, acp_err or "Unknown error"), opts)
         end
-      end, opts)
+      end, opts, progress_cb)
       return
     end
 

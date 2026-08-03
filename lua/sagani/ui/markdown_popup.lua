@@ -109,6 +109,24 @@ function M.set_prompt_header(buf, prompt_text, agent_name)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, header)
 end
 
+--- Updates loading status message in Markdown popup
+--- @param buf number Buffer handle
+--- @param status_msg string Status text
+function M.update_status(buf, status_msg)
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  for i, line in ipairs(lines) do
+    if line:find("^⏳") then
+      lines[i] = "⏳ *" .. status_msg .. "*"
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+      return
+    end
+  end
+end
+
 --- Replaces loading text with actual response content
 --- @param buf number Buffer handle
 --- @param response_text string Final or streaming response text

@@ -38,8 +38,9 @@ end
 
 --- Checks if OpenCode ACP server is healthy, and auto-spawns it in background if missing
 --- @param port number Port number (default 4096)
+--- @param progress_cb function|nil Progress update callback
 --- @return boolean ready True if server is healthy and ready
-function M.ensure_opencode_server(port)
+function M.ensure_opencode_server(port, progress_cb)
   if _G.RUNNING_TEST_SUITE then
     return false
   end
@@ -51,12 +52,16 @@ function M.ensure_opencode_server(port)
     return false
   end
 
+  if progress_cb then progress_cb("Checking OpenCode ACP server health on port " .. port .. "...") end
+
   -- Check if server is already running and healthy
   local health_cmd = { "curl", "-s", "-m", "1", url .. "/global/health" }
   local h_res = vim.system and vim.system(health_cmd):wait()
   if h_res and h_res.code == 0 and h_res.stdout and h_res.stdout:find("healthy") then
     return true
   end
+
+  if progress_cb then progress_cb("Starting OpenCode ACP background server on port " .. port .. "...") end
 
   -- Auto-spawn opencode acp server in background
   local spawn_cmd = { "opencode", "acp", "--port", tostring(port) }
@@ -82,8 +87,9 @@ end
 --- @param prompt_text string Prompt text
 --- @param agent_opts table Agent execution options
 --- @param callback function Callback receiving (response_text, err)
+--- @param progress_cb function|nil Progress update callback
 --- @return boolean attempted True if HTTP request was handled
-function M.try_opencode_http_acp(prompt_text, agent_opts, callback)
+function M.try_opencode_http_acp(prompt_text, agent_opts, callback, progress_cb)
   if _G.RUNNING_TEST_SUITE then
     return false
   end
@@ -91,9 +97,11 @@ function M.try_opencode_http_acp(prompt_text, agent_opts, callback)
   local port = (agent_opts and agent_opts.port) or 4096
   local url = string.format("http://127.0.0.1:%d", port)
 
-  if not M.ensure_opencode_server(port) then
+  if not M.ensure_opencode_server(port, progress_cb) then
     return false
   end
+
+  if progress_cb then progress_cb("Connected to OpenCode ACP server! Generating response...") end
 
   -- Step 1: Create session
   local create_payload = vim.json.encode({ prompt = prompt_text })
@@ -143,12 +151,13 @@ end
 --- @param agent_opts table Agent execution options
 --- @param callback function Callback receiving (response_text, err)
 --- @param opts table|nil Options (runner for tests)
-function M.execute_prompt(harness, prompt_text, agent_opts, callback, opts)
+--- @param progress_cb function|nil Progress update callback
+function M.execute_prompt(harness, prompt_text, agent_opts, callback, opts, progress_cb)
   opts = type(opts) == "table" and opts or {}
   harness = (harness or "agy"):lower()
 
   if harness == "opencode" and not opts.runner then
-    local handled = M.try_opencode_http_acp(prompt_text, agent_opts, callback)
+    local handled = M.try_opencode_http_acp(prompt_text, agent_opts, callback, progress_cb)
     if handled then
       return
     end
