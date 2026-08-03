@@ -27,7 +27,7 @@ function M.resolve_task_agent(opts, task_type)
   task_type = task_type or "chat"
   local task_val = opts.tasks and opts.tasks[task_type]
 
-  local harness = opts.target_agent or "agy"
+  local harness = opts.target_agent -- Session agent set via <leader>ah
   local provider = nil
   local model = nil
   local effort = nil
@@ -35,15 +35,17 @@ function M.resolve_task_agent(opts, task_type)
   local protocol = nil
 
   if type(task_val) == "string" and task_val ~= "" then
-    harness = task_val
+    harness = harness or task_val
   elseif type(task_val) == "table" then
-    harness = task_val.harness or harness
+    harness = harness or task_val.harness
     provider = task_val.provider
     model = task_val.model
     effort = task_val.effort
     timeout = task_val.timeout
     protocol = task_val.protocol
   end
+
+  harness = harness or "agy"
 
   return {
     harness = harness,

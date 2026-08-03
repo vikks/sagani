@@ -421,7 +421,8 @@ function M.ask_agent_prompt(prompt_text, opts)
     end
 
     local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(opts, "ask")
-    local harness = agent_name or agent_opts.harness
+    local harness = (type(agent_name) == "string" and agent_name ~= "") and agent_name or (agent_opts and agent_opts.harness) or M.options.target_agent or "agy"
+    agent_opts.harness = harness
     local popup_opts = vim.tbl_deep_extend("force", opts, {
       adapter = adapter,
       backend_name = backend_name,

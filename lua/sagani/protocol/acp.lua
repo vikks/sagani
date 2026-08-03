@@ -64,7 +64,7 @@ function M.execute_prompt(harness, prompt_text, agent_opts, callback, opts)
   end
 
   if vim.system then
-    vim.system(cmd, { text = true }, function(obj)
+    vim.system(cmd, { text = true, stdin = "" }, function(obj)
       vim.schedule(function()
         if obj.code == 0 then
           local out = (obj.stdout and obj.stdout ~= "") and obj.stdout or (obj.stderr or "")
