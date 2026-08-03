@@ -278,9 +278,19 @@ sagani.nvim/
 │       ├── protocol/        # Protocol-first transport adapters
 │       │   ├── init.lua     # Master Protocol module entry point
 │       │   ├── acp.lua      # High-level ACP router facade
-│       │   ├── http.lua     # HTTP REST transport (OpenCode server API & auto-spawner)
-│       │   ├── cli.lua      # CLI subprocess transport (agy -p, gemini -p, codex exec)
-│       │   └── json_rpc.lua # JSON-RPC 2.0 stdio transport
+│       │   ├── http.lua     # High-level HTTP contract & router
+│       │   ├── cli.lua      # High-level CLI contract & router
+│       │   ├── json_rpc.lua # High-level JSON-RPC contract & router
+│       │   ├── http/        # Agent HTTP implementations
+│       │   │   └── opencode.lua
+│       │   ├── cli/         # Agent CLI implementations
+│       │   │   ├── agy.lua
+│       │   │   ├── gemini.lua
+│       │   │   ├── codex.lua
+│       │   │   ├── hermes.lua
+│       │   │   └── opencode.lua
+│       │   └── json_rpc/    # Agent JSON-RPC implementations
+│       │       └── gemini.lua
 │       └── backend/         # Multiplexer backend adapters (all implement the contract)
 │           ├── herdr.lua    # Herdr adapter (pure CLI: pane split + agent start + agent prompt)
 │           ├── herdr/
