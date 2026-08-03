@@ -68,10 +68,10 @@ require("sagani").setup({
   -- Default target AI coding agent harness ("agy", "codex", "opencode", "hermes", etc.)
   target_agent = "agy",
 
-  -- 1. Tasks Configuration (WHAT agent harness, provider, model to run per task)
+  -- 1. Tasks Configuration (WHAT agent harness, provider, model, protocol to run per task)
   tasks = {
-    ask = { harness = "agy", provider = "google", model = "pro", effort = "high" },
-    review = { harness = "codex", provider = "openai", model = "gpt-4o" },
+    ask = { protocol = "acp", harness = "agy", provider = "google", model = "pro", effort = "high" }, -- Terminal-free ACP Q&A rendered in a native Markdown buffer!
+    review = { protocol = "terminal", harness = "codex", provider = "openai", model = "gpt-4o" },
 
     -- Short-form string syntax specifies the agent harness name directly:
     code = "opencode",  -- Short for { harness = "opencode" }
