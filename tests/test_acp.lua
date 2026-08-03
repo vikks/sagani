@@ -44,14 +44,20 @@ function M.run()
   -- 1. ACP COMMAND BUILDER & TRANSPORT TESTS
   -- ==========================================================
 
-  run_test("acp.build_acp_command: builds command arrays for agy, codex, opencode, hermes", function()
+  run_test("acp.build_acp_command: builds command arrays for agy, gemini, codex, opencode, hermes", function()
     local cmd_agy = acp.build_acp_command("agy", "test prompt", { model = "pro" })
     assert_eq(cmd_agy[1], "agy", "agy binary name")
-    assert_eq(cmd_agy[2], "prompt", "agy subcommand")
+    assert_eq(cmd_agy[2], "-p", "agy print flag")
     assert_eq(cmd_agy[3], "test prompt", "agy prompt text")
-    assert_eq(cmd_agy[4], "--non-interactive", "agy non-interactive flag")
-    assert_eq(cmd_agy[5], "--model", "agy model flag")
-    assert_eq(cmd_agy[6], "pro", "agy model pro")
+    assert_eq(cmd_agy[4], "--output-format", "agy output format flag")
+    assert_eq(cmd_agy[5], "text", "agy output format text")
+    assert_eq(cmd_agy[6], "--model", "agy model flag")
+    assert_eq(cmd_agy[7], "pro", "agy model pro")
+
+    local cmd_gemini = acp.build_acp_command("gemini", "gemini prompt", { model = "pro" })
+    assert_eq(cmd_gemini[1], "gemini", "gemini binary name")
+    assert_eq(cmd_gemini[2], "-p", "gemini prompt flag")
+    assert_eq(cmd_gemini[3], "gemini prompt", "gemini prompt text")
 
     local cmd_codex = acp.build_acp_command("codex", "codex prompt")
     assert_eq(cmd_codex[1], "codex", "codex binary name")

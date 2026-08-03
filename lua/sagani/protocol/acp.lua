@@ -18,13 +18,23 @@ function M.build_acp_command(harness, prompt_text, agent_opts)
 
   local cmd = {}
   if harness == "agy" or harness == "antigravity" then
-    cmd = { "agy", "prompt", prompt_text, "--non-interactive" }
+    cmd = { "agy", "-p", prompt_text, "--output-format", "text" }
     if agent_opts.model then
       table.insert(cmd, "--model")
       table.insert(cmd, agent_opts.model)
     end
+  elseif harness == "gemini" or harness == "gemini-cli" then
+    cmd = { "gemini", "-p", prompt_text, "-o", "text" }
+    if agent_opts.model then
+      table.insert(cmd, "-m")
+      table.insert(cmd, agent_opts.model)
+    end
   elseif harness == "codex" then
     cmd = { "codex", "exec", prompt_text }
+    if agent_opts.model then
+      table.insert(cmd, "-m")
+      table.insert(cmd, agent_opts.model)
+    end
   elseif harness == "opencode" then
     cmd = { "opencode", "run", prompt_text }
   elseif harness == "hermes" then
