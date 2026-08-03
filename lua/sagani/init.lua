@@ -18,10 +18,8 @@ M.defaults = {
   target_agent = "agy",
 
   tasks = {
-    ask = { harness = "agy", effort = "high" },
-    review = { harness = "agy", effort = "medium" },
-    code = "agy",
-    chat = "agy",
+    ask = { effort = "high" },
+    review = { effort = "medium" },
   },
 
   window_opts = {
@@ -193,10 +191,11 @@ function M.setup(user_opts)
 
   vim.api.nvim_create_user_command("SaganiSpawnPane", function()
     local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(M.options, "chat")
-    local opts = vim.tbl_deep_extend("force", M.options, { placement = placement, ui_opts = ui_opts, agent_opts = agent_opts })
+    local harness = (agent_opts and agent_opts.harness) or M.options.target_agent or "agy"
+    local opts = vim.tbl_deep_extend("force", M.options, { target_agent = harness, placement = placement, ui_opts = ui_opts, agent_opts = agent_opts })
     local pane_id, err, _ = adapter.spawn_pane(opts)
     if pane_id then
-      notify.info(string.format("Spawned new pane '%s' for '%s' via %s backend", pane_id, M.options.target_agent, backend_name), M.options)
+      notify.info(string.format("Spawned new pane '%s' for '%s' via %s backend", pane_id, harness, backend_name), M.options)
     else
       notify.error(string.format("Failed to spawn pane via %s: %s", backend_name, err or "Unknown error"), M.options)
     end

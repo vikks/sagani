@@ -166,7 +166,7 @@ end
 function M.spawn_agent_pane(opts)
   opts = type(opts) == "table" and opts or {}
   local current_cwd = opts.cwd or vim.fn.getcwd()
-  local target_agent = opts.target_agent or "agy"
+  local target_agent = (opts.agent_opts and opts.agent_opts.harness) or opts.target_agent or "agy"
   local env = M.detect_env(opts.runner)
   local caller_pane_id = opts.caller_pane_id or env.pane_id
 

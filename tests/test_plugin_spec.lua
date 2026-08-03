@@ -266,6 +266,10 @@ function M.run()
 
     init.select_agent_harness("hermes")
     assert_eq(init.options.target_agent, "hermes", "explicit arg sets target_agent to hermes")
+
+    local backend_lib = require("sagani.backend")
+    local _, _, _, _, agent_opts = backend_lib.get_backend(init.options, "chat")
+    assert_eq(agent_opts.harness, "hermes", "backend.get_backend resolves target_agent hermes for chat task")
   end)
 
   run_test("ask_agent_config: setup() merges ask_agent defaults and user overrides", function()
