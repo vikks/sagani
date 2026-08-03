@@ -393,7 +393,7 @@ end
 --- @param prompt_text string|nil User prompt or nil to prompt interactively.
 --- @param opts table|nil Options table.
 function M.ask_agent_prompt(prompt_text, opts)
-  opts = type(opts) == "table" and opts or M.options
+  opts = vim.tbl_deep_extend("force", M.options, type(opts) == "table" and opts or {})
   local ask_opts = type(opts.ask_agent) == "table" and opts.ask_agent or {}
 
   local function do_ask(agent_name, text)
@@ -431,6 +431,25 @@ function M.ask_agent_prompt(prompt_text, opts)
       ui_opts = ui_opts,
       agent_opts = agent_opts,
     })
+
+    if agent_opts and agent_opts.protocol == "acp" then
+      local markdown_popup = require("sagani.ui.markdown_popup")
+      local acp = require("sagani.protocol.acp")
+
+      local win, buf = markdown_popup.open(string.format("Sagani Agent (%s)", harness:upper()), popup_opts)
+      markdown_popup.set_prompt_header(buf, text, harness)
+
+      acp.execute_prompt(harness, text, agent_opts, function(resp, acp_err)
+        if resp then
+          markdown_popup.set_response(buf, resp)
+          notify.info(string.format("Received response from '%s' via ACP", harness), opts)
+        else
+          markdown_popup.set_response(buf, "❌ Error: " .. (acp_err or "Unknown ACP error"))
+          notify.error(string.format("ACP request to '%s' failed: %s", harness, acp_err or "Unknown error"), opts)
+        end
+      end, opts)
+      return
+    end
 
     local agent_target, err, meta
     if placement == "popup" or placement == "floating" then

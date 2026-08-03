@@ -32,6 +32,7 @@ function M.resolve_task_agent(opts, task_type)
   local model = nil
   local effort = nil
   local timeout = nil
+  local protocol = nil
 
   if type(task_val) == "string" and task_val ~= "" then
     harness = task_val
@@ -41,6 +42,7 @@ function M.resolve_task_agent(opts, task_type)
     model = task_val.model
     effort = task_val.effort
     timeout = task_val.timeout
+    protocol = task_val.protocol
   end
 
   return {
@@ -49,6 +51,7 @@ function M.resolve_task_agent(opts, task_type)
     model = model,
     effort = effort,
     timeout = timeout,
+    protocol = protocol,
   }
 end
 
