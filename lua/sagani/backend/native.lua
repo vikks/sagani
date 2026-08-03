@@ -133,6 +133,17 @@ function M.spawn_popup(opts)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, welcome)
   end
 
+  -- Buffer-local keymaps for easy closing
+  vim.keymap.set("n", "q", function()
+    if vim.api.nvim_win_is_valid(win) then pcall(vim.api.nvim_win_close, win, true) end
+  end, { buffer = buf, silent = true, desc = "Close Sagani popup" })
+
+  vim.keymap.set("n", "<Esc>", function()
+    if vim.api.nvim_win_is_valid(win) then pcall(vim.api.nvim_win_close, win, true) end
+  end, { buffer = buf, silent = true, desc = "Close Sagani popup" })
+
+  vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>:q<CR>", { buffer = buf, silent = true, desc = "Close Sagani popup" })
+
   return win_id_str, nil, { spawned = true, is_popup = true }
 end
 
