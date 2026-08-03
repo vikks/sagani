@@ -448,7 +448,8 @@ function M.ask_agent_prompt(prompt_text, opts)
         end)
       end
 
-      acp.execute_prompt(harness, text, agent_opts, function(resp, acp_err)
+      acp.execute_prompt(harness, text, agent_opts, function(resp, acp_err, session_id)
+        markdown_popup.set_session(buf, harness, session_id, agent_opts, popup_opts)
         if resp then
           markdown_popup.set_response(buf, resp)
           notify.info(string.format("Received response from '%s' via ACP", harness), opts)

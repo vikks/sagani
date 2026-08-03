@@ -92,13 +92,49 @@ function M.ensure_opencode_server_async(port, progress_cb, on_ready)
   end)
 end
 
+--- Sends a message to an active OpenCode session ID
+--- @param url string Base server URL
+--- @param session_id string Session ID
+--- @param prompt_text string Prompt text
+--- @param callback function Callback receiving (response_text, err, session_id)
+--- @param progress_cb function|nil Progress update callback
+function M.send_opencode_message(url, session_id, prompt_text, callback, progress_cb)
+  if progress_cb then progress_cb("Generating response from OpenCode model...") end
+  local msg_payload = vim.json.encode({ parts = { { type = "text", text = prompt_text } } })
+  local msg_cmd = {
+    "curl", "-s", "-X", "POST", url .. "/session/" .. session_id .. "/message",
+    "-H", "Content-Type: application/json",
+    "-d", msg_payload,
+  }
+
+  vim.system(msg_cmd, { text = true }, function(m_obj)
+    vim.schedule(function()
+      local m_ok, m_data = pcall(vim.json.decode, m_obj.stdout or "")
+      if m_ok and type(m_data) == "table" and type(m_data.parts) == "table" then
+        local text_parts = {}
+        for _, p in ipairs(m_data.parts) do
+          if type(p) == "table" and p.type == "text" and type(p.text) == "string" and p.text ~= "" then
+            table.insert(text_parts, p.text)
+          end
+        end
+        if #text_parts > 0 then
+          callback(table.concat(text_parts, "\n"), nil, session_id)
+          return
+        end
+      end
+      callback(nil, "OpenCode ACP server returned empty response parts", session_id)
+    end)
+  end)
+end
+
 --- Attempts execution via running OpenCode ACP HTTP server (default port 4096)
 --- @param prompt_text string Prompt text
 --- @param agent_opts table Agent execution options
---- @param callback function Callback receiving (response_text, err)
+--- @param callback function Callback receiving (response_text, err, session_id)
 --- @param progress_cb function|nil Progress update callback
+--- @param session_id string|nil Optional existing session ID for follow-up queries
 --- @return boolean attempted True if HTTP request was handled
-function M.try_opencode_http_acp(prompt_text, agent_opts, callback, progress_cb)
+function M.try_opencode_http_acp(prompt_text, agent_opts, callback, progress_cb, session_id)
   if _G.RUNNING_TEST_SUITE then
     return false
   end
@@ -108,22 +144,26 @@ function M.try_opencode_http_acp(prompt_text, agent_opts, callback, progress_cb)
 
   M.ensure_opencode_server_async(port, progress_cb, function(ready)
     if not ready then
-      -- Fallback to CLI run command if HTTP server unavailable
       local cmd = M.build_acp_command("opencode", prompt_text, agent_opts)
       vim.system(cmd, { text = true, stdin = "" }, function(obj)
         vim.schedule(function()
           if obj.code == 0 then
             local out = (obj.stdout and obj.stdout ~= "") and obj.stdout or (obj.stderr or "")
-            callback(out, nil)
+            callback(out, nil, nil)
           else
-            callback(nil, string.format("ACP execution failed: %s", obj.stderr or obj.stdout or "Unknown error"))
+            callback(nil, string.format("ACP execution failed: %s", obj.stderr or obj.stdout or "Unknown error"), nil)
           end
         end)
       end)
       return
     end
 
-    if progress_cb then progress_cb("Connected to OpenCode ACP server! Generating response...") end
+    if session_id and session_id ~= "" then
+      M.send_opencode_message(url, session_id, prompt_text, callback, progress_cb)
+      return
+    end
+
+    if progress_cb then progress_cb("Connected to OpenCode ACP server! Creating session...") end
 
     local create_payload = vim.json.encode({ prompt = prompt_text })
     local create_cmd = {
@@ -135,38 +175,14 @@ function M.try_opencode_http_acp(prompt_text, agent_opts, callback, progress_cb)
     vim.system(create_cmd, { text = true }, function(s_obj)
       vim.schedule(function()
         local s_ok, s_data = pcall(vim.json.decode, s_obj.stdout or "")
-        local session_id = s_ok and type(s_data) == "table" and s_data.id
+        local new_session_id = s_ok and type(s_data) == "table" and s_data.id
 
-        if not session_id then
-          callback(nil, "OpenCode ACP server returned invalid session ID")
+        if not new_session_id then
+          callback(nil, "OpenCode ACP server returned invalid session ID", nil)
           return
         end
 
-        local msg_payload = vim.json.encode({ parts = { { type = "text", text = prompt_text } } })
-        local msg_cmd = {
-          "curl", "-s", "-X", "POST", url .. "/session/" .. session_id .. "/message",
-          "-H", "Content-Type: application/json",
-          "-d", msg_payload,
-        }
-
-        vim.system(msg_cmd, { text = true }, function(m_obj)
-          vim.schedule(function()
-            local m_ok, m_data = pcall(vim.json.decode, m_obj.stdout or "")
-            if m_ok and type(m_data) == "table" and type(m_data.parts) == "table" then
-              local text_parts = {}
-              for _, p in ipairs(m_data.parts) do
-                if type(p) == "table" and p.type == "text" and type(p.text) == "string" and p.text ~= "" then
-                  table.insert(text_parts, p.text)
-                end
-              end
-              if #text_parts > 0 then
-                callback(table.concat(text_parts, "\n"), nil)
-                return
-              end
-            end
-            callback(nil, "OpenCode ACP server returned empty response parts")
-          end)
-        end)
+        M.send_opencode_message(url, new_session_id, prompt_text, callback, progress_cb)
       end)
     end)
   end)
@@ -178,15 +194,16 @@ end
 --- @param harness string Agent harness name
 --- @param prompt_text string Prompt text
 --- @param agent_opts table Agent execution options
---- @param callback function Callback receiving (response_text, err)
+--- @param callback function Callback receiving (response_text, err, session_id)
 --- @param opts table|nil Options (runner for tests)
 --- @param progress_cb function|nil Progress update callback
-function M.execute_prompt(harness, prompt_text, agent_opts, callback, opts, progress_cb)
+--- @param session_id string|nil Optional existing session ID
+function M.execute_prompt(harness, prompt_text, agent_opts, callback, opts, progress_cb, session_id)
   opts = type(opts) == "table" and opts or {}
   harness = (harness or "agy"):lower()
 
   if harness == "opencode" and not opts.runner then
-    local handled = M.try_opencode_http_acp(prompt_text, agent_opts, callback, progress_cb)
+    local handled = M.try_opencode_http_acp(prompt_text, agent_opts, callback, progress_cb, session_id)
     if handled then
       return
     end
@@ -197,22 +214,22 @@ function M.execute_prompt(harness, prompt_text, agent_opts, callback, opts, prog
 
   if _G.RUNNING_TEST_SUITE and not opts.runner then
     local mock_resp = string.format("### Mock ACP Response (%s)\n\nHere is the answer to your prompt:\n```lua\nlocal x = 42\n```", harness:upper())
-    callback(mock_resp, nil)
+    callback(mock_resp, nil, "mock_session_123")
     return
   end
 
   if opts.runner then
     local out_text, code = opts.runner(cmd)
     if code == 0 then
-      callback(out_text or "No output returned", nil)
+      callback(out_text or "No output returned", nil, nil)
     else
-      callback(nil, string.format("ACP execution failed (code %d): %s", code, out_text or ""))
+      callback(nil, string.format("ACP execution failed (code %d): %s", code, out_text or ""), nil)
     end
     return
   end
 
   if vim.fn.executable(executable) == 0 then
-    callback(nil, string.format("ACP executable '%s' not found in PATH", executable))
+    callback(nil, string.format("ACP executable '%s' not found in PATH", executable), nil)
     return
   end
 
@@ -221,10 +238,10 @@ function M.execute_prompt(harness, prompt_text, agent_opts, callback, opts, prog
       vim.schedule(function()
         if obj.code == 0 then
           local out = (obj.stdout and obj.stdout ~= "") and obj.stdout or (obj.stderr or "")
-          callback(out, nil)
+          callback(out, nil, nil)
         else
           local err_msg = (obj.stderr and obj.stderr ~= "") and obj.stderr or obj.stdout or ("Exit code " .. tostring(obj.code))
-          callback(nil, string.format("ACP request failed (%s): %s", executable, err_msg))
+          callback(nil, string.format("ACP request failed (%s): %s", executable, err_msg), nil)
         end
       end)
     end)
@@ -232,9 +249,9 @@ function M.execute_prompt(harness, prompt_text, agent_opts, callback, opts, prog
     local out = vim.fn.system(cmd)
     local code = vim.v.shell_error
     if code == 0 then
-      callback(out, nil)
+      callback(out, nil, nil)
     else
-      callback(nil, string.format("ACP request failed (%s): %s", executable, out))
+      callback(nil, string.format("ACP request failed (%s): %s", executable, out), nil)
     end
   end
 end

@@ -1,5 +1,6 @@
 local M = {
   _active_wins = {},
+  _active_sessions = {},
 }
 
 --- Creates a clean native Markdown floating popup window
@@ -64,8 +65,105 @@ function M.open(title, opts)
     vim.notify("Copied agent response to clipboard", vim.log.levels.INFO, { title = "sagani.nvim" })
   end, { buffer = buf, silent = true, desc = "Copy full response to clipboard" })
 
+  -- Follow-up question keymaps (<CR>, r, i)
+  local function prompt_followup()
+    local ctx = M._active_sessions[buf]
+    local harness = (ctx and ctx.harness) or "AGY"
+    vim.ui.input({ prompt = string.format("Follow-up question (%s): ", harness:upper()) }, function(input)
+      if input and input ~= "" then
+        M.send_followup(buf, input)
+      end
+    end)
+  end
+
+  vim.keymap.set("n", "<CR>", prompt_followup, { buffer = buf, silent = true, desc = "Ask follow-up question" })
+  vim.keymap.set("n", "r", prompt_followup, { buffer = buf, silent = true, desc = "Reply / Ask follow-up question" })
+  vim.keymap.set("n", "i", prompt_followup, { buffer = buf, silent = true, desc = "Ask follow-up question" })
+
   M._active_wins[buf] = win
   return win, buf
+end
+
+--- Stores session metadata for multi-turn follow-up queries
+--- @param buf number Buffer handle
+--- @param harness string Agent harness
+--- @param session_id string|nil Session ID
+--- @param agent_opts table|nil Agent execution options
+--- @param opts table|nil Window options
+function M.set_session(buf, harness, session_id, agent_opts, opts)
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+  M._active_sessions[buf] = {
+    harness = harness,
+    session_id = session_id,
+    agent_opts = agent_opts or {},
+    opts = opts or {},
+  }
+end
+
+--- Sends a follow-up query for an active session buffer
+--- @param buf number Buffer handle
+--- @param prompt_text string Follow-up prompt
+function M.send_followup(buf, prompt_text)
+  local ctx = M._active_sessions[buf]
+  if not ctx then
+    vim.notify("No active session found for follow-up query", vim.log.levels.WARN, { title = "sagani.nvim" })
+    return
+  end
+
+  local acp = require("sagani.protocol.acp")
+  local notify = require("sagani.notify")
+
+  -- Clean up old footer hint line before appending follow-up
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local clean_lines = {}
+  for _, l in ipairs(lines) do
+    if not l:find("Press <CR> or 'r' to ask a follow%-up question") then
+      table.insert(clean_lines, l)
+    end
+  end
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, clean_lines)
+
+  -- Append follow-up turn header
+  local turn_header = {
+    "",
+    "---",
+    "",
+    string.format("### 👤 Follow-up Prompt (%s)", (ctx.harness or "AGY"):upper()),
+    "",
+    "> " .. prompt_text:gsub("\n", "\n> "),
+    "",
+    "---",
+    "",
+    string.format("### 🤖 Agent Response (%s)", (ctx.harness or "AGY"):upper()),
+    "",
+    "⏳ *Generating follow-up response...*",
+  }
+
+  local count = vim.api.nvim_buf_line_count(buf)
+  vim.api.nvim_buf_set_lines(buf, count, count, false, turn_header)
+  pcall(vim.cmd, "redraw")
+
+  local progress_cb = function(status_msg)
+    vim.schedule(function()
+      M.update_status(buf, status_msg)
+      pcall(vim.cmd, "redraw")
+    end)
+  end
+
+  acp.execute_prompt(ctx.harness, prompt_text, ctx.agent_opts, function(resp, acp_err, session_id)
+    if session_id then
+      ctx.session_id = session_id
+    end
+    if resp then
+      M.set_response(buf, resp)
+      notify.info("Received follow-up response", ctx.opts)
+    else
+      M.set_response(buf, "❌ Error: " .. (acp_err or "Unknown error"))
+      notify.error("Follow-up request failed: " .. (acp_err or "Unknown error"), ctx.opts)
+    end
+  end, ctx.opts, progress_cb, ctx.session_id)
 end
 
 --- Appends lines or text content to a Markdown buffer
@@ -118,8 +216,8 @@ function M.update_status(buf, status_msg)
   end
 
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  for i, line in ipairs(lines) do
-    if line:find("^⏳") then
+  for i = #lines, 1, -1 do
+    if lines[i]:find("^⏳") then
       lines[i] = "⏳ *" .. status_msg .. "*"
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
       return
@@ -127,7 +225,7 @@ function M.update_status(buf, status_msg)
   end
 end
 
---- Replaces loading text with actual response content
+--- Replaces loading text with actual response content and appends footer hint
 --- @param buf number Buffer handle
 --- @param response_text string Final or streaming response text
 function M.set_response(buf, response_text)
@@ -137,24 +235,26 @@ function M.set_response(buf, response_text)
 
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local new_lines = {}
-  local in_response = false
+  local replaced = false
 
-  for _, line in ipairs(lines) do
-    if line:find("^### 🤖 Agent Response") then
-      in_response = true
-      table.insert(new_lines, line)
-      table.insert(new_lines, "")
-      for _, rline in ipairs(vim.split(response_text, "\n", { plain = true })) do
-        table.insert(new_lines, rline)
-      end
+  for i = #lines, 1, -1 do
+    if lines[i]:find("^⏳") then
+      lines[i] = response_text
+      table.insert(lines, "")
+      table.insert(lines, "> 💡 *Press <CR> or 'r' to ask a follow-up question | 'yr' to copy | 'q' to close*")
+      replaced = true
       break
-    else
-      table.insert(new_lines, line)
     end
   end
 
-  if in_response then
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, new_lines)
+  if replaced then
+    local final_lines = {}
+    for _, l in ipairs(lines) do
+      for _, sub_l in ipairs(vim.split(l, "\n", { plain = true })) do
+        table.insert(final_lines, sub_l)
+      end
+    end
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, final_lines)
   else
     M.append_text(buf, response_text)
   end
