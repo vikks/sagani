@@ -158,8 +158,18 @@ function M.run()
     local text = table.concat(lines, "\n")
     assert_true(text:find("Persisted session prompt history line") ~= nil, "Session conversation state preserved")
 
-    -- Clean up
+    -- Simulate terminal buftype
+    pcall(function() vim.bo[buf1].buftype = "terminal" end)
     pcall(vim.api.nvim_win_close, win2, false)
+
+    -- Reopen popup 3rd time on terminal buftype
+    local win3_str, _, _ = native_backend.spawn_popup({ target_agent = "agy" })
+    local win3 = tonumber(win3_str)
+    local buf3 = vim.api.nvim_win_get_buf(win3)
+    assert_eq(buf3, buf1, "Reopened popup reuses terminal buffer without E474 error")
+
+    -- Clean up
+    pcall(vim.api.nvim_win_close, win3, false)
     native_backend.reset_popup("agy")
   end)
 

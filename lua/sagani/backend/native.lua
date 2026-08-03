@@ -125,12 +125,15 @@ function M.spawn_popup(opts)
     pcall(function() vim.wo[win].winblend = ui_opts.winblend end)
   end
 
-  vim.bo[buf].buftype = "nofile"
-  vim.bo[buf].bufhidden = "hide" -- Hide buffer on window close to preserve terminal process and history
-
   local win_id_str = tostring(win)
 
   if is_new then
+    pcall(function()
+      vim.bo[buf].buftype = "nofile"
+      vim.bo[buf].bufhidden = "hide"
+      vim.bo[buf].swapfile = false
+    end)
+
     if not _G.RUNNING_TEST_SUITE and vim.fn.executable(agent) == 1 then
       vim.fn.termopen(agent)
     else
