@@ -39,48 +39,57 @@ end
 --- Checks if OpenCode ACP server is healthy, and auto-spawns it in background if missing
 --- @param port number Port number (default 4096)
 --- @param progress_cb function|nil Progress update callback
---- @return boolean ready True if server is healthy and ready
-function M.ensure_opencode_server(port, progress_cb)
+--- @param on_ready function Callback receiving boolean ready
+function M.ensure_opencode_server_async(port, progress_cb, on_ready)
   if _G.RUNNING_TEST_SUITE then
-    return false
+    on_ready(false)
+    return
   end
 
   port = port or 4096
   local url = string.format("http://127.0.0.1:%d", port)
 
   if vim.fn.executable("curl") == 0 or vim.fn.executable("opencode") == 0 then
-    return false
+    on_ready(false)
+    return
   end
 
   if progress_cb then progress_cb("Checking OpenCode ACP server health on port " .. port .. "...") end
 
-  -- Check if server is already running and healthy
   local health_cmd = { "curl", "-s", "-m", "1", url .. "/global/health" }
-  local h_res = vim.system and vim.system(health_cmd):wait()
-  if h_res and h_res.code == 0 and h_res.stdout and h_res.stdout:find("healthy") then
-    return true
-  end
+  vim.system(health_cmd, { text = true }, function(h_obj)
+    vim.schedule(function()
+      if h_obj.code == 0 and h_obj.stdout and h_obj.stdout:find("healthy") then
+        on_ready(true)
+        return
+      end
 
-  if progress_cb then progress_cb("Starting OpenCode ACP background server on port " .. port .. "...") end
+      if progress_cb then progress_cb("Starting OpenCode ACP background server on port " .. port .. "...") end
+      local spawn_cmd = { "opencode", "acp", "--port", tostring(port) }
+      pcall(function() vim.system(spawn_cmd, { detach = true }) end)
 
-  -- Auto-spawn opencode acp server in background
-  local spawn_cmd = { "opencode", "acp", "--port", tostring(port) }
-  if vim.system then
-    pcall(function() vim.system(spawn_cmd, { detach = true }) end)
-  else
-    pcall(function() vim.fn.jobstart(spawn_cmd, { detach = true }) end)
-  end
-
-  -- Poll health for up to 3000ms
-  if vim.wait then
-    local ok = vim.wait(3000, function()
-      local check = vim.system and vim.system(health_cmd):wait()
-      return check and check.code == 0 and check.stdout and check.stdout:find("healthy") ~= nil
-    end, 200)
-    return ok
-  end
-
-  return false
+      -- Poll health asynchronously
+      local attempts = 0
+      local timer = vim.loop and vim.loop.new_timer() or nil
+      if timer then
+        timer:start(200, 200, function()
+          attempts = attempts + 1
+          local check = vim.system(health_cmd, { text = true }):wait()
+          if check and check.code == 0 and check.stdout and check.stdout:find("healthy") then
+            timer:stop()
+            timer:close()
+            vim.schedule(function() on_ready(true) end)
+          elseif attempts >= 15 then
+            timer:stop()
+            timer:close()
+            vim.schedule(function() on_ready(false) end)
+          end
+        end)
+      else
+        on_ready(false)
+      end
+    end)
+  end)
 end
 
 --- Attempts execution via running OpenCode ACP HTTP server (default port 4096)
@@ -97,52 +106,72 @@ function M.try_opencode_http_acp(prompt_text, agent_opts, callback, progress_cb)
   local port = (agent_opts and agent_opts.port) or 4096
   local url = string.format("http://127.0.0.1:%d", port)
 
-  if not M.ensure_opencode_server(port, progress_cb) then
-    return false
-  end
-
-  if progress_cb then progress_cb("Connected to OpenCode ACP server! Generating response...") end
-
-  -- Step 1: Create session
-  local create_payload = vim.json.encode({ prompt = prompt_text })
-  local create_cmd = {
-    "curl", "-s", "-X", "POST", url .. "/session",
-    "-H", "Content-Type: application/json",
-    "-d", create_payload,
-  }
-  local s_res = vim.system(create_cmd):wait()
-  local s_ok, s_data = pcall(vim.json.decode, s_res.stdout or "")
-  local session_id = s_ok and type(s_data) == "table" and s_data.id
-
-  if not session_id then
-    return false
-  end
-
-  -- Step 2: Send message to session
-  local msg_payload = vim.json.encode({ parts = { { type = "text", text = prompt_text } } })
-  local msg_cmd = {
-    "curl", "-s", "-X", "POST", url .. "/session/" .. session_id .. "/message",
-    "-H", "Content-Type: application/json",
-    "-d", msg_payload,
-  }
-
-  local m_res = vim.system(msg_cmd):wait()
-  local m_ok, m_data = pcall(vim.json.decode, m_res.stdout or "")
-
-  if m_ok and type(m_data) == "table" and type(m_data.parts) == "table" then
-    local text_parts = {}
-    for _, p in ipairs(m_data.parts) do
-      if type(p) == "table" and p.type == "text" and type(p.text) == "string" and p.text ~= "" then
-        table.insert(text_parts, p.text)
-      end
+  M.ensure_opencode_server_async(port, progress_cb, function(ready)
+    if not ready then
+      -- Fallback to CLI run command if HTTP server unavailable
+      local cmd = M.build_acp_command("opencode", prompt_text, agent_opts)
+      vim.system(cmd, { text = true, stdin = "" }, function(obj)
+        vim.schedule(function()
+          if obj.code == 0 then
+            local out = (obj.stdout and obj.stdout ~= "") and obj.stdout or (obj.stderr or "")
+            callback(out, nil)
+          else
+            callback(nil, string.format("ACP execution failed: %s", obj.stderr or obj.stdout or "Unknown error"))
+          end
+        end)
+      end)
+      return
     end
-    if #text_parts > 0 then
-      callback(table.concat(text_parts, "\n"), nil)
-      return true
-    end
-  end
 
-  return false
+    if progress_cb then progress_cb("Connected to OpenCode ACP server! Generating response...") end
+
+    local create_payload = vim.json.encode({ prompt = prompt_text })
+    local create_cmd = {
+      "curl", "-s", "-X", "POST", url .. "/session",
+      "-H", "Content-Type: application/json",
+      "-d", create_payload,
+    }
+
+    vim.system(create_cmd, { text = true }, function(s_obj)
+      vim.schedule(function()
+        local s_ok, s_data = pcall(vim.json.decode, s_obj.stdout or "")
+        local session_id = s_ok and type(s_data) == "table" and s_data.id
+
+        if not session_id then
+          callback(nil, "OpenCode ACP server returned invalid session ID")
+          return
+        end
+
+        local msg_payload = vim.json.encode({ parts = { { type = "text", text = prompt_text } } })
+        local msg_cmd = {
+          "curl", "-s", "-X", "POST", url .. "/session/" .. session_id .. "/message",
+          "-H", "Content-Type: application/json",
+          "-d", msg_payload,
+        }
+
+        vim.system(msg_cmd, { text = true }, function(m_obj)
+          vim.schedule(function()
+            local m_ok, m_data = pcall(vim.json.decode, m_obj.stdout or "")
+            if m_ok and type(m_data) == "table" and type(m_data.parts) == "table" then
+              local text_parts = {}
+              for _, p in ipairs(m_data.parts) do
+                if type(p) == "table" and p.type == "text" and type(p.text) == "string" and p.text ~= "" then
+                  table.insert(text_parts, p.text)
+                end
+              end
+              if #text_parts > 0 then
+                callback(table.concat(text_parts, "\n"), nil)
+                return
+              end
+            end
+            callback(nil, "OpenCode ACP server returned empty response parts")
+          end)
+        end)
+      end)
+    end)
+  end)
+
+  return true
 end
 
 --- Executes a prompt via ACP request-response subprocess or HTTP server asynchronously

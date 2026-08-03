@@ -439,10 +439,12 @@ function M.ask_agent_prompt(prompt_text, opts)
 
       local win, buf = markdown_popup.open(string.format("Sagani Agent (%s)", harness:upper()), popup_opts)
       markdown_popup.set_prompt_header(buf, text, harness)
+      pcall(vim.cmd, "redraw")
 
       local progress_cb = function(status_msg)
         vim.schedule(function()
           markdown_popup.update_status(buf, status_msg)
+          pcall(vim.cmd, "redraw")
         end)
       end
 
