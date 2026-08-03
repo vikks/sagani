@@ -5,10 +5,21 @@ local M = {
 function M.build_command(prompt_text, agent_opts)
   agent_opts = type(agent_opts) == "table" and agent_opts or {}
   local cmd = { "agy", "-p", prompt_text, "--output-format", "text" }
-  if agent_opts.model then
-    table.insert(cmd, "--model")
-    table.insert(cmd, agent_opts.model)
+
+  -- Only pass --model if explicitly specified and not generic placeholder strings like "pro" or "flash"
+  if agent_opts.model and agent_opts.model ~= "" then
+    local m = tostring(agent_opts.model):lower()
+    if m ~= "pro" and m ~= "flash" and m ~= "auto" then
+      table.insert(cmd, "--model")
+      table.insert(cmd, agent_opts.model)
+    end
   end
+
+  if agent_opts.effort and (agent_opts.effort == "low" or agent_opts.effort == "medium" or agent_opts.effort == "high") then
+    table.insert(cmd, "--effort")
+    table.insert(cmd, agent_opts.effort)
+  end
+
   return cmd
 end
 

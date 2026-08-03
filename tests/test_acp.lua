@@ -45,14 +45,14 @@ function M.run()
   -- ==========================================================
 
   run_test("acp.build_acp_command: builds command arrays for agy, gemini, codex, opencode, hermes", function()
-    local cmd_agy = acp.build_acp_command("agy", "test prompt", { model = "pro" })
+    local cmd_agy = acp.build_acp_command("agy", "test prompt", { model = "Gemini 3.1 Pro" })
     assert_eq(cmd_agy[1], "agy", "agy binary name")
     assert_eq(cmd_agy[2], "-p", "agy print flag")
     assert_eq(cmd_agy[3], "test prompt", "agy prompt text")
     assert_eq(cmd_agy[4], "--output-format", "agy output format flag")
     assert_eq(cmd_agy[5], "text", "agy output format text")
     assert_eq(cmd_agy[6], "--model", "agy model flag")
-    assert_eq(cmd_agy[7], "pro", "agy model pro")
+    assert_eq(cmd_agy[7], "Gemini 3.1 Pro", "agy model string")
 
     local cmd_gemini = acp.build_acp_command("gemini", "gemini prompt", { model = "pro" })
     assert_eq(cmd_gemini[1], "gemini", "gemini binary name")
