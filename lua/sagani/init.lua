@@ -148,7 +148,8 @@ function M.setup(user_opts)
     local adapter, backend_name = backend.get_backend(M.options)
     local env_info = adapter.detect_env and adapter.detect_env(M.options.runner) or {}
     local env = env_info.metadata or env_info
-    local pane_id, err, _ = adapter.discover_target(M.options)
+    local status_opts = vim.tbl_deep_extend("force", M.options, { auto_spawn = false })
+    local pane_id, err, _ = adapter.discover_target(status_opts)
     local msg = string.format(
       "Backend: %s | Pane: %s | Tab: %s | Workspace: %s\nTarget Pane (%s): %s",
       backend_name:upper(),

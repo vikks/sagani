@@ -214,6 +214,29 @@ function M.run()
     assert_nil(err, "err is nil")
   end)
 
+  run_test("discover_target_pane: auto_spawn = false ensures read-only status check without spawning", function()
+    local spawn_called = false
+    local orig_spawn = topology.spawn_agent_pane
+    topology.spawn_agent_pane = function()
+      spawn_called = true
+      return "p_new", nil, {}
+    end
+
+    local pane, err = topology.discover_target_pane({
+      agents = {},
+      workspace_id = "w1",
+      tab_id = "w1:t1",
+      auto_spawn = false,
+      ignore_herdr_env = true,
+      target_agent = "agy",
+    })
+
+    topology.spawn_agent_pane = orig_spawn
+    assert_eq(spawn_called, false, "spawn_agent_pane NOT called when auto_spawn = false")
+    assert_nil(pane, "pane is nil when no active agent exists and auto_spawn is disabled")
+    assert_true(err:find("No active 'agy' agent found") ~= nil, "returns error message describing missing target agent")
+  end)
+
   run_test("discover_target_pane: Tier 3 match (Same workspace, different tab, exclude caller)", function()
     local agents = {
       make_agent("w1:p1", "w1:t1", "w1", "/proj", "agy"), -- caller in tab 1
