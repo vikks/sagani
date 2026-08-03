@@ -134,6 +134,35 @@ function M.run()
     assert_eq(init._session_ask_agent, "opencode", "session cache set to selected agent")
   end)
 
+  run_test("native.spawn_popup: reuses persistent buffer and preserves state on reopen", function()
+    local native_backend = require("sagani.backend.native")
+    native_backend.reset_popup("agy")
+
+    local win1_str, _, _ = native_backend.spawn_popup({ target_agent = "agy" })
+    local win1 = tonumber(win1_str)
+    local buf1 = vim.api.nvim_win_get_buf(win1)
+
+    -- Write custom line to buffer to simulate running session state
+    vim.api.nvim_buf_set_lines(buf1, -1, -1, false, { "Persisted session prompt history line" })
+
+    -- Close window (simulates pressing q or Esc)
+    pcall(vim.api.nvim_win_close, win1, false)
+
+    -- Reopen popup
+    local win2_str, _, _ = native_backend.spawn_popup({ target_agent = "agy" })
+    local win2 = tonumber(win2_str)
+    local buf2 = vim.api.nvim_win_get_buf(win2)
+
+    assert_eq(buf2, buf1, "Reopened popup reuses exact same buffer handle")
+    local lines = vim.api.nvim_buf_get_lines(buf2, 0, -1, false)
+    local text = table.concat(lines, "\n")
+    assert_true(text:find("Persisted session prompt history line") ~= nil, "Session conversation state preserved")
+
+    -- Clean up
+    pcall(vim.api.nvim_win_close, win2, false)
+    native_backend.reset_popup("agy")
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,

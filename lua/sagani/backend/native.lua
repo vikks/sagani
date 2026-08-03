@@ -8,29 +8,24 @@ local M = {
     code = true,
     chat = true,
   },
+  _active_win = nil,
+  _active_buf = nil,
+  _popup_buffers = {},
 }
 
--- Native session state tracking
-M._active_win = nil
-M._active_buf = nil
-
 function M.detect_env(_)
-  return {
-    active = true,
-    id = "nvim_native",
-    metadata = { is_native = true },
-  }
+  return { active = true, id = "native", metadata = { name = "Neovim Native" } }
 end
 
 function M.discover_target(opts)
   opts = type(opts) == "table" and opts or {}
   if opts.pane_override then
-    return tostring(opts.pane_override), nil, {}
+    return opts.pane_override, nil, { override = true }
   end
   if M._active_win and vim.api.nvim_win_is_valid(M._active_win) then
-    return tostring(M._active_win), nil, { is_popup = false }
+    return tostring(M._active_win), nil, { active = true }
   end
-  return nil, "No active native agent target window found", {}
+  return "native:split", nil, { default = true }
 end
 
 function M.spawn_pane(opts)
@@ -38,28 +33,21 @@ function M.spawn_pane(opts)
   local agent = (opts.target_agent or "agy"):lower()
   local placement = opts.placement or "vsplit"
 
-  if placement == "popup" or placement == "floating" then
-    return M.spawn_popup(opts)
+  local cmd_split = "vsplit"
+  if placement == "hsplit" or placement == "bottom-pane" or placement == "down" then
+    cmd_split = "split"
+  elseif placement == "tab" or placement == "new-tab" then
+    cmd_split = "tabnew"
   end
 
-  local split_cmd = "vnew"
-  if placement == "tab" or placement == "new-tab" then
-    split_cmd = "tabnew"
-  elseif placement == "hsplit" or placement == "bottom-pane" or placement == "down" then
-    split_cmd = "new"
-  elseif opts.backends and opts.backends.native and opts.backends.native.split_direction == "horizontal" then
-    split_cmd = "new"
-  end
-
-  vim.cmd(split_cmd)
-
+  vim.cmd(cmd_split)
   local win = vim.api.nvim_get_current_win()
-  local buf = vim.api.nvim_get_current_buf()
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_win_set_buf(win, buf)
 
   M._active_win = win
   M._active_buf = buf
 
-  -- Set buffer options
   vim.bo[buf].buftype = "nofile"
   vim.bo[buf].bufhidden = "hide"
   vim.bo[buf].swapfile = false
@@ -95,20 +83,40 @@ function M.spawn_popup(opts)
   local row = math.floor((vim.o.lines - height) / 2)
   local col = math.floor((vim.o.columns - width) / 2)
 
-  local buf = vim.api.nvim_create_buf(false, true)
+  local buf = M._popup_buffers[agent]
+  local is_new = false
+
+  if opts.reset and buf and vim.api.nvim_buf_is_valid(buf) then
+    pcall(vim.api.nvim_buf_delete, buf, { force = true })
+    buf = nil
+  end
+
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    buf = vim.api.nvim_create_buf(false, true)
+    M._popup_buffers[agent] = buf
+    is_new = true
+  end
+
   local border = ui_opts.border or (opts.backends and opts.backends.native and opts.backends.native.border) or "rounded"
 
-  local win = vim.api.nvim_open_win(buf, true, {
-    relative = "editor",
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-    style = "minimal",
-    border = border,
-    title = string.format(" Sagani Agent Popup (%s) ", agent:upper()),
-    title_pos = "center",
-  })
+  -- Check if win is already valid and open
+  local win = nil
+  if M._active_win and vim.api.nvim_win_is_valid(M._active_win) and vim.api.nvim_win_get_buf(M._active_win) == buf then
+    win = M._active_win
+    vim.api.nvim_set_current_win(win)
+  else
+    win = vim.api.nvim_open_win(buf, true, {
+      relative = "editor",
+      width = width,
+      height = height,
+      row = row,
+      col = col,
+      style = "minimal",
+      border = border,
+      title = string.format(" Sagani Agent Popup (%s) ", agent:upper()),
+      title_pos = "center",
+    })
+  end
 
   M._active_win = win
   M._active_buf = buf
@@ -118,31 +126,33 @@ function M.spawn_popup(opts)
   end
 
   vim.bo[buf].buftype = "nofile"
-  vim.bo[buf].bufhidden = "wipe"
+  vim.bo[buf].bufhidden = "hide" -- Hide buffer on window close to preserve terminal process and history
 
   local win_id_str = tostring(win)
 
-  if not _G.RUNNING_TEST_SUITE and vim.fn.executable(agent) == 1 then
-    vim.fn.termopen(agent)
-  else
-    local welcome = {
-      string.format("--- Sagani Popup Window (%s) ---", agent:upper()),
-      "Type prompt or selection context below:",
-      "",
-    }
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, welcome)
+  if is_new then
+    if not _G.RUNNING_TEST_SUITE and vim.fn.executable(agent) == 1 then
+      vim.fn.termopen(agent)
+    else
+      local welcome = {
+        string.format("--- Sagani Popup Window (%s) ---", agent:upper()),
+        "Type prompt or selection context below:",
+        "",
+      }
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, welcome)
+    end
   end
 
-  -- Buffer-local keymaps for easy closing
+  -- Buffer-local keymaps for easy closing without destroying buffer/process
   vim.keymap.set("n", "q", function()
-    if vim.api.nvim_win_is_valid(win) then pcall(vim.api.nvim_win_close, win, true) end
-  end, { buffer = buf, silent = true, desc = "Close Sagani popup" })
+    if vim.api.nvim_win_is_valid(win) then pcall(vim.api.nvim_win_close, win, false) end
+  end, { buffer = buf, silent = true, desc = "Close Sagani popup window (preserves session)" })
 
   vim.keymap.set("n", "<Esc>", function()
-    if vim.api.nvim_win_is_valid(win) then pcall(vim.api.nvim_win_close, win, true) end
-  end, { buffer = buf, silent = true, desc = "Close Sagani popup" })
+    if vim.api.nvim_win_is_valid(win) then pcall(vim.api.nvim_win_close, win, false) end
+  end, { buffer = buf, silent = true, desc = "Close Sagani popup window (preserves session)" })
 
-  vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>:q<CR>", { buffer = buf, silent = true, desc = "Close Sagani popup" })
+  vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>:hide<CR>", { buffer = buf, silent = true, desc = "Hide Sagani popup window (preserves session)" })
 
   return win_id_str, nil, { spawned = true, is_popup = true }
 end
@@ -165,20 +175,24 @@ function M.prompt_target(target_id, prompt_text, opts)
     else
       -- Plain text display buffer
       local lines = vim.split(prompt_text, "\n")
-      table.insert(lines, 1, string.format(">>> [%s] PROMPT:", os.date("%H:%M:%S")))
-      table.insert(lines, "")
-      vim.api.nvim_buf_set_lines(buf, -1, -1, false, lines)
+      local count = vim.api.nvim_buf_line_count(buf)
+      vim.api.nvim_buf_set_lines(buf, count, count, false, lines)
     end
     return true, nil
   end
 
-  -- Auto spawn if target not found
-  local spawned_id, err, _ = M.spawn_popup(opts)
-  if spawned_id then
-    return M.prompt_target(spawned_id, prompt_text, opts)
-  end
+  return false, "Invalid target window/buffer for native backend"
+end
 
-  return false, err or "Failed to access native target buffer"
+--- Reset session popup buffer for an agent harness
+--- @param agent string|nil Agent harness name
+function M.reset_popup(agent)
+  agent = (agent or "agy"):lower()
+  local buf = M._popup_buffers[agent]
+  if buf and vim.api.nvim_buf_is_valid(buf) then
+    pcall(vim.api.nvim_buf_delete, buf, { force = true })
+  end
+  M._popup_buffers[agent] = nil
 end
 
 return M
