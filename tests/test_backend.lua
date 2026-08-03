@@ -83,6 +83,55 @@ function M.run()
     vim.env.ZELLIJ = original_zellij
   end)
 
+  test("falls back from Herdr to native for 'ask' task when herdr.ask is false", function()
+    local original_herdr = vim.env.HERDR_ENV
+    vim.env.HERDR_ENV = "1"
+
+    local opts = {
+      tasks = { ask = false, code = "right-pane" },
+      backends = {
+        herdr = { ask = false },
+        native = { ask = "popup" },
+      },
+    }
+
+    local adapter, name, placement = backend.get_backend(opts, "ask")
+    assert(name == "native", "Expected fallback to native for ask task")
+    assert(placement == "popup", "Expected native popup placement")
+
+    -- For code task, Herdr should be used
+    local code_adapter, code_name, code_placement = backend.get_backend(opts, "code")
+    assert(code_name == "herdr", "Expected herdr backend for code task")
+    assert(code_placement == "right-pane", "Expected right-pane placement")
+
+    vim.env.HERDR_ENV = original_herdr
+  end)
+
+  test("supports backend-specific task placement overrides and custom task keys", function()
+    local original_herdr = vim.env.HERDR_ENV
+    vim.env.HERDR_ENV = "1"
+
+    local opts = {
+      tasks = {
+        review = "right-pane",
+        custom_task = "tab",
+      },
+      backends = {
+        herdr = {
+          review = "left-pane",
+        },
+      },
+    }
+
+    local _, _, review_place = backend.get_backend(opts, "review")
+    assert(review_place == "left-pane", "Expected backend-specific override 'left-pane'")
+
+    local _, _, custom_place = backend.get_backend(opts, "custom_task")
+    assert(custom_place == "tab", "Expected shared task default 'tab' for custom task key")
+
+    vim.env.HERDR_ENV = original_herdr
+  end)
+
   return { passed = passed, failed = failed, failures = failures }
 end
 

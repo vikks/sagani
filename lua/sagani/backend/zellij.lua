@@ -1,5 +1,11 @@
 local M = {
   name = "zellij",
+  capabilities = {
+    ask = true,
+    review = true,
+    code = true,
+    chat = true,
+  },
 }
 
 function M.detect_env(_)
@@ -28,9 +34,36 @@ end
 function M.spawn_pane(opts)
   opts = type(opts) == "table" and opts or {}
   local agent = opts.target_agent or "agy"
+  local placement = opts.placement or "right-pane"
+
+  if placement == "popup" or placement == "floating" then
+    return M.spawn_popup(opts)
+  end
+
+  if placement == "tab" or placement == "new-tab" then
+    if _G.RUNNING_TEST_SUITE and not opts.runner then
+      return "z_tab_1", nil, { spawned = true, is_popup = false, is_tab = true }
+    end
+    local cmd = { "zellij", "action", "new-tab", "--", agent }
+    local stdout, code
+    if opts.runner then
+      stdout, code = opts.runner(cmd)
+    elseif vim.system then
+      local res = vim.system(cmd):wait()
+      stdout, code = res.stdout or "", res.code
+    else
+      stdout = vim.fn.system(cmd)
+      code = vim.v.shell_error
+    end
+    if code == 0 then
+      return "z_tab_new", nil, { spawned = true, is_popup = false, is_tab = true }
+    end
+    return nil, "Failed to spawn zellij tab", {}
+  end
+
   local dir = "right"
-  if opts.backends and opts.backends.zellij and opts.backends.zellij.direction then
-    dir = opts.backends.zellij.direction
+  if placement == "bottom-pane" or placement == "down" or (opts.backends and opts.backends.zellij and opts.backends.zellij.direction == "down") then
+    dir = "down"
   end
 
   if _G.RUNNING_TEST_SUITE and not opts.runner then

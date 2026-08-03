@@ -2,6 +2,12 @@ local notify = require("sagani.notify")
 
 local M = {
   name = "native",
+  capabilities = {
+    ask = true,
+    review = true,
+    code = true,
+    chat = true,
+  },
 }
 
 -- Native session state tracking
@@ -30,9 +36,21 @@ end
 function M.spawn_pane(opts)
   opts = type(opts) == "table" and opts or {}
   local agent = (opts.target_agent or "agy"):lower()
+  local placement = opts.placement or "vsplit"
 
-  -- Create new split window
-  local split_cmd = (opts.backends and opts.backends.native and opts.backends.native.split_direction == "horizontal") and "new" or "vnew"
+  if placement == "popup" or placement == "floating" then
+    return M.spawn_popup(opts)
+  end
+
+  local split_cmd = "vnew"
+  if placement == "tab" or placement == "new-tab" then
+    split_cmd = "tabnew"
+  elseif placement == "hsplit" or placement == "bottom-pane" or placement == "down" then
+    split_cmd = "new"
+  elseif opts.backends and opts.backends.native and opts.backends.native.split_direction == "horizontal" then
+    split_cmd = "new"
+  end
+
   vim.cmd(split_cmd)
 
   local win = vim.api.nvim_get_current_win()
@@ -49,8 +67,8 @@ function M.spawn_pane(opts)
 
   local win_id_str = tostring(win)
 
-  -- If executable agent binary exists, spawn terminal job inside buffer
-  if vim.fn.executable(agent) == 1 then
+  -- If executable agent binary exists and not in test suite, spawn terminal job inside buffer
+  if not _G.RUNNING_TEST_SUITE and vim.fn.executable(agent) == 1 then
     vim.fn.termopen(agent)
   else
     local welcome = {
@@ -96,7 +114,7 @@ function M.spawn_popup(opts)
 
   local win_id_str = tostring(win)
 
-  if vim.fn.executable(agent) == 1 then
+  if not _G.RUNNING_TEST_SUITE and vim.fn.executable(agent) == 1 then
     vim.fn.termopen(agent)
   else
     local welcome = {

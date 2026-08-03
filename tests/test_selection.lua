@@ -278,9 +278,8 @@ function M.run()
     assert_true(dispatched_text ~= nil, "dispatch_prompt was called for ask_agent_prompt")
     assert_true(dispatched_text:find("How do I optimize this function?", 1, true) ~= nil, "payload contains question")
     assert_true(dispatched_text:find("@[" .. abs_path .. "]", 1, true) ~= nil, "payload injects @[abs_path] file reference")
-    -- spawn_popup returns agent_name (e.g. "agy-ask-test"), not the raw pane_id
-    assert_true(type(dispatched_pane) == "string" and dispatched_pane ~= "", "target pane is a non-empty agent target string")
-    assert_true(dispatched_pane:find("agy") ~= nil, "agent target contains harness name 'agy'")
+    -- spawn_popup returns target window ID string (native) or agent_name (herdr)
+    assert_true(type(dispatched_pane) == "string" and dispatched_pane ~= "", "target pane is a non-empty string handle")
   end)
 
   run_test("ask_agent_prompt: preserves existing file path reference without duplicating", function()

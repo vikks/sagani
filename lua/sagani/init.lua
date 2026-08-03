@@ -15,9 +15,18 @@ local native_vim_system = vim.system
 local M = {}
 
 M.defaults = {
-  backend = "auto",
+  tasks = {
+    ask = false,
+    review = "right-pane",
+    code = "right-pane",
+    chat = "right-pane",
+  },
   backends = {
     native = {
+      ask = "popup",
+      review = "vsplit",
+      code = "vsplit",
+      chat = "vsplit",
       popup_border = "rounded",
       split_direction = "vertical",
     },
@@ -26,10 +35,12 @@ M.defaults = {
       auto_spawn = false,
     },
     tmux = {
+      ask = "popup",
       split_direction = "right",
       target_pane = nil,
     },
     zellij = {
+      ask = "floating",
       direction = "right",
     },
   },
@@ -149,8 +160,9 @@ function M.setup(user_opts)
   end, { nargs = "?", desc = "Alias for SaganiSelectAgent" })
 
   vim.api.nvim_create_user_command("SaganiSpawnPane", function()
-    local adapter, backend_name = backend.get_backend(M.options)
-    local pane_id, err, _ = adapter.spawn_pane(M.options)
+    local adapter, backend_name, placement = backend.get_backend(M.options, "chat")
+    local opts = vim.tbl_deep_extend("force", M.options, { placement = placement })
+    local pane_id, err, _ = adapter.spawn_pane(opts)
     if pane_id then
       notify.info(string.format("Spawned new pane '%s' for '%s' via %s backend", pane_id, M.options.target_agent, backend_name), M.options)
     else
@@ -237,15 +249,14 @@ function M.setup(user_opts)
 
   vim.api.nvim_create_user_command("SaganiReload", function()
     local saved_opts = vim.tbl_deep_extend("force", {}, M.options)
-    for mod_name, _ in pairs(package.loaded) do
-      if mod_name:sub(1, 6) == "sagani" or mod_name == "sagani" then
-        package.loaded[mod_name] = nil
+    for k in pairs(package.loaded) do
+      if k:match("^sagani") then
+        package.loaded[k] = nil
       end
     end
-    local fresh_sagani = require("sagani")
-    fresh_sagani.setup(saved_opts)
-    notify.info("sagani.nvim reloaded successfully", saved_opts)
-  end, { desc = "Hot-reload sagani.nvim Lua modules live without restarting Neovim" })
+    require("sagani").setup(saved_opts)
+    notify.info("Flushed all sagani.* modules and reloaded configuration", M.options)
+  end, { desc = "Hot-reload all sagani modules" })
 
   -- Register File Change Watcher for Agent Edits
   local group = vim.api.nvim_create_augroup("SaganiReviewWatcher", { clear = true })
@@ -275,10 +286,10 @@ end
 function M.select_agent_harness(arg, opts)
   opts = type(opts) == "table" and opts or M.options
   if type(arg) == "string" and arg ~= "" then
-    local cleaned = vim.trim(arg):lower()
-    M.options.target_agent = cleaned
-    notify.info(string.format("Target agent harness set to '%s'", cleaned), opts)
-    return cleaned
+    local harness = vim.trim(arg):lower()
+    M.options.target_agent = harness
+    notify.info(string.format("Target agent harness set to '%s'", harness), opts)
+    return harness
   end
 
   local choices = { "agy", "codex", "opencode", "hermes" }
@@ -377,11 +388,15 @@ function M.ask_agent_prompt(prompt_text, opts)
       end
     end
 
-    local popup_opts = vim.tbl_deep_extend("force", opts, { target_agent = agent_name })
-    local adapter, backend_name = backend.get_backend(popup_opts)
-    -- spawn_popup returns agent_name as the dispatch target (agent.prompt uses name not pane_id).
-    -- agent.start inside spawn_popup already waited for agent readiness, so no delay needed.
-    local agent_target, err, meta = adapter.spawn_popup(popup_opts)
+    local adapter, backend_name, placement = backend.get_backend(opts, "ask")
+    local popup_opts = vim.tbl_deep_extend("force", opts, { target_agent = agent_name, placement = placement })
+
+    local agent_target, err, meta
+    if placement == "popup" or placement == "floating" then
+      agent_target, err, meta = adapter.spawn_popup(popup_opts)
+    else
+      agent_target, err, meta = adapter.spawn_pane(popup_opts)
+    end
 
     if agent_target then
       local display_pane = (meta and meta.pane_id) or agent_target

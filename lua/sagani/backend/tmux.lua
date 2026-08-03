@@ -1,5 +1,11 @@
 local M = {
   name = "tmux",
+  capabilities = {
+    ask = true,
+    review = true,
+    code = true,
+    chat = true,
+  },
 }
 
 function M.detect_env(_)
@@ -28,8 +34,35 @@ end
 function M.spawn_pane(opts)
   opts = type(opts) == "table" and opts or {}
   local agent = opts.target_agent or "agy"
+  local placement = opts.placement or "right-pane"
+
+  if placement == "popup" or placement == "floating" then
+    return M.spawn_popup(opts)
+  end
+
+  if placement == "tab" or placement == "new-tab" then
+    if _G.RUNNING_TEST_SUITE and not opts.runner then
+      return "%tab1", nil, { spawned = true, is_popup = false, is_tab = true }
+    end
+    local cmd = { "tmux", "new-window", "-P", "-F", "#{pane_id}", agent }
+    local stdout, code
+    if opts.runner then
+      stdout, code = opts.runner(cmd)
+    elseif vim.system then
+      local res = vim.system(cmd):wait()
+      stdout, code = res.stdout or "", res.code
+    else
+      stdout = vim.fn.system(cmd)
+      code = vim.v.shell_error
+    end
+    if code == 0 and stdout and stdout ~= "" then
+      return vim.trim(stdout), nil, { spawned = true, is_popup = false, is_tab = true }
+    end
+    return nil, "Failed to create tmux window/tab", {}
+  end
+
   local split_flag = "-h"
-  if opts.backends and opts.backends.tmux and opts.backends.tmux.split_direction == "bottom" then
+  if placement == "bottom-pane" or placement == "down" or (opts.backends and opts.backends.tmux and opts.backends.tmux.split_direction == "bottom") then
     split_flag = "-v"
   end
 

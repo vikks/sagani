@@ -377,9 +377,9 @@ function M.run()
 
   run_test("dispatch_prompt: empty target_pane normalizes to nil and triggers auto-discovery", function()
     vim.env.HERDR_ENV = nil
-    local ok, err = init.dispatch_prompt("valid prompt text", "")
+    local ok, err = init.dispatch_prompt("valid prompt text", "", { backend = "herdr" })
     assert_eq(ok, false, "dispatch_prompt fails outside Herdr when target_pane is empty string")
-    assert_true(err ~= nil and (err:find("HERDR_ENV missing") ~= nil or err:find("No active native agent target window found") ~= nil), "triggers discover_target_pane auto-discovery")
+    assert_true(err ~= nil and (err:find("HERDR_ENV missing") ~= nil or err:find("HERDR_ENV environment variable not set") ~= nil or err:find("No active native agent target window found") ~= nil), "triggers discover_target_pane auto-discovery")
     restore_env()
   end)
 

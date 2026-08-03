@@ -2,6 +2,12 @@ local topology = require("sagani.backend.herdr.topology")
 
 local M = {
 	name = "herdr",
+	capabilities = {
+		ask = false, -- Herdr does not support floating popups out-of-the-box -> falls back to native popup
+		review = true,
+		code = true,
+		chat = true,
+	},
 }
 
 function M.list_agents(runner)
@@ -22,15 +28,17 @@ function M.discover_target(opts)
 end
 
 function M.spawn_pane(opts)
+	opts = type(opts) == "table" and opts or {}
+	local placement = opts.placement or "right-pane"
+	local direction = (placement == "bottom-pane" or placement == "down") and "down" or "right"
+	opts.direction = direction
 	return topology.spawn_agent_pane(opts)
 end
 
---- Spawns a new agent pane (right split) and starts the agent inside it via CLI.
---- Returns agent_name as the dispatch target (herdr agent prompt uses name, not pane_id).
---- topology.spawn_agent_popup uses `herdr agent start --timeout` to wait for readiness,
---- eliminating the race condition that previously caused "agent_not_found" errors.
+--- Herdr does not support floating popup windows via CLI.
+--- Calls to spawn_popup return unsupported error so backend manager falls back to native.
 function M.spawn_popup(opts)
-	return topology.spawn_agent_popup(opts)
+	return nil, "backend 'herdr' does not support floating popups"
 end
 
 --- Dispatches a prompt to a named agent via the herdr CLI.

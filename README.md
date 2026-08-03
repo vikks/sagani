@@ -68,19 +68,39 @@ require("sagani").setup({
   -- Default target AI coding agent harness ("agy", "codex", "opencode", "hermes", etc.)
   target_agent = "agy",
 
-  -- Automatically discover active target agent pane in herdr session
-  auto_discover = true,
+  -- Shared task placement defaults across all backends ("right-pane", "bottom-pane", "tab", "popup", "vsplit", false)
+  tasks = {
+    ask = false,          -- Default for ask: false -> falls back to native floating popup
+    review = "right-pane",-- Default for diff review: right pane split
+    code = "right-pane",  -- Default for code context: right pane split
+    chat = "right-pane",  -- Default for prompt chat: right pane split
+  },
 
-  -- Direction to automatically spawn agent pane if none exists ("left", "right", "bottom", "top", false)
-  auto_spawn = "left",
+  -- Backend-specific overrides (only specified when differing from shared tasks defaults)
+  backends = {
+    native = {
+      ask = "popup",       -- Native creates a Neovim floating window
+      review = "vsplit",   -- Native creates a vertical split
+      code = "vsplit",
+      chat = "vsplit",
+      popup_border = "rounded",
+    },
+    herdr = {
+      -- Inherits tasks defaults: ask=false (falls back to native popup), review="right-pane", etc.
+      auto_discover = true,
+      auto_spawn = false,
+    },
+    tmux = {
+      ask = "popup",       -- Tmux display-popup for questions
+    },
+    zellij = {
+      ask = "floating",    -- Zellij floating pane for questions
+    },
+  },
 
-  -- Manual target pane ID override (string like "w1:p2", or nil to use auto-discovery)
-  pane_override = nil,
-
-  -- General question / popup agent configuration
+  -- General question agent configuration
   ask_agent = {
     target_agent = nil, -- Target agent harness for general questions (if nil, prompts on first use & remembers for session)
-    popup = true,       -- Open general question sessions in a Herdr popup pane
   },
 
   -- Agent edit review configuration

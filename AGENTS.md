@@ -155,7 +155,8 @@ Every backend adapter **must** implement the following interface:
 
 ### `lua/sagani/backend.lua`
 - `backend.register(name, adapter)`: Registers a backend adapter by name. Called in `init.lua` for all four built-in backends.
-- `backend.get_backend(opts)`: Resolves the active backend adapter. Returns `adapter, backend_name`. If `opts.backend = "auto"`, auto-detects via `detect_env()` in priority order: **Herdr → Tmux → Zellij → Native**. If `opts.backend` is a string, looks up registered adapter by name. If it is a table, uses it directly as a custom adapter.
+- `backend.resolve_placement(opts, bname, task_type)`: Resolves task placement specifier using a 3-step hierarchy: Backend-specific override (`opts.backends[bname][task_type]`) ➡️ Shared tasks default (`opts.tasks[task_type]`) ➡️ Hardcoded fallback (`ask = false`, others = `"right-pane"`).
+- `backend.get_backend(opts, task_type)`: Resolves active backend adapter and placement for a given `task_type` (`"ask"`, `"review"`, `"code"`, `"chat"`, or custom key). Auto-detects in order: **Herdr → Tmux → Zellij → Native**. If the active backend's placement resolves to `false` (or `capabilities[task_type] == false`), it skips that backend for this task and falls back directly to `native` (opening a native Neovim float/split). Returns `adapter, backend_name, placement`.
 
 ### `lua/sagani/backend/herdr.lua`
 - `herdr.detect_env(runner)`: Returns `{ active, id, metadata }` based on `topology.detect_env`.
