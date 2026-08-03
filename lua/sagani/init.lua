@@ -452,66 +452,8 @@ function M.ask_agent_prompt(prompt_text, opts)
   end
 
   local configured_agent = ask_opts.target_agent
-  if type(configured_agent) == "string" and configured_agent ~= "" then
-    do_ask(configured_agent, prompt_text)
-  elseif M._session_ask_agent and M._session_ask_agent ~= "" then
-    do_ask(M._session_ask_agent, prompt_text)
-  else
-    -- Build the same choices list as select_agent_harness
-    local choices = { "agy", "codex", "opencode", "hermes" }
-    local seen = {}
-    for _, c in ipairs(choices) do seen[c] = true end
-
-    if M.options.target_agent and not seen[M.options.target_agent] then
-      table.insert(choices, M.options.target_agent)
-      seen[M.options.target_agent] = true
-    end
-
-    local adapter, _ = backend.get_backend(opts)
-    local agents = adapter.list_agents and adapter.list_agents(opts.runner) or nil
-    if type(agents) == "table" then
-      for _, a in ipairs(agents) do
-        if type(a) == "table" and type(a.agent) == "string" and a.agent ~= "" then
-          local agent_kind = a.agent:lower()
-          if not seen[agent_kind] then
-            table.insert(choices, agent_kind)
-            seen[agent_kind] = true
-          end
-        end
-      end
-    end
-
-    table.insert(choices, "Other...")
-
-    vim.ui.select(choices, {
-      prompt = string.format("Ask Agent (session, current: %s):", M.options.target_agent or "agy"),
-      format_item = function(item)
-        if item == (M._session_ask_agent or M.options.target_agent) then
-          return item .. " (active)"
-        end
-        return item
-      end,
-    }, function(choice)
-      if not choice then
-        notify.info("Ask Agent cancelled", opts)
-        return
-      end
-      if choice == "Other..." then
-        vim.ui.input({ prompt = "Enter custom agent name: " }, function(input)
-          if input and input ~= "" then
-            local custom = vim.trim(input):lower()
-            M._session_ask_agent = custom
-            do_ask(custom, prompt_text)
-          else
-            notify.info("Ask Agent cancelled", opts)
-          end
-        end)
-      else
-        M._session_ask_agent = choice
-        do_ask(choice, prompt_text)
-      end
-    end)
-  end
+  local agent_name = (type(configured_agent) == "string" and configured_agent ~= "") and configured_agent or (M.options.target_agent or "agy")
+  do_ask(agent_name, prompt_text)
 end
 
 function M.dispatch_prompt(prompt_text, target_pane, opts)

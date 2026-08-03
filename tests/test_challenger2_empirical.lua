@@ -57,41 +57,23 @@ function M.run()
   -- 1. SESSION CACHING LIFECYCLE TESTS
   -- ============================================================================
 
-  test("Session Caching Lifecycle: Initial state and runtime selection caching", function()
+  test("Target Agent Lifecycle: Selection via select_agent_harness propagates to ask_agent_prompt", function()
     sagani.setup({ target_agent = "agy", ask_agent = { target_agent = nil, popup = true } })
-    sagani._session_ask_agent = nil -- ensure clean state
 
-    local last_dispatched_pane = nil
     local last_dispatched_opts = nil
+    local orig_dispatch = sagani.dispatch_prompt
     sagani.dispatch_prompt = function(prompt, pane, opts)
-      last_dispatched_pane = pane
       last_dispatched_opts = opts
       return true, nil
     end
 
-    -- Mock vim.ui.select to pick 'hermes' at runtime (replaces old vim.ui.input text-box)
-    local original_select = vim.ui.select
-    vim.ui.select = function(items, opts, on_confirm)
-      on_confirm("hermes")
-    end
+    sagani.select_agent_harness("hermes")
+    assert_equal("hermes", sagani.options.target_agent, "Target agent set to 'hermes'")
 
-    -- First call without configured target_agent -> prompts user and caches 'hermes'
-    sagani.ask_agent_prompt(nil)
-    assert_equal("hermes", sagani._session_ask_agent, "Session ask agent should be cached as 'hermes'")
+    sagani.ask_agent_prompt("Test prompt", { notify = { enabled = false } })
+    assert_equal("hermes", last_dispatched_opts.target_agent, "ask_agent_prompt uses target_agent 'hermes'")
 
-    -- Second call -> should reuse cached 'hermes' without asking for agent selection again
-    local agent_prompted = false
-    vim.ui.select = function(items, opts, on_confirm)
-      agent_prompted = true
-      on_confirm("codex")
-    end
-
-    sagani.ask_agent_prompt(nil)
-    assert_false(agent_prompted, "Should NOT prompt for agent selection when session cache exists")
-    assert_equal("hermes", sagani._session_ask_agent, "Session cache should remain 'hermes'")
-
-    -- Cleanup
-    vim.ui.select = original_select
+    sagani.dispatch_prompt = orig_dispatch
   end)
 
   test("Session Caching Lifecycle: Explicit opts.ask_agent.target_agent overrides session cache", function()
@@ -112,7 +94,6 @@ function M.run()
     -- Invoke with explicit target_agent in options
     sagani.ask_agent_prompt("Test prompt", { ask_agent = { target_agent = "codex" } })
     assert_equal("codex", dispatched_opts.target_agent, "Dispatched opts should use explicit 'codex'")
-    assert_equal("hermes", sagani._session_ask_agent, "Session cache should remain unchanged 'hermes'")
 
     vim.ui.input = original_input
   end)

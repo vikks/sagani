@@ -85,53 +85,24 @@ function M.run()
     assert_eq(init.options.ask_agent.target_agent, "hermes", "configured target_agent preserved")
   end)
 
-  run_test("ask_agent_prompt: session cache remembered on subsequent calls", function()
-    init.setup({
-      ask_agent = {
-        target_agent = nil,
-        popup = true,
-      },
-      notify = { enabled = false },
-    })
-
-    _G.RUNNING_TEST_SUITE = true
-    init._session_ask_agent = "codex"
-
-    -- session cache path: _session_ask_agent is set, bypasses vim.ui.select
-    init.ask_agent_prompt("What is ARC in Rust?", { notify = { enabled = false } })
-    assert_eq(init._session_ask_agent, "codex", "session cache remembered")
-  end)
-
-  run_test("ask_agent_prompt: no cache/config → vim.ui.select fires with agent list", function()
+  run_test("ask_agent_prompt: uses M.options.target_agent set by select_agent_harness (<leader>ah)", function()
     init.setup({ notify = { enabled = false } })
     _G.RUNNING_TEST_SUITE = true
-    init._session_ask_agent = nil
 
-    local selected_items = {}
-    local orig_select = vim.ui.select
-    vim.ui.select = function(items, _, cb)
-      selected_items = items
-      cb("opencode")  -- simulate user picking opencode
-    end
+    init.select_agent_harness("codex")
+    assert_eq(init.options.target_agent, "codex", "target_agent set to codex via select_agent_harness")
 
     local dispatched_agent = nil
     local orig_dispatch = init.dispatch_prompt
     init.dispatch_prompt = function(text, target, opts)
-      dispatched_agent = init._session_ask_agent
+      dispatched_agent = opts.target_agent
       return true, nil
     end
 
-    init.ask_agent_prompt("test question", { notify = { enabled = false } })
-
-    vim.ui.select = orig_select
+    init.ask_agent_prompt("What is ownership in Rust?", { notify = { enabled = false } })
     init.dispatch_prompt = orig_dispatch
 
-    assert_true(vim.tbl_contains(selected_items, "agy"), "select list contains agy")
-    assert_true(vim.tbl_contains(selected_items, "codex"), "select list contains codex")
-    assert_true(vim.tbl_contains(selected_items, "opencode"), "select list contains opencode")
-    assert_true(vim.tbl_contains(selected_items, "hermes"), "select list contains hermes")
-    assert_true(vim.tbl_contains(selected_items, "Other..."), "select list contains Other...")
-    assert_eq(init._session_ask_agent, "opencode", "session cache set to selected agent")
+    assert_eq(dispatched_agent, "codex", "ask_agent_prompt uses active session agent codex")
   end)
 
   run_test("native.spawn_popup: reuses persistent buffer and preserves state on reopen", function()

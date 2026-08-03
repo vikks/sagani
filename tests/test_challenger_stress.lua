@@ -565,12 +565,11 @@ function M.run()
 
   run_test("ask_agent_stress: input cancellation (nil input) and invalid option types", function()
     init.setup({ ask_agent = { target_agent = nil }, notify = { enabled = false } })
-    init._session_ask_agent = nil
 
-    -- Test interactive selection cancellation (user presses q / Esc in vim.ui.select)
-    local orig_select = vim.ui.select
-    vim.ui.select = function(items, opts, cb)
-      cb(nil) -- User cancelled the picker
+    -- Test input prompt cancellation (user cancels vim.ui.input)
+    local orig_input = vim.ui.input
+    vim.ui.input = function(opts, cb)
+      cb(nil) -- User cancelled the prompt
     end
 
     local dispatched = false
@@ -579,6 +578,8 @@ function M.run()
 
     init.ask_agent_prompt(nil, { notify = { enabled = false } })
     assert_false(dispatched, "dispatch_prompt not called when selection is cancelled (nil)")
+
+    vim.ui.input = orig_input
 
     -- Test invalid ask_agent option types (primitive string, number, boolean)
     -- These all fall through to vim.ui.select since ask_opts won't be a table;

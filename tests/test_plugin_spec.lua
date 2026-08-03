@@ -287,39 +287,6 @@ function M.run()
     assert_eq(init.options.ask_agent.popup, false, "user override ask_agent.popup set to false")
   end)
 
-  run_test("ask_agent_session: runtime agent choice caching in init._session_ask_agent", function()
-    init.setup({ ask_agent = { target_agent = nil, popup = true } })
-    init._session_ask_agent = nil
-
-    local select_called = false
-    local orig_select = vim.ui.select
-    vim.ui.select = function(items, opts, cb)
-      select_called = true
-      cb("codex")  -- simulate user picking codex from the list
-    end
-
-    local orig_dispatch = init.dispatch_prompt
-    local dispatched_text = nil
-    init.dispatch_prompt = function(text, target, opts)
-      dispatched_text = text
-      return true, nil
-    end
-
-    init.ask_agent_prompt("First question", { notify = { enabled = false } })
-    assert_true(select_called, "ui.select called on first prompt when target_agent and session cache are nil")
-    assert_eq(init._session_ask_agent, "codex", "runtime selection cached in _session_ask_agent")
-
-    -- Second invocation should reuse cached session agent without calling ui.select again
-    select_called = false
-    init.ask_agent_prompt("Second question @[/tmp/test.lua]", { notify = { enabled = false } })
-    assert_eq(select_called, false, "ui.select NOT called on second prompt when session cache exists")
-    assert_eq(init._session_ask_agent, "codex", "session cache retained")
-
-    vim.ui.select = orig_select
-    init.dispatch_prompt = orig_dispatch
-    init._session_ask_agent = nil
-  end)
-
 
 
   return {
