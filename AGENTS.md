@@ -273,16 +273,25 @@ sagani.nvim/
 │       ├── diff.lua         # Diff hunk review, accept/reject, watcher
 │       ├── format.lua       # Markdown prompt & diff block formatting helpers
 │       ├── notify.lua       # LazyVim-aware notification handler
-│       ├── backend/         # Multiplexer backend adapters (all implement the contract)
-│       │   ├── herdr.lua    # Herdr adapter (pure CLI: pane split + agent start + agent prompt)
-│       │   ├── herdr/
-│       │   │   └── topology.lua # Herdr-specific topology discovery & CLI transport
-│       │   ├── native.lua   # Native Neovim float/split/terminal adapter
-│       │   ├── tmux.lua     # Tmux adapter (split-window, display-popup, send-keys)
-│       │   └── zellij.lua   # Zellij adapter (new-pane, write-chars)
+│       ├── ui/
+│       │   └── markdown_popup.lua # Native Markdown floating popup UI & follow-up keymaps
+│       ├── protocol/        # Protocol-first transport adapters
+│       │   ├── init.lua     # Master Protocol module entry point
+│       │   ├── acp.lua      # High-level ACP router facade
+│       │   ├── http.lua     # HTTP REST transport (OpenCode server API & auto-spawner)
+│       │   ├── cli.lua      # CLI subprocess transport (agy -p, gemini -p, codex exec)
+│       │   └── json_rpc.lua # JSON-RPC 2.0 stdio transport
+│       └── backend/         # Multiplexer backend adapters (all implement the contract)
+│           ├── herdr.lua    # Herdr adapter (pure CLI: pane split + agent start + agent prompt)
+│           ├── herdr/
+│           │   └── topology.lua # Herdr-specific topology discovery & CLI transport
+│           ├── native.lua   # Native Neovim float/split/terminal adapter
+│           ├── tmux.lua     # Tmux adapter (split-window, display-popup, send-keys)
+│           └── zellij.lua   # Zellij adapter (new-pane, write-chars)
 └── tests/
     ├── run_tests.lua                    # Master headless test runner
     ├── minimal_init.lua                 # Plenary Busted test runner
+    ├── test_acp.lua                     # ACP protocol & markdown popup unit tests
     ├── test_topology.lua                # Topology unit tests
     ├── test_selection.lua               # Selection unit tests
     ├── test_diff.lua                    # Diff unit tests
