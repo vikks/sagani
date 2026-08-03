@@ -11,12 +11,16 @@ A harness-agnostic Neovim plugin (tailored for [LazyVim](https://www.lazyvim.org
 ## ⚡ Features
 
 - **🌐 Harness-Agnostic Agent Switching**: Switch target agent harnesses (`agy`, `codex`, `opencode`, `hermes`, or custom CLI tools) on the fly via an interactive menu (`:SaganiSelectAgent`).
+- **⚡ Reliable CLI-Based Agent Dispatch**: Communicates with Herdr via direct CLI commands (`herdr agent prompt`, `herdr pane split`, `herdr agent start --timeout`). Agent startup readiness is verified at the CLI level — no race conditions, no timing hacks.
 - **🧩 Automatic Topology Discovery**: Automatically detects your active `herdr` terminal environment (pane, tab, workspace IDs) and discovers active agent target panes.
 - **✨ Visual Selection & Code Context**: Dispatch visual selections (`v`, `V`, `<C-v>`) formatted with file path, line range, syntax highlighting, and instruction prompts directly to your agent.
+- **💬 Ask General Agent in a New Pane**: Prompt an agent for general questions or assistance in a dedicated new pane (`:SaganiAskAgent`, `<leader>aa`) with automatic file context references (`@[abs_path]`) and session-cached agent selection.
 - **🔍 Structured Diff Review**: Review git diffs (via `diffview.nvim` or native Neovim diff split), calculate hunks, and submit formatted Markdown diff review comments to your agent.
 - **🔎 Interactive Edit Review & Accept/Reject**: See exactly where agent edits occurred in your buffer via side-by-side diff review splits (`:SaganiReview`), navigate hunks (`]c` / `[c`), and accept (`<leader>ay` / `:SaganiAccept`) or reject (`<leader>ax` / `:SaganiReject`) individual edit hunks or all file changes.
 - **⌨️ LazyVim & WhichKey Integration**: Includes pre-configured LazyVim plugin specs with optional `folke/which-key.nvim` menu grouping (`<leader>a` → `"Sagani"`).
 - **🧪 Headless Test Suite**: Fully covered by a headless Neovim unit and integration test suite.
+
+---
 
 ---
 
@@ -40,7 +44,9 @@ return {
     target_agent = "agy",
     auto_discover = true,
     auto_spawn = "left",
-    startup_delay = 5000,
+    ask_agent = {
+      target_agent = nil,
+    },
     review = {
       enabled = true,
       auto_open = false,
@@ -67,9 +73,6 @@ require("sagani").setup({
 
   -- Direction to automatically spawn agent pane if none exists ("left", "right", "bottom", "top", false)
   auto_spawn = "left",
-
-  -- Timeout in milliseconds when waiting for agent CLI readiness
-  startup_delay = 5000,
 
   -- Manual target pane ID override (string like "w1:p2", or nil to use auto-discovery)
   pane_override = nil,
@@ -111,7 +114,7 @@ require("sagani").setup({
 | `<leader>ap` | Normal / Visual | `:SaganiPrompt` | Send custom prompt to target agent |
 | `<leader>an` | Normal | `:SaganiSpawnPane` | Spawn new Herdr pane for active agent harness |
 | `<leader>ah` | Normal | `:SaganiSelectAgent` | Open picker to select agent harness (`agy`, `codex`, etc.) |
-| `<leader>aa` | Normal / Visual | `:SaganiAskAgent` | Ask general questions to agent in a Herdr popup pane |
+| `<leader>aa` | Normal / Visual | `:SaganiAskAgent` | Ask general questions to agent in a new pane |
 | `<leader>ar` | Normal | `:SaganiReview` | Toggle side-by-side agent edit review diff view |
 | `<leader>ay` | Normal | `:SaganiAccept` | Accept agent edit change (hunk under cursor or all) |
 | `<leader>ax` | Normal | `:SaganiReject` | Reject agent edit change (revert hunk under cursor or all) |
@@ -127,7 +130,7 @@ require("sagani").setup({
 | `:SaganiContext` | Capture visual selection code context and send directly to agent |
 | `:SaganiDiff` | Capture active diff hunk/selection and send formatted review comment |
 | `:SaganiSelectAgent [harness]` | Select target agent harness interactively or via argument |
-| `:SaganiAskAgent [prompt]` | Ask general questions/prompts to an agent in a Herdr popup pane |
+| `:SaganiAskAgent [prompt]` | Ask general questions/prompts to an agent in a new pane |
 | `:SaganiSelectHarness [harness]` | Alias for `:SaganiSelectAgent` |
 | `:SaganiSelectTarget` | Prompt interactively to set or clear manual target pane ID |
 | `:SaganiSpawnPane` | Spawn a Herdr pane and initialize the target agent harness |

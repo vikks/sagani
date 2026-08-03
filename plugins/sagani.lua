@@ -65,9 +65,13 @@ return {
 			auto_discover = true,
 			startup_delay = 5000,
 			auto_spawn = "left",
+			ask_agent = {
+				target_agent = nil,
+				popup = true,
+			},
 			review = {
 				enabled = true,
-				auto_open = false,
+				auto_open = true,
 			},
 		},
 		config = function(_, opts)

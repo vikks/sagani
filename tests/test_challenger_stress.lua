@@ -3,7 +3,7 @@ local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
 local init = require("sagani")
-local topology = require("sagani.topology")
+local topology = require("sagani.backend.herdr.topology")
 local selection = require("sagani.selection")
 local diff = require("sagani.diff")
 local format = require("sagani.format")
@@ -446,19 +446,19 @@ function M.run()
       last_title = opts and opts.title
     end
 
-    -- Test info
-    notify.info("Test Info", { title = "MyTitle" })
+    -- Test info (notify = true bypasses RUNNING_TEST_SUITE guard so vim.notify mock is reached)
+    notify.info("Test Info", { notify = true, title = "MyTitle" })
     assert_eq(last_msg, "Test Info", "info message string")
     assert_eq(last_level, vim.log.levels.INFO, "info log level")
     assert_eq(last_title, "MyTitle", "custom title")
 
     -- Test warn / warning
-    notify.notify("Test Warn", "warning")
+    notify.notify("Test Warn", "warning", { notify = true })
     assert_eq(last_msg, "Test Warn", "warning message string")
     assert_eq(last_level, vim.log.levels.WARN, "warning log level")
 
     -- Test error
-    notify.error("Test Error")
+    notify.error("Test Error", { notify = true })
     assert_eq(last_msg, "Test Error", "error message string")
     assert_eq(last_level, vim.log.levels.ERROR, "error log level")
 
@@ -471,12 +471,13 @@ function M.run()
     notify.info("Should be suppressed nested", { notify = { enabled = false } })
     assert_nil(last_msg, "notify.enabled = false suppresses notification")
 
-    -- Test non-string message (table, number)
-    notify.info({ key = "val" })
+    -- Test non-string message (table, number) with explicit opt-in
+    notify.info({ key = "val" }, { notify = true })
     assert_true(type(last_msg) == "string" and last_msg:find("key", 1, true) ~= nil, "table message inspected to string")
 
     restore_env()
   end)
+
 
   -- ==========================================================
   -- 6. INIT MODULE DISPATCH STRESS TESTS
@@ -560,6 +561,64 @@ function M.run()
     assert_eq(executed_cmd[5], "Explain function", "prompt string passed")
 
     restore_env()
+  end)
+
+  run_test("ask_agent_stress: input cancellation (nil input) and invalid option types", function()
+    init.setup({ ask_agent = { target_agent = nil }, notify = { enabled = false } })
+    init._session_ask_agent = nil
+
+    -- Test interactive selection cancellation (user presses q / Esc in vim.ui.select)
+    local orig_select = vim.ui.select
+    vim.ui.select = function(items, opts, cb)
+      cb(nil) -- User cancelled the picker
+    end
+
+    local dispatched = false
+    local orig_dispatch = init.dispatch_prompt
+    init.dispatch_prompt = function() dispatched = true return true, nil end
+
+    init.ask_agent_prompt(nil, { notify = { enabled = false } })
+    assert_false(dispatched, "dispatch_prompt not called when selection is cancelled (nil)")
+
+    -- Test invalid ask_agent option types (primitive string, number, boolean)
+    -- These all fall through to vim.ui.select since ask_opts won't be a table;
+    -- mock select to cancel immediately so they don't block.
+    local ok_str = pcall(init.ask_agent_prompt, "Valid question", { ask_agent = "invalid_string_type", notify = { enabled = false } })
+    assert_true(ok_str, "ask_agent = string handled safely without exception")
+
+    local ok_num = pcall(init.ask_agent_prompt, "Valid question", { ask_agent = 12345, notify = { enabled = false } })
+    assert_true(ok_num, "ask_agent = number handled safely without exception")
+
+    local ok_bool = pcall(init.ask_agent_prompt, "Valid question", { ask_agent = false, notify = { enabled = false } })
+    assert_true(ok_bool, "ask_agent = boolean handled safely without exception")
+
+    vim.ui.select = orig_select
+    init.dispatch_prompt = orig_dispatch
+    restore_env()
+  end)
+
+  run_test("spawn_agent_popup_stress: runner JSON parse failure & error recovery", function()
+    local mock_runner_bad_json = function(cmd)
+      return "HTTP 500 Server Error", 0
+    end
+
+    -- bad JSON → pane_id falls back to "p_popup", agent_name is still returned
+    local name1, err1, meta1 = topology.spawn_agent_popup({ runner = mock_runner_bad_json })
+    assert_true(type(name1) == "string" and name1 ~= "", "falls back to agent_name string on invalid JSON")
+    assert_eq(meta1.pane_id, "p_popup", "falls back to p_popup pane handle on invalid JSON")
+    assert_nil(err1, "err is nil under test suite fallback mode")
+    assert_true(meta1 ~= nil and meta1.is_popup == true, "meta.is_popup is true")
+
+    local mock_runner_nonzero = function(cmd)
+      return nil, 1
+    end
+
+    -- non-zero exit → pane_id falls back to "p_popup"
+    local name2, err2, meta2 = topology.spawn_agent_popup({ runner = mock_runner_nonzero })
+    assert_true(type(name2) == "string" and name2 ~= "", "falls back to agent_name string on non-zero exit code")
+    assert_eq(meta2.pane_id, "p_popup", "falls back to p_popup pane handle on non-zero exit code")
+    assert_nil(err2, "err is nil under test suite fallback mode")
+    assert_true(meta2 ~= nil and meta2.is_popup == true, "meta.is_popup is true")
   end)
 
   return {

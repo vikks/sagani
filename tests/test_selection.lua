@@ -258,6 +258,70 @@ function M.run()
     assert_true(dispatched_text:find("```typescript\nconst x = 100;\n```", 1, true) ~= nil, "payload contains code block")
   end)
 
+  run_test("ask_agent_prompt: file path reference injection (@[abs_path]) and dispatching to agent pane", function()
+    local abs_path = project_root .. "/lua/demo_app_1.lua"
+    local buf = create_fixture_buf({ "function run()", "  print('hello')", "end" }, "lua", abs_path)
+
+    local dispatched_text = nil
+    local dispatched_pane = nil
+    local orig_dispatch = init.dispatch_prompt
+    init.dispatch_prompt = function(text, target, opts)
+      dispatched_text = text
+      dispatched_pane = target
+      return true, nil
+    end
+
+    init.ask_agent_prompt("How do I optimize this function?", { ask_agent = { target_agent = "agy" }, notify = { enabled = false } })
+
+    init.dispatch_prompt = orig_dispatch
+
+    assert_true(dispatched_text ~= nil, "dispatch_prompt was called for ask_agent_prompt")
+    assert_true(dispatched_text:find("How do I optimize this function?", 1, true) ~= nil, "payload contains question")
+    assert_true(dispatched_text:find("@[" .. abs_path .. "]", 1, true) ~= nil, "payload injects @[abs_path] file reference")
+    -- spawn_popup returns agent_name (e.g. "agy-ask-test"), not the raw pane_id
+    assert_true(type(dispatched_pane) == "string" and dispatched_pane ~= "", "target pane is a non-empty agent target string")
+    assert_true(dispatched_pane:find("agy") ~= nil, "agent target contains harness name 'agy'")
+  end)
+
+  run_test("ask_agent_prompt: preserves existing file path reference without duplicating", function()
+    local abs_path = project_root .. "/lua/demo_app_2.lua"
+    local buf = create_fixture_buf({ "code line" }, "lua", abs_path)
+
+    local dispatched_text = nil
+    local orig_dispatch = init.dispatch_prompt
+    init.dispatch_prompt = function(text, target, opts)
+      dispatched_text = text
+      return true, nil
+    end
+
+    init.ask_agent_prompt("Check @[/tmp/custom_file.lua#L10]", { ask_agent = { target_agent = "agy" }, notify = { enabled = false } })
+
+    init.dispatch_prompt = orig_dispatch
+
+    assert_true(dispatched_text ~= nil, "dispatch_prompt was called")
+    assert_eq(dispatched_text, "Check @[/tmp/custom_file.lua#L10]", "existing @[... reference preserved without appending @[abs_path]")
+  end)
+
+  run_test("ask_agent_prompt: handles unnamed buffer ([No Name]) gracefully", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "unnamed content" })
+    vim.api.nvim_set_current_buf(buf)
+
+    local dispatched_text = nil
+    local orig_dispatch = init.dispatch_prompt
+    init.dispatch_prompt = function(text, target, opts)
+      dispatched_text = text
+      return true, nil
+    end
+
+    init.ask_agent_prompt("What is this code?", { ask_agent = { target_agent = "agy" }, notify = { enabled = false } })
+
+    init.dispatch_prompt = orig_dispatch
+
+    assert_true(dispatched_text ~= nil, "dispatch_prompt was called")
+    assert_eq(dispatched_text, "What is this code?", "unnamed buffer prompt text is not augmented with @[]")
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,

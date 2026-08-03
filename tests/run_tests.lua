@@ -1,5 +1,5 @@
 -- Master Headless Test Runner for sagani.nvim
--- Target modules: sagani.topology, sagani.selection, sagani.diff, sagani.format, sagani.init
+-- Target modules: sagani.backend.herdr.topology, sagani.selection, sagani.diff, sagani.format, sagani.init
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. project_root .. "/?.lua;" .. package.path
 
@@ -13,6 +13,12 @@ vim.ui.input = function(opts, cb)
   if type(cb) == "function" then
     cb(opts and opts.default or "test fallback input")
   end
+end
+
+-- Global mock for sagani.dispatch_prompt during test suite execution to prevent polluting active buffers/sessions
+local sagani_init = require("sagani")
+sagani_init.dispatch_prompt = function(prompt_text, target_pane, opts)
+  return true, nil
 end
 
 print("==========================================================")

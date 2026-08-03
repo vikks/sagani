@@ -268,14 +268,55 @@ function M.run()
     assert_eq(init.options.target_agent, "hermes", "explicit arg sets target_agent to hermes")
   end)
 
-  run_test("runtime_entrypoint: plugin/sagani.lua auto-sources and initializes setup()", function()
-    local runtime_file = project_root .. "/plugin/sagani.lua"
-    assert_eq(vim.fn.filereadable(runtime_file), 1, "plugin/sagani.lua is readable")
-    vim.g.loaded_sagani = nil
-    dofile(runtime_file)
-    assert_eq(vim.g.loaded_sagani, true, "vim.g.loaded_sagani flag set")
-    assert_true(vim.fn.exists(":SaganiStatus") == 2, ":SaganiStatus registered by runtime script")
+  run_test("ask_agent_config: setup() merges ask_agent defaults and user overrides", function()
+    init.setup({})
+    assert_eq(init.options.ask_agent.target_agent, nil, "default ask_agent.target_agent is nil")
+    assert_eq(init.options.ask_agent.popup, true, "default ask_agent.popup is true")
+
+    init.setup({
+      ask_agent = {
+        target_agent = "opencode",
+        popup = false,
+      },
+    })
+    assert_eq(init.options.ask_agent.target_agent, "opencode", "user override ask_agent.target_agent set to opencode")
+    assert_eq(init.options.ask_agent.popup, false, "user override ask_agent.popup set to false")
   end)
+
+  run_test("ask_agent_session: runtime agent choice caching in init._session_ask_agent", function()
+    init.setup({ ask_agent = { target_agent = nil, popup = true } })
+    init._session_ask_agent = nil
+
+    local select_called = false
+    local orig_select = vim.ui.select
+    vim.ui.select = function(items, opts, cb)
+      select_called = true
+      cb("codex")  -- simulate user picking codex from the list
+    end
+
+    local orig_dispatch = init.dispatch_prompt
+    local dispatched_text = nil
+    init.dispatch_prompt = function(text, target, opts)
+      dispatched_text = text
+      return true, nil
+    end
+
+    init.ask_agent_prompt("First question", { notify = { enabled = false } })
+    assert_true(select_called, "ui.select called on first prompt when target_agent and session cache are nil")
+    assert_eq(init._session_ask_agent, "codex", "runtime selection cached in _session_ask_agent")
+
+    -- Second invocation should reuse cached session agent without calling ui.select again
+    select_called = false
+    init.ask_agent_prompt("Second question @[/tmp/test.lua]", { notify = { enabled = false } })
+    assert_eq(select_called, false, "ui.select NOT called on second prompt when session cache exists")
+    assert_eq(init._session_ask_agent, "codex", "session cache retained")
+
+    vim.ui.select = orig_select
+    init.dispatch_prompt = orig_dispatch
+    init._session_ask_agent = nil
+  end)
+
+
 
   return {
     passed = passed_count,

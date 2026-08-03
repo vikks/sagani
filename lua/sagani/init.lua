@@ -1,18 +1,41 @@
-local topology = require("sagani.topology")
 local notify = require("sagani.notify")
 local format = require("sagani.format")
 local selection = require("sagani.selection")
 local diff = require("sagani.diff")
+local backend = require("sagani.backend")
+
+-- Register Built-in Backend Providers
+backend.register("native", require("sagani.backend.native"))
+backend.register("herdr", require("sagani.backend.herdr"))
+backend.register("tmux", require("sagani.backend.tmux"))
+backend.register("zellij", require("sagani.backend.zellij"))
 
 local native_vim_system = vim.system
 
 local M = {}
 
 M.defaults = {
+  backend = "auto",
+  backends = {
+    native = {
+      popup_border = "rounded",
+      split_direction = "vertical",
+    },
+    herdr = {
+      auto_discover = true,
+      auto_spawn = false,
+    },
+    tmux = {
+      split_direction = "right",
+      target_pane = nil,
+    },
+    zellij = {
+      direction = "right",
+    },
+  },
   target_agent = "agy",
   auto_discover = true,
   auto_spawn = false,
-  startup_delay = 5000,
   pane_override = nil,
   default_keymaps = true,
   which_key = true,
@@ -81,11 +104,13 @@ function M.setup(user_opts)
 
   -- Register User Commands
   vim.api.nvim_create_user_command("SaganiStatus", function()
-    local env = topology.detect_env()
-    local pane_id, err, _ = topology.discover_target_pane(M.options)
+    local adapter, backend_name = backend.get_backend(M.options)
+    local env_info = adapter.detect_env and adapter.detect_env(M.options.runner) or {}
+    local env = env_info.metadata or env_info
+    local pane_id, err, _ = adapter.discover_target(M.options)
     local msg = string.format(
-      "Herdr Session: %s | Pane: %s | Tab: %s | Workspace: %s\nTarget Pane (%s): %s",
-      env.in_herdr and "ACTIVE" or "INACTIVE",
+      "Backend: %s | Pane: %s | Tab: %s | Workspace: %s\nTarget Pane (%s): %s",
+      backend_name:upper(),
       env.pane_id or "N/A",
       env.tab_id or "N/A",
       env.workspace_id or "N/A",
@@ -97,7 +122,7 @@ function M.setup(user_opts)
     else
       notify.warn(msg, M.options)
     end
-  end, { desc = "Show Herdr topology and target AGY pane status" })
+  end, { desc = "Show backend status and target AGY pane status" })
 
   vim.api.nvim_create_user_command("SaganiSelectTarget", function()
     vim.ui.input({ prompt = "Enter target Herdr pane ID (or empty to clear override): " }, function(input)
@@ -124,13 +149,14 @@ function M.setup(user_opts)
   end, { nargs = "?", desc = "Alias for SaganiSelectAgent" })
 
   vim.api.nvim_create_user_command("SaganiSpawnPane", function()
-    local pane_id, err, _ = topology.spawn_agent_pane(M.options)
+    local adapter, backend_name = backend.get_backend(M.options)
+    local pane_id, err, _ = adapter.spawn_pane(M.options)
     if pane_id then
-      notify.info(string.format("Spawned new right pane '%s' for '%s'", pane_id, M.options.target_agent), M.options)
+      notify.info(string.format("Spawned new pane '%s' for '%s' via %s backend", pane_id, M.options.target_agent, backend_name), M.options)
     else
-      notify.error("Failed to spawn Herdr pane: " .. (err or "Unknown error"), M.options)
+      notify.error(string.format("Failed to spawn pane via %s: %s", backend_name, err or "Unknown error"), M.options)
     end
-  end, { desc = "Spawn vertical right Herdr pane and start target agent" })
+  end, { desc = "Spawn new agent terminal pane" })
 
   vim.api.nvim_create_user_command("SaganiPrompt", function(cmd_args)
     local prompt_text = cmd_args.args
@@ -266,7 +292,8 @@ function M.select_agent_harness(arg, opts)
     seen[M.options.target_agent] = true
   end
 
-  local agents, _ = topology.list_agents(opts.runner)
+  local adapter, _ = backend.get_backend(opts)
+  local agents = adapter.list_agents and adapter.list_agents(opts.runner) or nil
   if type(agents) == "table" then
     for _, a in ipairs(agents) do
       if type(a) == "table" and type(a.agent) == "string" and a.agent ~= "" then
@@ -351,13 +378,21 @@ function M.ask_agent_prompt(prompt_text, opts)
     end
 
     local popup_opts = vim.tbl_deep_extend("force", opts, { target_agent = agent_name })
-    local pane_id, err, _ = topology.spawn_agent_popup(popup_opts)
+    local adapter, backend_name = backend.get_backend(popup_opts)
+    -- spawn_popup returns agent_name as the dispatch target (agent.prompt uses name not pane_id).
+    -- agent.start inside spawn_popup already waited for agent readiness, so no delay needed.
+    local agent_target, err, meta = adapter.spawn_popup(popup_opts)
 
-    if pane_id then
-      M.dispatch_prompt(text, pane_id, popup_opts)
-      notify.info(string.format("Asked '%s' agent in Herdr popup pane '%s'", agent_name, pane_id), opts)
+    if agent_target then
+      local display_pane = (meta and meta.pane_id) or agent_target
+      local ok, dispatch_err = M.dispatch_prompt(text, agent_target, popup_opts)
+      if ok then
+        notify.info(string.format("Asked '%s' agent in %s pane '%s'", agent_name, backend_name, display_pane), opts)
+      else
+        notify.error(string.format("Failed to prompt '%s' in %s pane '%s': %s", agent_name, backend_name, display_pane, dispatch_err or "Unknown error"), opts)
+      end
     else
-      notify.error("Failed to spawn Herdr popup pane: " .. (err or "Unknown error"), opts)
+      notify.error(string.format("Failed to spawn %s agent pane: %s", backend_name, err or "Unknown error"), opts)
     end
   end
 
@@ -367,14 +402,58 @@ function M.ask_agent_prompt(prompt_text, opts)
   elseif M._session_ask_agent and M._session_ask_agent ~= "" then
     do_ask(M._session_ask_agent, prompt_text)
   else
-    local default_choice = M.options.target_agent or "agy"
-    vim.ui.input({ prompt = string.format("Select agent for general questions (default: %s): ", default_choice), default = default_choice }, function(choice)
-      if choice and choice ~= "" then
-        local chosen = vim.trim(choice):lower()
-        M._session_ask_agent = chosen
-        do_ask(chosen, prompt_text)
-      else
+    -- Build the same choices list as select_agent_harness
+    local choices = { "agy", "codex", "opencode", "hermes" }
+    local seen = {}
+    for _, c in ipairs(choices) do seen[c] = true end
+
+    if M.options.target_agent and not seen[M.options.target_agent] then
+      table.insert(choices, M.options.target_agent)
+      seen[M.options.target_agent] = true
+    end
+
+    local adapter, _ = backend.get_backend(opts)
+    local agents = adapter.list_agents and adapter.list_agents(opts.runner) or nil
+    if type(agents) == "table" then
+      for _, a in ipairs(agents) do
+        if type(a) == "table" and type(a.agent) == "string" and a.agent ~= "" then
+          local agent_kind = a.agent:lower()
+          if not seen[agent_kind] then
+            table.insert(choices, agent_kind)
+            seen[agent_kind] = true
+          end
+        end
+      end
+    end
+
+    table.insert(choices, "Other...")
+
+    vim.ui.select(choices, {
+      prompt = string.format("Ask Agent (session, current: %s):", M.options.target_agent or "agy"),
+      format_item = function(item)
+        if item == (M._session_ask_agent or M.options.target_agent) then
+          return item .. " (active)"
+        end
+        return item
+      end,
+    }, function(choice)
+      if not choice then
         notify.info("Ask Agent cancelled", opts)
+        return
+      end
+      if choice == "Other..." then
+        vim.ui.input({ prompt = "Enter custom agent name: " }, function(input)
+          if input and input ~= "" then
+            local custom = vim.trim(input):lower()
+            M._session_ask_agent = custom
+            do_ask(custom, prompt_text)
+          else
+            notify.info("Ask Agent cancelled", opts)
+          end
+        end)
+      else
+        M._session_ask_agent = choice
+        do_ask(choice, prompt_text)
       end
     end)
   end
@@ -398,63 +477,29 @@ function M.dispatch_prompt(prompt_text, target_pane, opts)
     target_pane = nil
   end
 
+  local adapter, backend_name = backend.get_backend(opts)
+
   local pane_override = (type(opts.pane_override) == "string" and opts.pane_override ~= "") and opts.pane_override or (type(opts.pane_override) == "number" and tostring(opts.pane_override) or nil)
   local pane_id = target_pane or pane_override
   local err, meta
 
   if not pane_id then
-    pane_id, err, meta = topology.discover_target_pane(opts)
+    pane_id, err, meta = adapter.discover_target(opts)
   end
 
   if not pane_id then
-    notify.error("Cannot dispatch prompt: " .. (err or "Target pane not found"), opts)
+    notify.error(string.format("Cannot dispatch prompt (%s): %s", backend_name, err or "Target pane not found"), opts)
     return false, err
   end
 
-  -- If pane was newly spawned, perform 3-stage readiness detection before prompt delivery
-  if meta and meta.spawned and not _G.RUNNING_TEST_SUITE then
-    notify.info(string.format("Waiting for %s CLI to authenticate & render ready prompt...", (opts.target_agent or "agy"):upper()), opts)
-    vim.cmd("redraw")
-    topology.wait_for_agent_ready(pane_id, 20000, opts)
-  end
-
-  -- CRITICAL SAFETY GUARD: Never execute live shell commands during test suite runs unless vim.system or opts.runner is mocked!
-  if _G.RUNNING_TEST_SUITE and not opts.runner and vim.system == native_vim_system then
-    notify.info(string.format("[TEST MOCK] Prompt dispatched to %s pane '%s'", (opts.target_agent or "agy"):upper(), pane_id), opts)
-    return true, nil
-  end
-
-  if vim.fn.executable("herdr") == 0 then
-    local msg = "'herdr' CLI binary not found in PATH"
+  local ok, send_err = adapter.prompt_target(pane_id, prompt_text, opts)
+  if not ok then
+    local msg = string.format("Failed to prompt agent pane '%s' (%s)", pane_id, send_err or "Unknown error")
     notify.error(msg, opts)
     return false, msg
   end
 
-  local cmd = { "herdr", "agent", "prompt", pane_id, prompt_text }
-  local out_text = ""
-  local code
-  if vim.system then
-    local res = vim.system(cmd):wait()
-    code = res.code
-    local stderr = res.stderr or ""
-    local stdout = res.stdout or ""
-    if code ~= 0 then
-      out_text = (stderr ~= "" and stderr) or stdout
-    else
-      out_text = stdout
-    end
-  else
-    out_text = vim.fn.system(cmd)
-    code = vim.v.shell_error
-  end
-
-  if code ~= 0 then
-    local msg = string.format("Failed to prompt agent pane '%s' (exit code %d): %s", pane_id, code, out_text)
-    notify.error(msg, opts)
-    return false, msg
-  end
-
-  notify.info(string.format("Prompt dispatched to %s pane '%s'", (opts.target_agent or "agy"):upper(), pane_id), opts)
+  notify.info(string.format("Prompt dispatched to %s via %s backend", (opts.target_agent or "agy"):upper(), backend_name), opts)
 
   -- Post-dispatch check for file edits and auto-open review split
   vim.schedule(function()

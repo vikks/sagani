@@ -277,36 +277,45 @@ function M.spawn_agent_pane(opts)
   return new_pane_id, nil, { pane_id = new_pane_id, spawned = true, agent_name = agent_name, direction = req_dir }
 end
 
---- Spawns a new agent session inside a Herdr popup.
+--- Spawns a new agent pane (right split) and starts the agent inside it.
+--- No popup placement exists in herdr pane split; only "right"/"down" are supported.
+--- Uses `herdr agent start --timeout` so the CLI waits for agent readiness,
+--- eliminating the race condition that caused "agent_not_found" errors.
 --- @param opts table|nil Options table (target_agent, cwd, runner).
---- @return string|nil pane_id, string|nil err, table|nil metadata.
+--- @return string|nil agent_name, string|nil err, table|nil metadata.
 function M.spawn_agent_popup(opts)
   opts = type(opts) == "table" and opts or {}
   local runner = opts.runner
   local target_agent = opts.target_agent or "agy"
   local current_cwd = opts.cwd or vim.fn.getcwd()
 
+  -- Test-suite fast-path (or mock runner path)
   if runner then
-    local stdout, code = runner({ "herdr", "pane", "split", "--popup", "--cwd", current_cwd })
-    if code == 0 and stdout then
+    local stdout, code = runner({ "herdr", "pane", "split", "--direction", "right", "--cwd", current_cwd })
+    local new_pane_id
+    if code == 0 and stdout and stdout ~= "" then
       local ok, data = pcall(vim.json.decode, stdout)
-      if ok and type(data) == "table" and type(data.result) == "table" and type(data.result.pane) == "table" then
-        local new_pane_id = data.result.pane.pane_id
-        return new_pane_id, nil, { pane_id = new_pane_id, spawned = true, is_popup = true }
+      if ok and type(data) == "table" and type(data.result) == "table" then
+        local pane = data.result.pane
+        new_pane_id = (type(pane) == "table" and pane.pane_id) or data.result.pane_id or data.result.id
       end
     end
-    return "p_popup", nil, { pane_id = "p_popup", spawned = true, is_popup = true }
+    new_pane_id = new_pane_id or "p_popup"
+    local agent_name = target_agent .. "-ask-" .. tostring(math.random(1000, 9999))
+    return agent_name, nil, { pane_id = new_pane_id, agent_name = agent_name, spawned = true, is_popup = true }
   end
 
   if _G.RUNNING_TEST_SUITE then
-    return "p_popup", nil, { pane_id = "p_popup", spawned = true, is_popup = true }
+    local agent_name = target_agent .. "-ask-test"
+    return agent_name, nil, { pane_id = "p_popup", agent_name = agent_name, spawned = false, is_popup = true }
   end
 
   if vim.fn.executable("herdr") == 0 then
     return nil, "'herdr' CLI executable not found in PATH"
   end
 
-  local split_cmd = { "herdr", "pane", "split", "--current", "--direction", "popup", "--cwd", current_cwd }
+  -- Step 1: split a new pane to the right (only valid direction in herdr pane split)
+  local split_cmd = { "herdr", "pane", "split", "--direction", "right", "--cwd", current_cwd }
   local split_out, split_code
   if vim.system then
     local res = vim.system(split_cmd):wait()
@@ -317,58 +326,26 @@ function M.spawn_agent_popup(opts)
   end
 
   if split_code ~= 0 or split_out == "" then
-    split_cmd = { "herdr", "pane", "split", "--current", "--popup", "--cwd", current_cwd }
-    if vim.system then
-      local res = vim.system(split_cmd):wait()
-      split_out, split_code = res.stdout or "", res.code
-    else
-      split_out = vim.fn.system(split_cmd)
-      split_code = vim.v.shell_error
-    end
+    return nil, string.format("herdr pane split failed (exit %d): %s", split_code, split_out)
   end
 
-  if split_code ~= 0 or split_out == "" then
-    split_cmd = { "herdr", "popup", "--cwd", current_cwd }
-    if vim.system then
-      local res = vim.system(split_cmd):wait()
-      split_out, split_code = res.stdout or "", res.code
-    else
-      split_out = vim.fn.system(split_cmd)
-      split_code = vim.v.shell_error
-    end
-  end
-
-  local new_pane_id = nil
-  if split_out and split_out ~= "" then
-    local ok, split_json = pcall(vim.json.decode, split_out)
-    if ok and type(split_json) == "table" then
-      if type(split_json.result) == "table" then
-        if type(split_json.result.pane) == "table" and split_json.result.pane.pane_id then
-          new_pane_id = split_json.result.pane.pane_id
-        elseif split_json.result.pane_id then
-          new_pane_id = split_json.result.pane_id
-        elseif split_json.result.id then
-          new_pane_id = split_json.result.id
-        end
-      elseif split_json.pane_id then
-        new_pane_id = split_json.pane_id
-      end
+  local new_pane_id
+  local ok, split_json = pcall(vim.json.decode, split_out)
+  if ok and type(split_json) == "table" then
+    if type(split_json.result) == "table" then
+      local pane = split_json.result.pane
+      new_pane_id = (type(pane) == "table" and pane.pane_id) or split_json.result.pane_id or split_json.result.id
     end
   end
 
   if not new_pane_id or new_pane_id == "" then
-    local cur_pane = M.get_current_pane_info(runner)
-    if cur_pane and cur_pane.pane_id then
-      new_pane_id = cur_pane.pane_id
-    end
+    return nil, "herdr pane split returned no pane_id: " .. split_out
   end
 
-  if not new_pane_id or new_pane_id == "" or new_pane_id == "popup" then
-    return nil, "Failed to determine valid Herdr pane_id for popup: " .. (split_out ~= "" and split_out or "No CLI response")
-  end
-
-  local agent_name = target_agent .. "-popup-" .. tostring(math.random(1000, 9999))
-  local start_cmd = { "herdr", "agent", "start", agent_name, "--kind", target_agent, "--pane", new_pane_id }
+  -- Step 2: start agent in that pane; --timeout lets herdr wait for agent readiness
+  local agent_name = target_agent .. "-ask-" .. tostring(math.random(1000, 9999))
+  local timeout_sec = math.floor((opts.agent_start_timeout_ms or 30000) / 1000)
+  local start_cmd = { "herdr", "agent", "start", agent_name, "--kind", target_agent, "--pane", new_pane_id, "--timeout", tostring(timeout_sec) }
   local start_out, start_code
   if vim.system then
     local res = vim.system(start_cmd):wait()
@@ -379,16 +356,11 @@ function M.spawn_agent_popup(opts)
   end
 
   if start_code ~= 0 then
-    local run_cmd = { "herdr", "pane", "run", new_pane_id, target_agent }
-    if vim.system then
-      vim.system(run_cmd):wait()
-    else
-      vim.fn.system(run_cmd)
-    end
+    return nil, string.format("herdr agent start failed (exit %d): %s", start_code, start_out)
   end
 
-  notify.info(string.format("Spawned new agent popup pane '%s' for '%s'", new_pane_id, target_agent), opts)
-  return new_pane_id, nil, { pane_id = new_pane_id, spawned = true, agent_name = agent_name, is_popup = true }
+  notify.info(string.format("Spawned '%s' agent pane '%s' for '%s'", agent_name, new_pane_id, target_agent), opts)
+  return agent_name, nil, { pane_id = new_pane_id, agent_name = agent_name, spawned = true, is_popup = true }
 end
 
 function M.discover_target_pane(opts)

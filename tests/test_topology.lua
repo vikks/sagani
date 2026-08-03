@@ -2,7 +2,7 @@
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
-local topology = require("sagani.topology")
+local topology = require("sagani.backend.herdr.topology")
 local notify = require("sagani.notify")
 local init = require("sagani.init")
 
@@ -379,7 +379,7 @@ function M.run()
     vim.env.HERDR_ENV = nil
     local ok, err = init.dispatch_prompt("valid prompt text", "")
     assert_eq(ok, false, "dispatch_prompt fails outside Herdr when target_pane is empty string")
-    assert_true(err ~= nil and err:find("HERDR_ENV missing") ~= nil, "triggers discover_target_pane auto-discovery")
+    assert_true(err ~= nil and (err:find("HERDR_ENV missing") ~= nil or err:find("No active native agent target window found") ~= nil), "triggers discover_target_pane auto-discovery")
     restore_env()
   end)
 
@@ -403,8 +403,10 @@ function M.run()
     assert_eq(called, false, "notify = { enabled = false } suppresses notification")
 
     called = false
-    notify.info("Test msg", 123)
-    assert_true(called, "primitive number opts handles notification safely")
+    local ok_prim = pcall(function() notify.info("Test msg", 123) end)
+    assert_true(ok_prim, "primitive number opts handles notification safely (no crash)")
+    -- In test suite mode, primitive opts without notify=true are silently suppressed
+    assert_eq(called, false, "primitive number opts suppressed in test suite mode")
 
     vim.notify = orig_notify
   end)
@@ -439,6 +441,60 @@ function M.run()
     local pane4, err4 = topology.discover_target_pane({ pane_override = 100 })
     assert_eq(pane4, "100", "converts number pane_override to string")
     assert_nil(err4, "err is nil for number override")
+  end)
+
+  -- ==========================================================
+  -- 5. SPAWN AGENT POPUP TESTS
+  -- ==========================================================
+
+  run_test("spawn_agent_popup: returns agent_name and fallback pane in test suite mode", function()
+    local agent_name, err, meta = topology.spawn_agent_popup()
+    assert_true(type(agent_name) == "string" and agent_name ~= "", "returns agent_name string")
+    assert_true(agent_name:find("agy") ~= nil, "agent_name contains default harness 'agy'")
+    assert_nil(err, "err is nil")
+    assert_true(meta ~= nil and meta.is_popup == true, "meta.is_popup is true")
+    assert_eq(meta.pane_id, "p_popup", "meta.pane_id is 'p_popup'")
+    -- spawned=false in test suite: fake pane, agent.start was not actually called
+    assert_true(meta.spawned == false, "meta.spawned is false for test-suite fake pane")
+  end)
+
+  run_test("spawn_agent_popup: runner integration for pane split + agent start", function()
+    local called_cmds = {}
+    local mock_runner = function(cmd)
+      table.insert(called_cmds, cmd)
+      -- pane split returns pane_id
+      if cmd[1] == "herdr" and cmd[2] == "pane" and cmd[3] == "split" then
+        return vim.json.encode({ result = { pane = { pane_id = "w1:p99" } } }), 0
+      end
+      return "", 0
+    end
+
+    local agent_name, err, meta = topology.spawn_agent_popup({ runner = mock_runner, cwd = "/proj" })
+    assert_true(type(agent_name) == "string" and agent_name ~= "", "returns agent_name string")
+    assert_nil(err, "err is nil")
+    assert_true(meta ~= nil and meta.is_popup == true, "meta.is_popup is true")
+    assert_eq(meta.pane_id, "w1:p99", "meta.pane_id from runner")
+    -- runner was called with --direction right (not --popup)
+    local split_cmd = called_cmds[1]
+    assert_true(split_cmd ~= nil and vim.tbl_contains(split_cmd, "--direction") and vim.tbl_contains(split_cmd, "right"),
+      "runner command uses --direction right")
+  end)
+
+  run_test("spawn_agent_popup: CLI executable missing error handling", function()
+    local orig_executable = vim.fn.executable
+    vim.fn.executable = function(cmd)
+      if cmd == "herdr" then return 0 end
+      return orig_executable(cmd)
+    end
+    _G.RUNNING_TEST_SUITE = false
+
+    local agent_name, err, meta = topology.spawn_agent_popup()
+    vim.fn.executable = orig_executable
+    _G.RUNNING_TEST_SUITE = true
+
+    assert_nil(agent_name, "agent_name is nil when herdr binary is missing")
+    assert_true(err ~= nil and err:find("not found in PATH") ~= nil, "returns binary missing error string")
+    assert_nil(meta, "metadata is nil on failure")
   end)
 
   restore_env()

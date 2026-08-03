@@ -32,6 +32,13 @@ function M.notify(msg, level, opts)
     return
   end
 
+  -- Suppress all notifications during headless test suite runs to avoid
+  -- polluting stdout with expected error/warn messages from tested code paths.
+  -- Exception: opts.notify == true explicitly opts-in (used by tests that mock vim.notify).
+  if _G.RUNNING_TEST_SUITE and opts.notify ~= true then
+    return
+  end
+
   local msg_str = type(msg) == "string" and msg or (type(msg) == "table" and vim.inspect(msg) or tostring(msg or ""))
   local num_level, str_level = normalize_level(level)
   local title = "sagani.nvim"

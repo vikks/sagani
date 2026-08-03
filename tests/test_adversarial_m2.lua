@@ -232,6 +232,39 @@ function M.run()
     vim.ui.input = orig_input
   end)
 
+  run_test("adversarial_ask_agent: SaganiAskAgent user command execution in normal and visual modes", function()
+    local specs = dofile(plugin_spec_path)
+    local main_spec = find_spec(specs, "sagani.nvim")
+    main_spec.config(main_spec, { ask_agent = { target_agent = "agy" }, notify = { enabled = false } })
+
+    local orig_input = vim.ui.input
+    vim.ui.input = function(opts, cb)
+      if type(cb) == "function" then
+        cb("Explain this component")
+      end
+    end
+
+    local ok_normal = pcall(vim.cmd, "SaganiAskAgent What is this function?")
+    assert_true(ok_normal, "SaganiAskAgent with prompt argument in normal mode succeeds")
+
+    local ok_interactive = pcall(vim.cmd, "SaganiAskAgent")
+    assert_true(ok_interactive, "SaganiAskAgent without prompt argument (interactive) in normal mode succeeds")
+
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "line 1", "line 2", "line 3" })
+    vim.api.nvim_set_current_buf(buf)
+    vim.fn.setpos("'<", { buf, 1, 1, 0 })
+    vim.fn.setpos("'>", { buf, 2, 6, 0 })
+
+    local ok_visual = pcall(vim.cmd, "'<,'>SaganiAskAgent Explain range")
+    assert_true(ok_visual, "'<,'>SaganiAskAgent with visual range succeeds (range = true)")
+
+    local ok_num_range = pcall(vim.cmd, "1,2SaganiAskAgent Explain range")
+    assert_true(ok_num_range, "1,2SaganiAskAgent with numeric range succeeds")
+
+    vim.ui.input = orig_input
+  end)
+
   -- ==========================================================
   -- 4. ADVERSARIAL: INVALID CONFIG CALLBACK PARAMETERS
   -- ==========================================================
