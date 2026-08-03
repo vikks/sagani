@@ -85,14 +85,18 @@ end
 function M.spawn_popup(opts)
   opts = type(opts) == "table" and opts or {}
   local agent = (opts.target_agent or "agy"):lower()
+  local ui_opts = opts.ui_opts or {}
 
-  local width = math.floor(vim.o.columns * 0.8)
-  local height = math.floor(vim.o.lines * 0.8)
+  local w_spec = ui_opts.width or 0.8
+  local h_spec = ui_opts.height or 0.8
+  local width = type(w_spec) == "number" and (w_spec <= 1 and math.floor(vim.o.columns * w_spec) or math.floor(w_spec)) or math.floor(vim.o.columns * 0.8)
+  local height = type(h_spec) == "number" and (h_spec <= 1 and math.floor(vim.o.lines * h_spec) or math.floor(h_spec)) or math.floor(vim.o.lines * 0.8)
+
   local row = math.floor((vim.o.lines - height) / 2)
   local col = math.floor((vim.o.columns - width) / 2)
 
   local buf = vim.api.nvim_create_buf(false, true)
-  local border = (opts.backends and opts.backends.native and opts.backends.native.popup_border) or "rounded"
+  local border = ui_opts.border or (opts.backends and opts.backends.native and opts.backends.native.border) or "rounded"
 
   local win = vim.api.nvim_open_win(buf, true, {
     relative = "editor",
@@ -108,6 +112,10 @@ function M.spawn_popup(opts)
 
   M._active_win = win
   M._active_buf = buf
+
+  if ui_opts.winblend and type(ui_opts.winblend) == "number" and ui_opts.winblend > 0 then
+    pcall(function() vim.wo[win].winblend = ui_opts.winblend end)
+  end
 
   vim.bo[buf].buftype = "nofile"
   vim.bo[buf].bufhidden = "wipe"

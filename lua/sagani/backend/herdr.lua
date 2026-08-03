@@ -32,6 +32,10 @@ function M.spawn_pane(opts)
 	local placement = opts.placement or "right-pane"
 	local direction = (placement == "bottom-pane" or placement == "down") and "down" or "right"
 	opts.direction = direction
+	local ui_opts = opts.ui_opts or {}
+	if ui_opts.ratio then
+		opts.ratio = ui_opts.ratio
+	end
 	return topology.spawn_agent_pane(opts)
 end
 

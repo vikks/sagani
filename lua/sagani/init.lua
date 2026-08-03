@@ -15,34 +15,66 @@ local native_vim_system = vim.system
 local M = {}
 
 M.defaults = {
+  target_agent = "agy",
+
   tasks = {
-    ask = false,
-    review = "right-pane",
-    code = "right-pane",
-    chat = "right-pane",
+    ask = { harness = "agy", effort = "high" },
+    review = { harness = "agy", effort = "medium" },
+    code = "agy",
+    chat = "agy",
   },
+
+  window_opts = {
+    width = 0.8,
+    height = 0.8,
+    border = "rounded",
+    winblend = 0,
+    ratio = 0.3,
+  },
+
   backends = {
     native = {
       ask = "popup",
       review = "vsplit",
       code = "vsplit",
       chat = "vsplit",
-      popup_border = "rounded",
+      border = "rounded",
+      winblend = 0,
       split_direction = "vertical",
     },
     herdr = {
+      ask = false,
+      review = "right-pane",
+      code = "right-pane",
+      chat = "right-pane",
+      ratio = 0.3,
       auto_discover = true,
       auto_spawn = false,
     },
     tmux = {
       ask = "popup",
+      review = "right-pane",
+      code = "right-pane",
+      chat = "right-pane",
+      width = "80%",
+      height = "80%",
+      border = "rounded",
       split_direction = "right",
       target_pane = nil,
     },
     zellij = {
       ask = "floating",
+      review = "right-pane",
+      code = "right-pane",
+      chat = "right-pane",
       direction = "right",
     },
+  },
+
+  providers = {
+    google = { api_key_env = "GEMINI_API_KEY" },
+    openai = { api_key_env = "OPENAI_API_KEY" },
+    anthropic = { api_key_env = "ANTHROPIC_API_KEY" },
   },
   target_agent = "agy",
   auto_discover = true,
@@ -160,8 +192,8 @@ function M.setup(user_opts)
   end, { nargs = "?", desc = "Alias for SaganiSelectAgent" })
 
   vim.api.nvim_create_user_command("SaganiSpawnPane", function()
-    local adapter, backend_name, placement = backend.get_backend(M.options, "chat")
-    local opts = vim.tbl_deep_extend("force", M.options, { placement = placement })
+    local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(M.options, "chat")
+    local opts = vim.tbl_deep_extend("force", M.options, { placement = placement, ui_opts = ui_opts, agent_opts = agent_opts })
     local pane_id, err, _ = adapter.spawn_pane(opts)
     if pane_id then
       notify.info(string.format("Spawned new pane '%s' for '%s' via %s backend", pane_id, M.options.target_agent, backend_name), M.options)
@@ -388,8 +420,9 @@ function M.ask_agent_prompt(prompt_text, opts)
       end
     end
 
-    local adapter, backend_name, placement = backend.get_backend(opts, "ask")
-    local popup_opts = vim.tbl_deep_extend("force", opts, { target_agent = agent_name, placement = placement })
+    local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(opts, "ask")
+    local harness = agent_name or agent_opts.harness
+    local popup_opts = vim.tbl_deep_extend("force", opts, { target_agent = harness, placement = placement, ui_opts = ui_opts, agent_opts = agent_opts })
 
     local agent_target, err, meta
     if placement == "popup" or placement == "floating" then

@@ -18,6 +18,58 @@ function M.register(name, adapter)
   M.backends[name] = adapter
 end
 
+--- Resolves agent execution options for a given task type
+--- @param opts table Configuration options
+--- @param task_type string|nil Task identifier
+--- @return table agent_opts Resolved agent options { harness, provider, model, effort, timeout }
+function M.resolve_task_agent(opts, task_type)
+  opts = type(opts) == "table" and opts or {}
+  task_type = task_type or "chat"
+  local task_val = opts.tasks and opts.tasks[task_type]
+
+  local harness = opts.target_agent or "agy"
+  local provider = nil
+  local model = nil
+  local effort = nil
+  local timeout = nil
+
+  if type(task_val) == "string" and task_val ~= "" then
+    harness = task_val
+  elseif type(task_val) == "table" then
+    harness = task_val.harness or harness
+    provider = task_val.provider
+    model = task_val.model
+    effort = task_val.effort
+    timeout = task_val.timeout
+  end
+
+  return {
+    harness = harness,
+    provider = provider,
+    model = model,
+    effort = effort,
+    timeout = timeout,
+  }
+end
+
+--- Resolves UI & window styling options for a given backend
+--- @param opts table Configuration options
+--- @param bname string Backend identifier
+--- @return table ui_opts Resolved UI options { width, height, border, winblend, ratio }
+function M.resolve_task_ui(opts, bname)
+  opts = type(opts) == "table" and opts or {}
+  local shared = opts.window_opts or {}
+  local backend_cfg = (opts.backends and opts.backends[bname]) or {}
+
+  return {
+    width = backend_cfg.width or shared.width or 0.8,
+    height = backend_cfg.height or shared.height or 0.8,
+    border = backend_cfg.border or shared.border or "rounded",
+    winblend = backend_cfg.winblend or shared.winblend or 0,
+    ratio = backend_cfg.ratio or shared.ratio or 0.3,
+  }
+end
+
 --- Resolves placement for a given backend name and task type
 --- @param opts table Configuration options
 --- @param bname string Backend identifier ("herdr", "tmux", "zellij", "native")
@@ -31,12 +83,7 @@ function M.resolve_placement(opts, bname, task_type)
     return opts.backends[bname][task_type]
   end
 
-  -- 2. Shared tasks default
-  if opts and opts.tasks and opts.tasks[task_type] ~= nil then
-    return opts.tasks[task_type]
-  end
-
-  -- 3. Hardcoded fallback
+  -- 2. Hardcoded fallback
   if task_type == "ask" then
     return false
   end
@@ -50,15 +97,20 @@ end
 --- @return table adapter Active backend adapter table
 --- @return string backend_name Active backend name
 --- @return string|boolean placement Resolved placement specifier
+--- @return table ui_opts Resolved UI styling options
+--- @return table agent_opts Resolved agent execution options
 function M.get_backend(opts, task_type)
   opts = type(opts) == "table" and opts or {}
   task_type = task_type or "chat"
   local requested = opts.backend or "auto"
 
+  local agent_opts = M.resolve_task_agent(opts, task_type)
+
   -- If user passed a custom adapter table directly
   if type(requested) == "table" then
     local placement = M.resolve_placement(opts, requested.name or "custom", task_type)
-    return requested, requested.name or "custom", placement
+    local ui_opts = M.resolve_task_ui(opts, requested.name or "custom")
+    return requested, requested.name or "custom", placement, ui_opts, agent_opts
   end
 
   -- Helper to evaluate candidate adapter
@@ -82,19 +134,22 @@ function M.get_backend(opts, task_type)
       return nil -- Explicit capability opt-out
     end
 
-    return candidate, name, placement
+    local ui_opts = M.resolve_task_ui(opts, name)
+    return candidate, name, placement, ui_opts, agent_opts
   end
 
   -- If explicit backend string requested (other than "auto")
   if type(requested) == "string" and requested ~= "auto" then
     if M.backends[requested] then
       local placement = M.resolve_placement(opts, requested, task_type)
+      local ui_opts = M.resolve_task_ui(opts, requested)
       if placement == false or (M.backends[requested].capabilities and M.backends[requested].capabilities[task_type] == false) then
         -- Task opted out on this backend -> fallback to native
         local native_placement = M.resolve_placement(opts, "native", task_type)
-        return M.backends["native"], "native", native_placement
+        local native_ui = M.resolve_task_ui(opts, "native")
+        return M.backends["native"], "native", native_placement, native_ui, agent_opts
       end
-      return M.backends[requested], requested, placement
+      return M.backends[requested], requested, placement, ui_opts, agent_opts
     else
       notify.warn(
         string.format("Requested backend '%s' not found, falling back to auto-detection", requested),
@@ -106,9 +161,9 @@ function M.get_backend(opts, task_type)
   -- Auto-detection hierarchy: Herdr -> Tmux -> Zellij -> Native
   local order = { "herdr", "tmux", "zellij" }
   for _, bname in ipairs(order) do
-    local adapter, name, placement = try_candidate(bname)
+    local adapter, name, placement, ui_opts = try_candidate(bname)
     if adapter then
-      return adapter, name, placement
+      return adapter, name, placement, ui_opts, agent_opts
     end
   end
 
@@ -118,7 +173,8 @@ function M.get_backend(opts, task_type)
     if native_placement == false or native_placement == nil then
       native_placement = (task_type == "ask" and "popup" or "vsplit")
     end
-    return M.backends["native"], "native", native_placement
+    local native_ui = M.resolve_task_ui(opts, "native")
+    return M.backends["native"], "native", native_placement, native_ui, agent_opts
   end
 
   error("No valid sagani backend adapter found!")

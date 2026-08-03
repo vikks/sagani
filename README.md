@@ -68,34 +68,66 @@ require("sagani").setup({
   -- Default target AI coding agent harness ("agy", "codex", "opencode", "hermes", etc.)
   target_agent = "agy",
 
-  -- Shared task placement defaults across all backends ("right-pane", "bottom-pane", "tab", "popup", "vsplit", false)
+  -- 1. Tasks Configuration (WHAT agent harness, provider, model to run per task)
   tasks = {
-    ask = false,          -- Default for ask: false -> falls back to native floating popup
-    review = "right-pane",-- Default for diff review: right pane split
-    code = "right-pane",  -- Default for code context: right pane split
-    chat = "right-pane",  -- Default for prompt chat: right pane split
+    ask = { harness = "agy", provider = "google", model = "pro", effort = "high" },
+    review = { harness = "codex", provider = "openai", model = "gpt-4o" },
+
+    -- Short-form string syntax specifies the agent harness name directly:
+    code = "opencode",  -- Short for { harness = "opencode" }
+    chat = "agy",       -- Short for { harness = "agy" }
   },
 
-  -- Backend-specific overrides (only specified when differing from shared tasks defaults)
+  -- 2. Global Window & UI Styling Defaults (HOW windows look visually)
+  window_opts = {
+    width = 0.8,         -- Floating popup width (80% or integer columns)
+    height = 0.8,        -- Floating popup height (80% or integer lines)
+    border = "rounded",  -- Border style: "rounded", "single", "double", "solid", "shadow", "none"
+    winblend = 10,       -- Neovim floating window transparency (0-100)
+    ratio = 0.3,         -- Pane split size ratio (30% split size)
+  },
+
+  -- 3. Backend Placements & Overrides (WHERE tasks get placed per multiplexer + flat UI/backend overrides)
   backends = {
     native = {
-      ask = "popup",       -- Native creates a Neovim floating window
-      review = "vsplit",   -- Native creates a vertical split
+      ask = "popup",       -- Native creates a Neovim floating window for 'ask'
+      review = "vsplit",   -- Native creates a vertical split for 'review'
       code = "vsplit",
       chat = "vsplit",
-      popup_border = "rounded",
+      border = "rounded",
+      winblend = 15,       -- Native-specific UI transparency override
     },
     herdr = {
-      -- Inherits tasks defaults: ask=false (falls back to native popup), review="right-pane", etc.
+      ask = false,         -- Herdr opts out of 'ask' ➡️ falls back directly to native floating popup!
+      review = "right-pane",
+      code = "right-pane",
+      chat = "right-pane",
+      ratio = 0.3,         -- Herdr-specific split ratio override (herdr pane split --ratio 0.3)
       auto_discover = true,
       auto_spawn = false,
     },
     tmux = {
       ask = "popup",       -- Tmux display-popup for questions
+      review = "right-pane",
+      code = "right-pane",
+      chat = "right-pane",
+      width = "80%",
+      height = "80%",
+      border = "rounded",  -- tmux display-popup -b rounded
     },
     zellij = {
       ask = "floating",    -- Zellij floating pane for questions
+      review = "right-pane",
+      code = "right-pane",
+      chat = "right-pane",
     },
+  },
+
+  -- 4. Provider Configurations (LLM API credentials & endpoints)
+  providers = {
+    google = { api_key_env = "GEMINI_API_KEY" },
+    openai = { api_key_env = "OPENAI_API_KEY" },
+    anthropic = { api_key_env = "ANTHROPIC_API_KEY" },
   },
 
   -- General question agent configuration
@@ -118,11 +150,18 @@ require("sagani").setup({
 })
 ```
 
-### 🎯 Task Placement & Multiplexer Fallback Guidelines
+---
 
-`sagani.nvim` allows you to define explicit placement specifiers per task type across all supported multiplexers (`herdr`, `tmux`, `zellij`, `native`).
+### 🎯 Task & Backend Configuration Guidelines
 
-#### Supported Placement Specifiers
+`sagani.nvim` separates your configuration into four clean concern domains:
+
+1. **`tasks` (WHAT agent runs)**: Configures agent harnesses, providers, models, thinking effort, and timeouts. Short-form string syntax defines the **agent harness name** directly (`code = "opencode"`).
+2. **`window_opts` (HOW windows look)**: Configures global visual UI styling (`width`, `height`, `border`, `winblend` transparency, `ratio` split ratio).
+3. **`backends` (WHERE tasks get placed)**: Configures per-multiplexer task placements (`ask = false`, `review = "right-pane"`) and backend UI/options overrides.
+4. **`providers` (LLM API Settings)**: Configures API keys and base URLs.
+
+#### Supported Placement Specifiers (`opts.backends.<name>`)
 
 | Specifier | Category | Behavior |
 |---|---|---|
@@ -135,55 +174,13 @@ require("sagani").setup({
 | `"vsplit"` / `"hsplit"` | Native Split | Vertical or horizontal split in Neovim |
 | `false` | Opt-out | Disables active multiplexer for this task ➡️ falls back directly to `native` |
 
-#### Resolution Hierarchy (DRY Configuration)
+#### Resolution Engine
 
-When `sagani.nvim` needs to spawn a window or pane for a task (`ask`, `review`, `code`, `chat`, or any custom key):
+When `sagani.nvim` dispatches a task (`ask`, `review`, `code`, `chat`, or any custom key):
 
-1. **Backend-Specific Override** (`opts.backends[active_backend][task_name]`)
-2. **Shared Task Default** (`opts.tasks[task_name]`)
-3. **Hardcoded Fallback** (`ask = false`, others = `"right-pane"`)
-
-If the resolved placement is `false` (e.g., `herdr.ask = false` because Herdr CLI lacks native popups), Sagani automatically skips Herdr for that task and falls back to `native`, creating a clean Neovim floating window (`popup_border = "rounded"`).
-
-#### Configuration Examples
-
-##### Example 1: Standard Setup (Herdr splits for code/review, Neovim float for ask)
-```lua
-opts = {
-  tasks = {
-    ask = false,          -- Opt out of Herdr popup ➡️ falls back to native Neovim floating window
-    review = "right-pane",
-    code = "right-pane",
-    chat = "right-pane",
-  },
-}
-```
-
-##### Example 2: Tab-Based Workflow
-```lua
-opts = {
-  tasks = {
-    ask = false,         -- Floating window for questions
-    review = "tab",      -- Open code reviews in a new tab
-    code = "tab",        -- Open code context in a new tab
-    chat = "right-pane", -- Keep chat prompts in side pane
-  },
-}
-```
-
-##### Example 3: Custom Backend Task Override
-```lua
-opts = {
-  tasks = {
-    code = "right-pane",
-  },
-  backends = {
-    herdr = {
-      code = "left-pane", -- Use left-pane specifically when in Herdr
-    },
-  },
-}
-```
+- **Placement**: Evaluates `opts.backends[active_backend][task_name]`. If `false`, falls back directly to `native` (`opts.backends.native[task_name]`).
+- **UI Styling**: Merges `opts.window_opts` with `opts.backends[active_backend]` (`width`, `height`, `border`, `winblend`, `ratio`).
+- **Agent Harness**: Evaluates `opts.tasks[task_name]` (`harness`, `provider`, `model`, `effort`).
 
 ---
 

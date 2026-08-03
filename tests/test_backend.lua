@@ -88,9 +88,8 @@ function M.run()
     vim.env.HERDR_ENV = "1"
 
     local opts = {
-      tasks = { ask = false, code = "right-pane" },
       backends = {
-        herdr = { ask = false },
+        herdr = { ask = false, code = "right-pane" },
         native = { ask = "popup" },
       },
     }
@@ -107,27 +106,40 @@ function M.run()
     vim.env.HERDR_ENV = original_herdr
   end)
 
-  test("supports backend-specific task placement overrides and custom task keys", function()
+  test("resolves short-form task string harness names and flat UI window_opts overrides", function()
     local original_herdr = vim.env.HERDR_ENV
     vim.env.HERDR_ENV = "1"
 
     local opts = {
       tasks = {
-        review = "right-pane",
-        custom_task = "tab",
+        code = "opencode",
+        ask = { harness = "agy", provider = "google", model = "pro", effort = "high" },
+      },
+      window_opts = {
+        width = 0.85,
+        border = "double",
       },
       backends = {
         herdr = {
           review = "left-pane",
+          ratio = 0.25,
         },
       },
     }
 
-    local _, _, review_place = backend.get_backend(opts, "review")
-    assert(review_place == "left-pane", "Expected backend-specific override 'left-pane'")
+    local _, _, review_place, ui_opts, agent_opts = backend.get_backend(opts, "code")
+    assert(agent_opts.harness == "opencode", "Expected task harness 'opencode' from short-form string")
 
-    local _, _, custom_place = backend.get_backend(opts, "custom_task")
-    assert(custom_place == "tab", "Expected shared task default 'tab' for custom task key")
+    local _, _, _, ask_ui, ask_agent = backend.get_backend(opts, "ask")
+    assert(ask_agent.harness == "agy", "Expected harness agy")
+    assert(ask_agent.provider == "google", "Expected provider google")
+    assert(ask_agent.model == "pro", "Expected model pro")
+    assert(ask_agent.effort == "high", "Expected effort high")
+
+    assert(ask_ui.width == 0.85, "Expected window_opts width 0.85")
+    assert(ask_ui.border == "double", "Expected window_opts border double")
+    local _, _, _, code_ui, _ = backend.get_backend(opts, "code")
+    assert(code_ui.ratio == 0.25, "Expected herdr flat ratio override 0.25")
 
     vim.env.HERDR_ENV = original_herdr
   end)
