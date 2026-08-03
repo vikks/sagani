@@ -118,6 +118,73 @@ require("sagani").setup({
 })
 ```
 
+### 🎯 Task Placement & Multiplexer Fallback Guidelines
+
+`sagani.nvim` allows you to define explicit placement specifiers per task type across all supported multiplexers (`herdr`, `tmux`, `zellij`, `native`).
+
+#### Supported Placement Specifiers
+
+| Specifier | Category | Behavior |
+|---|---|---|
+| `"right-pane"` / `"right"` | Pane Split | Splits current pane to the right |
+| `"left-pane"` / `"left"` | Pane Split | Splits current pane to the left |
+| `"bottom-pane"` / `"down"` | Pane Split | Splits current pane downwards |
+| `"top-pane"` / `"up"` | Pane Split | Splits current pane upwards |
+| `"tab"` / `"new-tab"` | Tab | Creates a new tab/window in multiplexer or Neovim |
+| `"popup"` / `"floating"` | Floating Window | Spawns a floating popup window |
+| `"vsplit"` / `"hsplit"` | Native Split | Vertical or horizontal split in Neovim |
+| `false` | Opt-out | Disables active multiplexer for this task ➡️ falls back directly to `native` |
+
+#### Resolution Hierarchy (DRY Configuration)
+
+When `sagani.nvim` needs to spawn a window or pane for a task (`ask`, `review`, `code`, `chat`, or any custom key):
+
+1. **Backend-Specific Override** (`opts.backends[active_backend][task_name]`)
+2. **Shared Task Default** (`opts.tasks[task_name]`)
+3. **Hardcoded Fallback** (`ask = false`, others = `"right-pane"`)
+
+If the resolved placement is `false` (e.g., `herdr.ask = false` because Herdr CLI lacks native popups), Sagani automatically skips Herdr for that task and falls back to `native`, creating a clean Neovim floating window (`popup_border = "rounded"`).
+
+#### Configuration Examples
+
+##### Example 1: Standard Setup (Herdr splits for code/review, Neovim float for ask)
+```lua
+opts = {
+  tasks = {
+    ask = false,          -- Opt out of Herdr popup ➡️ falls back to native Neovim floating window
+    review = "right-pane",
+    code = "right-pane",
+    chat = "right-pane",
+  },
+}
+```
+
+##### Example 2: Tab-Based Workflow
+```lua
+opts = {
+  tasks = {
+    ask = false,         -- Floating window for questions
+    review = "tab",      -- Open code reviews in a new tab
+    code = "tab",        -- Open code context in a new tab
+    chat = "right-pane", -- Keep chat prompts in side pane
+  },
+}
+```
+
+##### Example 3: Custom Backend Task Override
+```lua
+opts = {
+  tasks = {
+    code = "right-pane",
+  },
+  backends = {
+    herdr = {
+      code = "left-pane", -- Use left-pane specifically when in Herdr
+    },
+  },
+}
+```
+
 ---
 
 ## ⌨️ Keymaps & Commands
