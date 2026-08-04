@@ -5,10 +5,15 @@ local M = {
 function M.build_command(prompt_text, agent_opts)
   agent_opts = type(agent_opts) == "table" and agent_opts or {}
   local cmd = { "gemini", "-p", prompt_text, "-o", "text" }
-  if agent_opts.model then
-    table.insert(cmd, "-m")
-    table.insert(cmd, agent_opts.model)
+
+  local raw_model = agent_opts.model
+  if raw_model and type(raw_model) == "string" and raw_model ~= "" then
+    if not raw_model:find("%s") and not raw_model:find("%(") and not raw_model:find("Thinking") then
+      table.insert(cmd, "-m")
+      table.insert(cmd, raw_model)
+    end
   end
+
   return cmd
 end
 
