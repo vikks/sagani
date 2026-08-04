@@ -76,6 +76,10 @@ M.defaults = {
 		openai = { api_key_env = "OPENAI_API_KEY", alias = "OpenAI" },
 		anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
 	},
+	ports = {
+		opencode = 4096,
+		gemini = 4097,
+	},
 	target_agent = "agy",
 	auto_discover = true,
 	auto_spawn = false,

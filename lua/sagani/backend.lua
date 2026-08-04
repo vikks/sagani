@@ -63,6 +63,10 @@ function M.resolve_task_agent(opts, task_type)
     or (type(task_val) == "table" and task_val.alias)
   local timeout = type(task_val) == "table" and task_val.timeout
   local protocol = type(task_val) == "table" and task_val.protocol
+  local port = (type(task_val) == "table" and task_val.port)
+    or (opts.ports and opts.ports[harness])
+    or (opts.harness_opts and opts.harness_opts[harness] and opts.harness_opts[harness].port)
+    or 4096
 
   return {
     harness = harness,
@@ -72,6 +76,7 @@ function M.resolve_task_agent(opts, task_type)
     alias = alias,
     timeout = timeout,
     protocol = protocol,
+    port = port,
   }
 end
 
