@@ -72,33 +72,9 @@ M.defaults = {
 	},
 
 	providers = {
-		google = {
-			api_key_env = "GEMINI_API_KEY",
-			alias = "Gemini",
-			default = "Gemini 3.6 Flash (low)",
-			models = {
-				"Gemini 3.6 Flash (High)",
-				"Gemini 3.6 Flash (Medium)",
-				"Gemini 3.6 Flash (Low)",
-				"Gemini 3.1 Pro (High)",
-				"Claude Sonnet 4.6 (Thinking)",
-				"Claude Opus 4.6 (Thinking)",
-			},
-			efforts = { "low", "medium", "high" },
-		},
-		openai = {
-			api_key_env = "OPENAI_API_KEY",
-			alias = "OpenAI",
-			default = "gpt-5.6-luna",
-			models = { "gpt-5.6-luna", "o3", "o1" },
-			efforts = { "low", "medium", "high" },
-		},
-		anthropic = {
-			api_key_env = "ANTHROPIC_API_KEY",
-			alias = "Anthropic",
-			default = "claude-3-5-sonnet-latest",
-			models = { "claude-3-5-sonnet-latest", "claude-3-opus-latest" },
-		},
+		google = { api_key_env = "GEMINI_API_KEY", alias = "Google Gemini" },
+		openai = { api_key_env = "OPENAI_API_KEY", alias = "OpenAI" },
+		anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
 	},
 	target_agent = "agy",
 	auto_discover = true,
@@ -356,24 +332,9 @@ function M.prompt_model_and_effort(harness, opts)
   harness = (harness or "agy"):lower()
   M.options.target_agent = harness
 
-  local h_prov_map = {
-    agy = "google",
-    antigravity = "google",
-    gemini = "google",
-    ["gemini-cli"] = "google",
-    codex = "openai",
-    hermes = "openai",
-    opencode = "google",
-  }
-
-  local prov = h_prov_map[harness] or "google"
-  local p_cfg = (M.options.providers and M.options.providers[prov]) or (M.options.harness_opts and M.options.harness_opts[harness]) or {}
-
   local cli_transport = require("sagani.protocol.cli")
-  local dynamic_models = cli_transport.list_models(harness, opts)
-
-  local models = (dynamic_models and #dynamic_models > 0) and dynamic_models or p_cfg.models or {}
-  local efforts = p_cfg.efforts or {}
+  local models = cli_transport.list_models(harness, opts) or {}
+  local efforts = { "low", "medium", "high" }
 
 	local function finish()
 		local m_str = M._session_model or "Default"
