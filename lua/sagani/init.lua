@@ -354,7 +354,7 @@ function M.setup(user_opts)
 	})
 end
 
-function M.prompt_model_and_effort(harness, opts)
+function M.prompt_model_and_effort(harness, opts, on_complete)
   opts = type(opts) == "table" and opts or M.options
   harness = (harness or "agy"):lower()
   M._session_harness = harness
@@ -370,6 +370,9 @@ function M.prompt_model_and_effort(harness, opts)
       local m_str = M._session_model or "Default"
       local e_str = M._session_effort or "Default"
       notify.info(string.format("Active Agent: '%s' | Model: %s | Effort: %s", harness:upper(), m_str, e_str), opts)
+      if on_complete then
+        on_complete(harness)
+      end
     end
 
     local function pick_effort()
@@ -418,11 +421,11 @@ function M.prompt_model_and_effort(harness, opts)
   end)
 end
 
-function M.select_agent_harness(arg, opts)
+function M.select_agent_harness(arg, opts, on_complete)
 	opts = type(opts) == "table" and opts or M.options
 	if type(arg) == "string" and arg ~= "" then
 		local harness = vim.trim(arg):lower()
-		M.prompt_model_and_effort(harness, opts)
+		M.prompt_model_and_effort(harness, opts, on_complete)
 		return harness
 	end
 
@@ -471,11 +474,11 @@ function M.select_agent_harness(arg, opts)
 				vim.ui.input({ prompt = "Enter custom agent harness name: " }, function(input)
 					if input and input ~= "" then
 						local custom_agent = vim.trim(input):lower()
-						M.prompt_model_and_effort(custom_agent, opts)
+						M.prompt_model_and_effort(custom_agent, opts, on_complete)
 					end
 				end)
 			else
-				M.prompt_model_and_effort(choice, opts)
+				M.prompt_model_and_effort(choice, opts, on_complete)
 			end
 		end)
 	end
@@ -593,6 +596,17 @@ function M.ask_agent_prompt(prompt_text, opts)
 		else
 			notify.error(string.format("Failed to spawn %s agent pane: %s", backend_name, err or "Unknown error"), opts)
 		end
+	end
+
+	local task_val = opts.tasks and opts.tasks.ask
+	local has_config = ask_opts.target_agent or M._session_harness or (task_val and (type(task_val) == "string" or (type(task_val) == "table" and task_val.harness)))
+
+	if not has_config and not _G.RUNNING_TEST_SUITE and vim.ui and vim.ui.select then
+		notify.info("No active agent harness configured for 'ask'. Please select your target agent harness:", opts)
+		M.select_agent_harness(nil, opts, function(selected_harness)
+			do_ask(selected_harness, prompt_text)
+		end)
+		return
 	end
 
 	local task_agent = backend.resolve_task_agent(opts, "ask")
