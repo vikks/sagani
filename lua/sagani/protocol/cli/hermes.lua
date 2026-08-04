@@ -2,8 +2,25 @@ local M = {
   name = "hermes",
 }
 
+function M.list_models_async(opts, callback)
+  opts = type(opts) == "table" and opts or {}
+  local models = { "hermes-3-llama-3.1-405b", "hermes-3-llama-3.1-70b" }
+  callback(models)
+end
+
+function M.list_models(_)
+  return { "hermes-3-llama-3.1-405b", "hermes-3-llama-3.1-70b" }
+end
+
 function M.build_command(prompt_text, agent_opts)
-  return { "hermes", "prompt", prompt_text }
+  agent_opts = type(agent_opts) == "table" and agent_opts or {}
+  local cmd = { "hermes", "prompt" }
+  if agent_opts.model and agent_opts.model ~= "" then
+    table.insert(cmd, "-m")
+    table.insert(cmd, agent_opts.model)
+  end
+  table.insert(cmd, prompt_text)
+  return cmd
 end
 
 function M.execute(prompt_text, agent_opts, callback, opts)

@@ -2,6 +2,16 @@ local M = {
   name = "gemini",
 }
 
+function M.list_models_async(opts, callback)
+  opts = type(opts) == "table" and opts or {}
+  local models = { "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite" }
+  callback(models)
+end
+
+function M.list_models(_)
+  return { "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite" }
+end
+
 function M.build_command(prompt_text, agent_opts)
   agent_opts = type(agent_opts) == "table" and agent_opts or {}
   local cmd = { "gemini", "-p", prompt_text, "-o", "text" }

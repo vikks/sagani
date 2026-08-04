@@ -2,6 +2,16 @@ local M = {
   name = "codex",
 }
 
+function M.list_models_async(opts, callback)
+  opts = type(opts) == "table" and opts or {}
+  local models = { "gpt-5.6-luna", "o3", "o1", "gpt-4o" }
+  callback(models)
+end
+
+function M.list_models(_)
+  return { "gpt-5.6-luna", "o3", "o1", "gpt-4o" }
+end
+
 function M.build_command(prompt_text, agent_opts)
   agent_opts = type(agent_opts) == "table" and agent_opts or {}
   local cmd = { "codex", "exec", prompt_text }
