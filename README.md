@@ -237,6 +237,7 @@ When `sagani.nvim` dispatches a task (`ask`, `review`, `code`, `chat`, or any cu
 | `:SaganiReject [hunk\|all]` | Reject edit hunk at cursor (or revert all edits to baseline) |
 | `:SaganiNextHunk` | Navigate cursor to next change hunk in buffer |
 | `:SaganiPrevHunk` | Navigate cursor to previous change hunk in buffer |
+| `:SaganiClearCache` | Clear persistent model cache on disk (`stdpath('state')/sagani/models.json`) |
 
 ### ❓ Troubleshooting Missing Keymaps
 
