@@ -354,6 +354,41 @@ function M.setup(user_opts)
 	})
 end
 
+local function supports_effort(harness_name, selected_model)
+  harness_name = (harness_name or ""):lower()
+  selected_model = (selected_model or ""):lower()
+
+  if selected_model:find("thinking") or selected_model:find("reasoning")
+      or selected_model:find("o1") or selected_model:find("o3")
+      or selected_model:find("luna") or selected_model:find("claude%-3%-7")
+      or selected_model:find("deepseek") then
+    return true
+  end
+
+  if harness_name == "agy" or harness_name == "antigravity" then
+    if selected_model == "" or selected_model == "[use default model]"
+        or selected_model:find("gemini 3") or selected_model:find("flash")
+        or selected_model:find("pro") then
+      return true
+    end
+  end
+
+  if harness_name == "codex" then
+    if selected_model:find("o1") or selected_model:find("o3") or selected_model:find("luna") then
+      return true
+    end
+  end
+
+  if harness_name == "opencode" then
+    if selected_model:find("deepseek") or selected_model:find("gemini%-3")
+        or selected_model:find("pickle") or selected_model:find("free") then
+      return true
+    end
+  end
+
+  return false
+end
+
 function M.prompt_model_and_effort(harness, opts, on_complete)
   opts = type(opts) == "table" and opts or M.options
   harness = (harness or "agy"):lower()
@@ -376,6 +411,13 @@ function M.prompt_model_and_effort(harness, opts, on_complete)
     end
 
     local function pick_effort()
+      local model_name = M._session_model or ""
+      if not supports_effort(harness, model_name) then
+        M._session_effort = nil
+        finish()
+        return
+      end
+
       if not _G.RUNNING_TEST_SUITE and #efforts > 0 and vim.ui and vim.ui.select then
         local e_choices = { "[Use Default Effort]" }
         for _, e in ipairs(efforts) do
