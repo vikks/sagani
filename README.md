@@ -65,13 +65,36 @@ Configure **sagani.nvim** via `require("sagani").setup(opts)`:
 
 ```lua
 require("sagani").setup({
-  -- Default target AI coding agent harness ("agy", "codex", "opencode", "hermes", etc.)
+  -- Default target AI coding agent harness ("agy", "codex", "opencode", "hermes", "gemini", etc.)
   target_agent = "agy",
+
+  -- Configure per-harness default models, reasoning efforts, and available choices
+  harness_opts = {
+    agy = {
+      model = nil, -- e.g. "Gemini 3.6 Flash (High)" or nil for default
+      effort = "high",
+      models = {
+        "Gemini 3.6 Flash (High)",
+        "Gemini 3.6 Flash (Medium)",
+        "Gemini 3.1 Pro (High)",
+        "Claude Sonnet 4.6 (Thinking)",
+      },
+      efforts = { "low", "medium", "high" },
+    },
+    gemini = {
+      model = nil,
+      models = { "gemini-2.5-pro", "gemini-2.5-flash" },
+    },
+    codex = {
+      model = nil,
+      models = { "gpt-5.6-luna", "o3", "o1" },
+    },
+  },
 
   -- 1. Tasks Configuration (WHAT agent harness, provider, model, protocol to run per task)
   tasks = {
-    ask = { protocol = "acp", harness = "agy", provider = "google", model = "pro", effort = "high" }, -- Terminal-free ACP Q&A rendered in a native Markdown buffer!
-    review = { protocol = "terminal", harness = "codex", provider = "openai", model = "gpt-4o" },
+    ask = { protocol = "acp", harness = "agy", effort = "high" }, -- Terminal-free ACP Q&A rendered in a native Markdown buffer!
+    review = { protocol = "terminal", harness = "codex" },
 
     -- Short-form string syntax specifies the agent harness name directly:
     code = "opencode",  -- Short for { harness = "opencode" }
