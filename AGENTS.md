@@ -121,8 +121,10 @@ Every backend adapter **must** implement the following interface:
 | 18 | **F18: Tmux Backend Adapter** | `tmux split-window` / `tmux display-popup` / `tmux send-keys` transport adapter | `lua/sagani/backend/tmux.lua` | ✅ Done |
 | 19 | **F19: Zellij Backend Adapter** | `zellij action new-pane` / `zellij action write-chars` transport adapter | `lua/sagani/backend/zellij.lua` | ✅ Done |
 | 20 | **F20: Hot Module Reload** | `:SaganiReload` flushes all `sagani.*` from `package.loaded` and re-initializes with saved options | `lua/sagani/init.lua` | ✅ Done |
-| — | **Transport Abstraction Layer** | Generic `transport/` interface to unify socket, CLI, HTTP, JSON-RPC behind a single contract | _planned_ | 🔲 Planned |
-| — | **Agent Protocol Adapters** | Per-harness protocol adapters to separate "how to talk to agy/codex" from "where to send it" | _planned_ | 🔲 Planned |
+| 21 | **F21: Transport Abstraction Layer** | Decoupled protocol adapters (`http`, `cli`, `json_rpc`) with standard transport contracts | `lua/sagani/protocol/` | ✅ Done |
+| 22 | **F22: Agent Protocol Adapters** | Per-harness protocol implementations under `acp/`, `http/`, `cli/`, `json_rpc/` subfolders | `lua/sagani/protocol/` | ✅ Done |
+| 23 | **F23: Dynamic CLI Model Discovery** | Queries live model availability (`agy models`, etc.) during interactive `<leader>ah` selection | `lua/sagani/protocol/cli/` | ✅ Done |
+| 24 | **F24: Provider-Centric Configuration** | Unified `opts.providers` schema (models, reasoning efforts, default models, aliases, API keys) | `lua/sagani/init.lua` | ✅ Done |
 
 ---
 
