@@ -35,16 +35,17 @@ function M.ensure_server_async(port, progress_cb, on_ready)
       if timer then
         timer:start(200, 200, function()
           attempts = attempts + 1
-          local check = vim.system(health_cmd, { text = true }):wait()
-          if check and check.code == 0 and check.stdout and check.stdout:find("healthy") then
-            timer:stop()
-            timer:close()
-            vim.schedule(function() on_ready(true) end)
-          elseif attempts >= 15 then
-            timer:stop()
-            timer:close()
-            vim.schedule(function() on_ready(false) end)
-          end
+          vim.system(health_cmd, { text = true }, function(check)
+            vim.schedule(function()
+              if check and check.code == 0 and check.stdout and check.stdout:find("healthy") then
+                if timer then pcall(function() timer:stop(); timer:close() end); timer = nil end
+                on_ready(true)
+              elseif attempts >= 15 then
+                if timer then pcall(function() timer:stop(); timer:close() end); timer = nil end
+                on_ready(false)
+              end
+            end)
+          end)
         end)
       else
         on_ready(false)
