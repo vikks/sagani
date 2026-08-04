@@ -4,12 +4,41 @@ local M = {
 
 function M.list_models_async(opts, callback)
   opts = type(opts) == "table" and opts or {}
-  local models = { "hermes-3-llama-3.1-405b", "hermes-3-llama-3.1-70b" }
-  callback(models)
+  if _G.RUNNING_TEST_SUITE and not opts.runner then
+    callback({ "hermes-3-llama-3.1-405b", "hermes-3-llama-3.1-70b" })
+    return
+  end
+
+  local cache = require("sagani.cache")
+  local cached = cache.get_cached_models("hermes", opts.cache_ttl)
+  if cached then
+    callback(cached)
+    return
+  end
+
+  if opts.runner then
+    local res, code = opts.runner({ "hermes", "models" })
+    if code == 0 and res and res ~= "" then
+      local models = {}
+      for line in res:gmatch("[^\r\n]+") do
+        local trimmed = vim.trim(line)
+        if trimmed ~= "" then table.insert(models, trimmed) end
+      end
+      if #models > 0 then
+        cache.set_cached_models("hermes", models)
+        callback(models)
+        return
+      end
+    end
+  end
+
+  callback(nil)
 end
 
-function M.list_models(_)
-  return { "hermes-3-llama-3.1-405b", "hermes-3-llama-3.1-70b" }
+function M.list_models(opts)
+  opts = type(opts) == "table" and opts or {}
+  local cache = require("sagani.cache")
+  return cache.get_cached_models("hermes", opts.cache_ttl)
 end
 
 function M.build_command(prompt_text, agent_opts)

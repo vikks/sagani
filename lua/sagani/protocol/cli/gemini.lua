@@ -16,20 +16,44 @@ function M.list_models_async(opts, callback)
     return
   end
 
-  local models = { "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite" }
-  cache.set_cached_models("gemini", models)
-  callback(models)
+  local api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+  if api_key and api_key ~= "" and vim.fn.executable("curl") == 1 then
+    local url = "https://generativelanguage.googleapis.com/v1beta/models?key=" .. api_key
+    vim.system({ "curl", "-s", "-m", "3", url }, { text = true }, function(obj)
+      vim.schedule(function()
+        local models = {}
+        if obj.code == 0 and obj.stdout then
+          local ok, data = pcall(vim.json.decode, obj.stdout)
+          if ok and type(data) == "table" and type(data.models) == "table" then
+            for _, m in ipairs(data.models) do
+              if type(m) == "table" and type(m.name) == "string" then
+                local clean_name = m.name:gsub("^models/", "")
+                if clean_name:find("^gemini") then
+                  table.insert(models, clean_name)
+                end
+              end
+            end
+          end
+        end
+
+        if #models > 0 then
+          cache.set_cached_models("gemini", models)
+          callback(models)
+        else
+          callback(nil)
+        end
+      end)
+    end)
+    return
+  end
+
+  callback(nil)
 end
 
 function M.list_models(opts)
   opts = type(opts) == "table" and opts or {}
   local cache = require("sagani.cache")
-  local cached = cache.get_cached_models("gemini", opts.cache_ttl)
-  if cached then return cached end
-
-  local models = { "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite" }
-  cache.set_cached_models("gemini", models)
-  return models
+  return cache.get_cached_models("gemini", opts.cache_ttl)
 end
 
 function M.build_command(prompt_text, agent_opts)
