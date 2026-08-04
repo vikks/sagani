@@ -31,18 +31,28 @@ function M.ensure_server_async(port, progress_cb, on_ready)
       pcall(function() vim.system(spawn_cmd, { detach = true }) end)
 
       local attempts = 0
+      local ready_called = false
       local timer = vim.loop and vim.loop.new_timer() or nil
+
+      local function done(is_ready)
+        if ready_called then return end
+        ready_called = true
+        if timer then
+          pcall(function() timer:stop(); timer:close() end)
+          timer = nil
+        end
+        on_ready(is_ready)
+      end
+
       if timer then
-        timer:start(200, 200, function()
+        timer:start(300, 300, function()
           attempts = attempts + 1
           vim.system(health_cmd, { text = true }, function(check)
             vim.schedule(function()
               if check and check.code == 0 and check.stdout and check.stdout:find("healthy") then
-                if timer then pcall(function() timer:stop(); timer:close() end); timer = nil end
-                on_ready(true)
-              elseif attempts >= 15 then
-                if timer then pcall(function() timer:stop(); timer:close() end); timer = nil end
-                on_ready(false)
+                done(true)
+              elseif attempts >= 20 then
+                done(false)
               end
             end)
           end)
@@ -93,8 +103,8 @@ function M.execute(prompt_text, agent_opts, callback, progress_cb, session_id)
 
   M.ensure_server_async(port, progress_cb, function(ready)
     if not ready then
-      local cli_gemini = require("sagani.protocol.cli.gemini")
-      cli_gemini.execute(prompt_text, agent_opts, function(resp, err)
+      local cli_opencode = require("sagani.protocol.cli.opencode")
+      cli_opencode.execute(prompt_text, agent_opts, function(resp, err)
         callback(resp, err, nil)
       end)
       return
