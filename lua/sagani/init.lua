@@ -333,6 +333,17 @@ function M.setup(user_opts)
 			end
 		end,
 	})
+
+	-- Register Auto-Cleanup Watcher for Background ACP Servers on Vim Exit
+	local cleanup_group = vim.api.nvim_create_augroup("SaganiCleanupWatcher", { clear = true })
+	vim.api.nvim_create_autocmd({ "VimLeavePre", "VimLeave" }, {
+		group = cleanup_group,
+		callback = function()
+			pcall(function()
+				require("sagani.protocol.http.opencode").stop_server()
+			end)
+		end,
+	})
 end
 
 function M.prompt_model_and_effort(harness, opts)

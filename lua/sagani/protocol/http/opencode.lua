@@ -1,6 +1,18 @@
 local M = {
   name = "opencode",
+  _server_proc = nil,
+  _server_port = nil,
 }
+
+function M.stop_server()
+  if M._server_proc then
+    pcall(function()
+      M._server_proc:kill("sigterm")
+    end)
+    M._server_proc = nil
+    M._server_port = nil
+  end
+end
 
 function M.ensure_server_async(port, progress_cb, on_ready)
   if _G.RUNNING_TEST_SUITE then
@@ -28,7 +40,10 @@ function M.ensure_server_async(port, progress_cb, on_ready)
 
       if progress_cb then progress_cb("Starting OpenCode ACP background server on port " .. port .. "...") end
       local spawn_cmd = { "opencode", "acp", "--port", tostring(port) }
-      pcall(function() vim.system(spawn_cmd, { detach = true }) end)
+      pcall(function()
+        M._server_proc = vim.system(spawn_cmd)
+        M._server_port = port
+      end)
 
       local attempts = 0
       local ready_called = false
