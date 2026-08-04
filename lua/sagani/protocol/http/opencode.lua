@@ -7,10 +7,23 @@ local M = {
 function M.stop_server()
   if M._server_proc then
     pcall(function()
-      M._server_proc:kill("sigterm")
+      M._server_proc:kill(9)
     end)
     M._server_proc = nil
-    M._server_port = nil
+  end
+
+  local port = M._server_port or 4096
+  M._server_port = nil
+
+  if vim.fn.executable("lsof") == 1 then
+    pcall(function()
+      local pids = vim.system({ "lsof", "-ti", ":" .. tostring(port) }, { text = true }):wait()
+      if pids and pids.code == 0 and pids.stdout and pids.stdout ~= "" then
+        for pid in pids.stdout:gmatch("%d+") do
+          vim.system({ "kill", "-9", pid }):wait()
+        end
+      end
+    end)
   end
 end
 

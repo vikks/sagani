@@ -336,7 +336,7 @@ function M.setup(user_opts)
 
 	-- Register Auto-Cleanup Watcher for Background ACP Servers on Vim Exit
 	local cleanup_group = vim.api.nvim_create_augroup("SaganiCleanupWatcher", { clear = true })
-	vim.api.nvim_create_autocmd({ "VimLeavePre", "VimLeave" }, {
+	vim.api.nvim_create_autocmd({ "VimLeavePre", "VimLeave", "ExitPre" }, {
 		group = cleanup_group,
 		callback = function()
 			pcall(function()
