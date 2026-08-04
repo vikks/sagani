@@ -75,6 +75,12 @@ require("sagani").setup({
     anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
   },
 
+  -- Configure custom background ACP server ports per agent harness
+  ports = {
+    opencode = 4096,
+    gemini = 4097,
+  },
+
   -- 1. Tasks Configuration (WHAT agent harness, provider, model, effort, alias, protocol to run per task)
   tasks = {
     ask = {
