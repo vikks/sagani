@@ -75,10 +75,16 @@ require("sagani").setup({
     anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
   },
 
-  -- 1. Tasks Configuration (WHAT agent harness, provider, model, protocol to run per task)
+  -- 1. Tasks Configuration (WHAT agent harness, provider, model, effort, alias, protocol to run per task)
   tasks = {
-    ask = { protocol = "acp", harness = "agy", effort = "high" }, -- Terminal-free ACP Q&A rendered in a native Markdown buffer!
-    review = { protocol = "terminal", harness = "codex" },
+    ask = {
+      protocol = "acp",
+      harness = "agy",
+      model = "gemini-3.6-flash-low",
+      effort = "low",
+      alias = "Gemini 3.6 Flash (Low)",
+    },
+    review = { protocol = "terminal", harness = "codex", model = "o3", effort = "high" },
 
     -- Short-form string syntax specifies the agent harness name directly:
     code = "opencode",  -- Short for { harness = "opencode" }
