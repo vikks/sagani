@@ -39,11 +39,21 @@ function M.resolve_task_agent(opts, task_type)
   end
   harness = (harness or "agy"):lower()
 
-  local h_opts = (opts.harness_opts and opts.harness_opts[harness]) or {}
+  local h_prov_map = {
+    agy = "google",
+    antigravity = "google",
+    gemini = "google",
+    ["gemini-cli"] = "google",
+    codex = "openai",
+    hermes = "openai",
+    opencode = "google",
+  }
 
-  local provider = type(task_val) == "table" and task_val.provider or nil
-  local model = session_model or (type(task_val) == "table" and task_val.model) or h_opts.model
-  local effort = session_effort or (type(task_val) == "table" and task_val.effort) or h_opts.effort
+  local provider = (type(task_val) == "table" and task_val.provider) or h_prov_map[harness] or "google"
+  local p_cfg = (opts.providers and opts.providers[provider]) or (opts.harness_opts and opts.harness_opts[harness]) or {}
+
+  local model = session_model or (type(task_val) == "table" and task_val.model) or p_cfg.default or p_cfg.model
+  local effort = session_effort or (type(task_val) == "table" and task_val.effort) or p_cfg.effort
   local timeout = type(task_val) == "table" and task_val.timeout or nil
   local protocol = type(task_val) == "table" and task_val.protocol or nil
 
