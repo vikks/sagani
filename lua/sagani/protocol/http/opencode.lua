@@ -25,6 +25,10 @@ function M.stop_server()
       end
     end)
   end
+
+  pcall(function()
+    vim.system({ "pkill", "-f", "opencode acp" })
+  end)
 end
 
 function M.ensure_server_async(port, progress_cb, on_ready)
