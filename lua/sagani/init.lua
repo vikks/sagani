@@ -592,7 +592,8 @@ function M.ask_agent_prompt(prompt_text, opts)
 		end
 	end
 
-	local configured_agent = ask_opts.target_agent
+	local task_agent = backend.resolve_task_agent(opts, "ask")
+	local configured_agent = ask_opts.target_agent or (task_agent and task_agent.harness)
 	local agent_name = (type(configured_agent) == "string" and configured_agent ~= "") and configured_agent
 		or (M.options.target_agent or "agy")
 	do_ask(agent_name, prompt_text)
