@@ -53,6 +53,7 @@ function M.resolve_task_agent(opts, task_type)
 
   local model = session_model or (type(task_val) == "table" and task_val.model)
   local effort = session_effort or (type(task_val) == "table" and task_val.effort)
+  local alias = type(task_val) == "table" and task_val.alias
   local timeout = type(task_val) == "table" and task_val.timeout
   local protocol = type(task_val) == "table" and task_val.protocol
 
@@ -61,6 +62,7 @@ function M.resolve_task_agent(opts, task_type)
     provider = provider,
     model = model,
     effort = effort,
+    alias = alias,
     timeout = timeout,
     protocol = protocol,
   }

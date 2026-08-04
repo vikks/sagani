@@ -505,8 +505,9 @@ function M.ask_agent_prompt(prompt_text, opts)
 			local markdown_popup = require("sagani.ui.markdown_popup")
 			local acp = require("sagani.protocol.acp")
 
-			local win, buf = markdown_popup.open(string.format("Sagani Agent (%s)", harness:upper()), popup_opts)
-			markdown_popup.set_prompt_header(buf, text, harness)
+			local display_name = (agent_opts and agent_opts.alias) or harness:upper()
+			local win, buf = markdown_popup.open(string.format("Sagani Agent (%s)", display_name), popup_opts)
+			markdown_popup.set_prompt_header(buf, text, display_name)
 			pcall(vim.cmd, "redraw")
 
 			local progress_cb = function(status_msg)
