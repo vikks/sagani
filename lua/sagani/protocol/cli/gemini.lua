@@ -5,7 +5,7 @@ local M = {
 function M.list_models_async(opts, callback)
   opts = type(opts) == "table" and opts or {}
   if _G.RUNNING_TEST_SUITE and not opts.runner then
-    callback({ "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite" })
+    callback({ "gemini-3.1-pro-preview", "gemini-3.5-flash", "gemini-2.5-pro", "gemini-3.1-flash-lite" })
     return
   end
 
@@ -16,20 +16,21 @@ function M.list_models_async(opts, callback)
     return
   end
 
-  local api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-  if api_key and api_key ~= "" and vim.fn.executable("curl") == 1 then
-    local url = "https://generativelanguage.googleapis.com/v1beta/models?key=" .. api_key
-    vim.system({ "curl", "-s", "-m", "3", url }, { text = true }, function(obj)
+  if vim.fn.executable("gemini") == 1 then
+    local payload = '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":1},"id":1}\n{"jsonrpc":"2.0","method":"session/new","params":{"cwd":"/tmp","mcpServers":[]},"id":2}\n'
+    vim.system({ "gemini", "--acp" }, { text = true, stdin = payload }, function(obj)
       vim.schedule(function()
         local models = {}
         if obj.code == 0 and obj.stdout then
-          local ok, data = pcall(vim.json.decode, obj.stdout)
-          if ok and type(data) == "table" and type(data.models) == "table" then
-            for _, m in ipairs(data.models) do
-              if type(m) == "table" and type(m.name) == "string" then
-                local clean_name = m.name:gsub("^models/", "")
-                if clean_name:find("^gemini") then
-                  table.insert(models, clean_name)
+          for line in obj.stdout:gmatch("[^\r\n]+") do
+            local ok, data = pcall(vim.json.decode, line)
+            if ok and type(data) == "table" and data.id == 2 and data.result then
+              local res_models = data.result.models and data.result.models.availableModels
+              if type(res_models) == "table" then
+                for _, m in ipairs(res_models) do
+                  if type(m) == "table" and m.modelId then
+                    table.insert(models, m.modelId)
+                  end
                 end
               end
             end
@@ -39,9 +40,41 @@ function M.list_models_async(opts, callback)
         if #models > 0 then
           cache.set_cached_models("gemini", models)
           callback(models)
-        else
-          callback(nil)
+          return
         end
+
+        local api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if api_key and api_key ~= "" and vim.fn.executable("curl") == 1 then
+          local url = "https://generativelanguage.googleapis.com/v1beta/models?key=" .. api_key
+          vim.system({ "curl", "-s", "-m", "3", url }, { text = true }, function(curlobj)
+            vim.schedule(function()
+              local c_models = {}
+              if curlobj.code == 0 and curlobj.stdout then
+                local ok, data = pcall(vim.json.decode, curlobj.stdout)
+                if ok and type(data) == "table" and type(data.models) == "table" then
+                  for _, m in ipairs(data.models) do
+                    if type(m) == "table" and type(m.name) == "string" then
+                      local clean_name = m.name:gsub("^models/", "")
+                      if clean_name:find("^gemini") then
+                        table.insert(c_models, clean_name)
+                      end
+                    end
+                  end
+                end
+              end
+
+              if #c_models > 0 then
+                cache.set_cached_models("gemini", c_models)
+                callback(c_models)
+              else
+                callback(nil)
+              end
+            end)
+          end)
+          return
+        end
+
+        callback(nil)
       end)
     end)
     return
