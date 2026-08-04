@@ -302,6 +302,11 @@ function M.setup(user_opts)
 		notify.info("Flushed all sagani.* modules and reloaded configuration", M.options)
 	end, { desc = "Hot-reload all sagani modules" })
 
+	vim.api.nvim_create_user_command("SaganiClearCache", function()
+		require("sagani.cache").clear_cache()
+		notify.info("Cleared Sagani persistent model cache", M.options)
+	end, { desc = "Clear persistent model cache" })
+
 	-- Register File Change Watcher for Agent Edits
 	local group = vim.api.nvim_create_augroup("SaganiReviewWatcher", { clear = true })
 	vim.api.nvim_create_autocmd({ "FileChangedShellPost", "BufReadPost" }, {

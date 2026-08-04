@@ -29,6 +29,12 @@ function M.list_models(opts)
     return { "Gemini 3.6 Flash (High)", "Gemini 3.1 Pro (High)", "Claude Sonnet 4.6 (Thinking)" }
   end
 
+  local cache = require("sagani.cache")
+  local cached = cache.get_cached_models("agy", opts.cache_ttl)
+  if cached then
+    return cached
+  end
+
   local cmd = { "agy", "models" }
   local out_text = nil
   if opts.runner then
@@ -49,7 +55,12 @@ function M.list_models(opts)
     end
   end
 
-  return #models > 0 and models or nil
+  if #models > 0 then
+    cache.set_cached_models("agy", models)
+    return models
+  end
+
+  return nil
 end
 
 function M.execute(prompt_text, agent_opts, callback, opts)
