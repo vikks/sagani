@@ -22,6 +22,35 @@ M.defaults = {
     review = { effort = "medium" },
   },
 
+  harness_opts = {
+    agy = {
+      model = nil,
+      effort = "high",
+      models = {
+        "Gemini 3.6 Flash (High)",
+        "Gemini 3.6 Flash (Medium)",
+        "Gemini 3.1 Pro (High)",
+        "Claude Sonnet 4.6 (Thinking)",
+        "Claude Opus 4.6 (Thinking)",
+      },
+      efforts = { "low", "medium", "high" },
+    },
+    gemini = {
+      model = nil,
+      models = { "gemini-2.5-pro", "gemini-2.5-flash" },
+    },
+    codex = {
+      model = nil,
+      models = { "gpt-5.6-luna", "o3", "o1" },
+    },
+    opencode = {
+      model = nil,
+    },
+    hermes = {
+      model = nil,
+    },
+  },
+
   window_opts = {
     width = 0.8,
     height = 0.8,
@@ -315,16 +344,70 @@ function M.setup(user_opts)
   })
 end
 
+function M.prompt_model_and_effort(harness, opts)
+  harness = (harness or "agy"):lower()
+  M.options.target_agent = harness
+
+  local h_opts = (M.options.harness_opts and M.options.harness_opts[harness]) or {}
+  local models = h_opts.models or {}
+  local efforts = h_opts.efforts or {}
+
+  local function finish()
+    local m_str = M._session_model or "Default"
+    local e_str = M._session_effort or "Default"
+    notify.info(string.format("Active Agent: '%s' | Model: %s | Effort: %s", harness:upper(), m_str, e_str), opts)
+  end
+
+  local function pick_effort()
+    if not _G.RUNNING_TEST_SUITE and #efforts > 0 and vim.ui and vim.ui.select then
+      local e_choices = { "[Use Default Effort]" }
+      for _, e in ipairs(efforts) do table.insert(e_choices, e) end
+      vim.ui.select(e_choices, {
+        prompt = string.format("Select Reasoning Effort for %s:", harness:upper()),
+      }, function(e_choice)
+        if e_choice and e_choice ~= "[Use Default Effort]" then
+          M._session_effort = e_choice
+        else
+          M._session_effort = nil
+        end
+        finish()
+      end)
+    else
+      finish()
+    end
+  end
+
+  local function pick_model()
+    if not _G.RUNNING_TEST_SUITE and #models > 0 and vim.ui and vim.ui.select then
+      local m_choices = { "[Use Default Model]" }
+      for _, m in ipairs(models) do table.insert(m_choices, m) end
+      vim.ui.select(m_choices, {
+        prompt = string.format("Select Model for %s:", harness:upper()),
+      }, function(m_choice)
+        if m_choice and m_choice ~= "[Use Default Model]" then
+          M._session_model = m_choice
+        else
+          M._session_model = nil
+        end
+        pick_effort()
+      end)
+    else
+      pick_effort()
+    end
+  end
+
+  pick_model()
+end
+
 function M.select_agent_harness(arg, opts)
   opts = type(opts) == "table" and opts or M.options
   if type(arg) == "string" and arg ~= "" then
     local harness = vim.trim(arg):lower()
-    M.options.target_agent = harness
-    notify.info(string.format("Target agent harness set to '%s'", harness), opts)
+    M.prompt_model_and_effort(harness, opts)
     return harness
   end
 
-  local choices = { "agy", "codex", "opencode", "hermes" }
+  local choices = { "agy", "codex", "opencode", "hermes", "gemini" }
   local seen = {}
   for _, c in ipairs(choices) do
     seen[c] = true
@@ -351,7 +434,7 @@ function M.select_agent_harness(arg, opts)
 
   table.insert(choices, "Other...")
 
-  if vim.ui and vim.ui.select then
+  if not _G.RUNNING_TEST_SUITE and vim.ui and vim.ui.select then
     vim.ui.select(choices, {
       prompt = string.format("Select Agent Harness (Current: %s):", M.options.target_agent or "agy"),
       format_item = function(item)
@@ -366,23 +449,15 @@ function M.select_agent_harness(arg, opts)
         vim.ui.input({ prompt = "Enter custom agent harness name: " }, function(input)
           if input and input ~= "" then
             local custom_agent = vim.trim(input):lower()
-            M.options.target_agent = custom_agent
-            notify.info(string.format("Target agent harness set to '%s'", custom_agent), opts)
+            M.prompt_model_and_effort(custom_agent, opts)
           end
         end)
       else
-        M.options.target_agent = choice
-        notify.info(string.format("Target agent harness set to '%s'", choice), opts)
+        M.prompt_model_and_effort(choice, opts)
       end
     end)
   else
-    vim.ui.input({ prompt = string.format("Enter agent harness (Current: %s): ", M.options.target_agent or "agy") }, function(input)
-      if input and input ~= "" then
-        local name = vim.trim(input):lower()
-        M.options.target_agent = name
-        notify.info(string.format("Target agent harness set to '%s'", name), opts)
-      end
-    end)
+    M.options.target_agent = M.options.target_agent or "agy"
   end
 
   return M.options.target_agent

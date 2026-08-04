@@ -27,25 +27,25 @@ function M.resolve_task_agent(opts, task_type)
   task_type = task_type or "chat"
   local task_val = opts.tasks and opts.tasks[task_type]
 
-  local harness = opts.target_agent -- Session agent set via <leader>ah
-  local provider = nil
-  local model = nil
-  local effort = nil
-  local timeout = nil
-  local protocol = nil
+  local sagani = pcall(require, "sagani") and require("sagani") or {}
+  local session_model = sagani._session_model
+  local session_effort = sagani._session_effort
 
+  local harness = opts.target_agent
   if type(task_val) == "string" and task_val ~= "" then
     harness = harness or task_val
   elseif type(task_val) == "table" then
     harness = harness or task_val.harness
-    provider = task_val.provider
-    model = task_val.model
-    effort = task_val.effort
-    timeout = task_val.timeout
-    protocol = task_val.protocol
   end
+  harness = (harness or "agy"):lower()
 
-  harness = harness or "agy"
+  local h_opts = (opts.harness_opts and opts.harness_opts[harness]) or {}
+
+  local provider = type(task_val) == "table" and task_val.provider or nil
+  local model = session_model or (type(task_val) == "table" and task_val.model) or h_opts.model
+  local effort = session_effort or (type(task_val) == "table" and task_val.effort) or h_opts.effort
+  local timeout = type(task_val) == "table" and task_val.timeout or nil
+  local protocol = type(task_val) == "table" and task_val.protocol or nil
 
   return {
     harness = harness,
