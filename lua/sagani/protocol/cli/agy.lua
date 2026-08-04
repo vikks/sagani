@@ -23,44 +23,56 @@ function M.build_command(prompt_text, agent_opts)
   return cmd
 end
 
-function M.list_models(opts)
+function M.list_models_async(opts, callback)
   opts = type(opts) == "table" and opts or {}
   if _G.RUNNING_TEST_SUITE and not opts.runner then
-    return { "Gemini 3.6 Flash (High)", "Gemini 3.1 Pro (High)", "Claude Sonnet 4.6 (Thinking)" }
+    callback({ "Gemini 3.6 Flash (High)", "Gemini 3.1 Pro (High)", "Claude Sonnet 4.6 (Thinking)" })
+    return
   end
 
   local cache = require("sagani.cache")
   local cached = cache.get_cached_models("agy", opts.cache_ttl)
   if cached then
-    return cached
+    callback(cached)
+    return
   end
+
+  if opts.runner then
+    local models = M.list_models(opts)
+    callback(models)
+    return
+  end
+
+  if vim.fn.executable("agy") == 0 then
+    callback(nil)
+    return
+  end
+
+  local notify = require("sagani.notify")
+  notify.info("Fetching available models from AGY CLI...", opts)
 
   local cmd = { "agy", "models" }
-  local out_text = nil
-  if opts.runner then
-    local res, code = opts.runner(cmd)
-    if code == 0 then out_text = res end
-  elseif vim.fn.executable("agy") == 1 then
-    local res = vim.system(cmd, { text = true, stdin = "" }):wait()
-    if res and res.code == 0 then out_text = res.stdout end
-  end
-
-  local models = {}
-  if out_text and out_text ~= "" then
-    for line in out_text:gmatch("[^\r\n]+") do
-      local trimmed = vim.trim(line)
-      if trimmed ~= "" and not trimmed:find("^Available models:") and not trimmed:find("^Usage") then
-        table.insert(models, trimmed)
+  vim.system(cmd, { text = true, stdin = "" }, function(obj)
+    vim.schedule(function()
+      local models = {}
+      local out_text = (obj.code == 0) and obj.stdout or nil
+      if out_text and out_text ~= "" then
+        for line in out_text:gmatch("[^\r\n]+") do
+          local trimmed = vim.trim(line)
+          if trimmed ~= "" and not trimmed:find("^Available models:") and not trimmed:find("^Usage") then
+            table.insert(models, trimmed)
+          end
+        end
       end
-    end
-  end
 
-  if #models > 0 then
-    cache.set_cached_models("agy", models)
-    return models
-  end
-
-  return nil
+      if #models > 0 then
+        cache.set_cached_models("agy", models)
+        callback(models)
+      else
+        callback(nil)
+      end
+    end)
+  end)
 end
 
 function M.execute(prompt_text, agent_opts, callback, opts)

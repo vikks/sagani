@@ -338,58 +338,61 @@ function M.prompt_model_and_effort(harness, opts)
   M.options.target_agent = harness
 
   local cli_transport = require("sagani.protocol.cli")
-  local models = cli_transport.list_models(harness, opts) or {}
   local efforts = { "low", "medium", "high" }
 
-	local function finish()
-		local m_str = M._session_model or "Default"
-		local e_str = M._session_effort or "Default"
-		notify.info(string.format("Active Agent: '%s' | Model: %s | Effort: %s", harness:upper(), m_str, e_str), opts)
-	end
+  cli_transport.list_models_async(harness, opts, function(models)
+    models = models or {}
 
-	local function pick_effort()
-		if not _G.RUNNING_TEST_SUITE and #efforts > 0 and vim.ui and vim.ui.select then
-			local e_choices = { "[Use Default Effort]" }
-			for _, e in ipairs(efforts) do
-				table.insert(e_choices, e)
-			end
-			vim.ui.select(e_choices, {
-				prompt = string.format("Select Reasoning Effort for %s:", harness:upper()),
-			}, function(e_choice)
-				if e_choice and e_choice ~= "[Use Default Effort]" then
-					M._session_effort = e_choice
-				else
-					M._session_effort = nil
-				end
-				finish()
-			end)
-		else
-			finish()
-		end
-	end
+    local function finish()
+      local m_str = M._session_model or "Default"
+      local e_str = M._session_effort or "Default"
+      notify.info(string.format("Active Agent: '%s' | Model: %s | Effort: %s", harness:upper(), m_str, e_str), opts)
+    end
 
-	local function pick_model()
-		if not _G.RUNNING_TEST_SUITE and #models > 0 and vim.ui and vim.ui.select then
-			local m_choices = { "[Use Default Model]" }
-			for _, m in ipairs(models) do
-				table.insert(m_choices, m)
-			end
-			vim.ui.select(m_choices, {
-				prompt = string.format("Select Model for %s:", harness:upper()),
-			}, function(m_choice)
-				if m_choice and m_choice ~= "[Use Default Model]" then
-					M._session_model = m_choice
-				else
-					M._session_model = nil
-				end
-				pick_effort()
-			end)
-		else
-			pick_effort()
-		end
-	end
+    local function pick_effort()
+      if not _G.RUNNING_TEST_SUITE and #efforts > 0 and vim.ui and vim.ui.select then
+        local e_choices = { "[Use Default Effort]" }
+        for _, e in ipairs(efforts) do
+          table.insert(e_choices, e)
+        end
+        vim.ui.select(e_choices, {
+          prompt = string.format("Select Reasoning Effort for %s:", harness:upper()),
+        }, function(e_choice)
+          if e_choice and e_choice ~= "[Use Default Effort]" then
+            M._session_effort = e_choice
+          else
+            M._session_effort = nil
+          end
+          finish()
+        end)
+      else
+        finish()
+      end
+    end
 
-	pick_model()
+    local function pick_model()
+      if not _G.RUNNING_TEST_SUITE and #models > 0 and vim.ui and vim.ui.select then
+        local m_choices = { "[Use Default Model]" }
+        for _, m in ipairs(models) do
+          table.insert(m_choices, m)
+        end
+        vim.ui.select(m_choices, {
+          prompt = string.format("Select Model for %s:", harness:upper()),
+        }, function(m_choice)
+          if m_choice and m_choice ~= "[Use Default Model]" then
+            M._session_model = m_choice
+          else
+            M._session_model = nil
+          end
+          pick_effort()
+        end)
+      else
+        pick_effort()
+      end
+    end
+
+    pick_model()
+  end)
 end
 
 function M.select_agent_harness(arg, opts)

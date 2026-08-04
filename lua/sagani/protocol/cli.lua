@@ -53,6 +53,17 @@ function M.list_models(harness, opts)
   return nil
 end
 
+function M.list_models_async(harness, opts, callback)
+  local agent = M.get_agent(harness)
+  if agent and agent.list_models_async then
+    agent.list_models_async(opts, callback)
+  elseif agent and agent.list_models then
+    callback(agent.list_models(opts))
+  else
+    callback(nil)
+  end
+end
+
 function M.execute(harness, prompt_text, agent_opts, callback, opts)
   local agent = M.get_agent(harness)
   agent.execute(prompt_text, agent_opts, callback, opts)
