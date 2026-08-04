@@ -4,12 +4,32 @@ local M = {
 
 function M.list_models_async(opts, callback)
   opts = type(opts) == "table" and opts or {}
+  if _G.RUNNING_TEST_SUITE and not opts.runner then
+    callback({ "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite" })
+    return
+  end
+
+  local cache = require("sagani.cache")
+  local cached = cache.get_cached_models("gemini", opts.cache_ttl)
+  if cached then
+    callback(cached)
+    return
+  end
+
   local models = { "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite" }
+  cache.set_cached_models("gemini", models)
   callback(models)
 end
 
-function M.list_models(_)
-  return { "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite" }
+function M.list_models(opts)
+  opts = type(opts) == "table" and opts or {}
+  local cache = require("sagani.cache")
+  local cached = cache.get_cached_models("gemini", opts.cache_ttl)
+  if cached then return cached end
+
+  local models = { "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite" }
+  cache.set_cached_models("gemini", models)
+  return models
 end
 
 function M.build_command(prompt_text, agent_opts)

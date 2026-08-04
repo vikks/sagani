@@ -4,12 +4,66 @@ local M = {
 
 function M.list_models_async(opts, callback)
   opts = type(opts) == "table" and opts or {}
-  local models = { "gpt-5.6-luna", "o3", "o1", "gpt-4o" }
-  callback(models)
+  if _G.RUNNING_TEST_SUITE and not opts.runner then
+    callback({ "gpt-5.6-luna", "o3", "o1", "gpt-4o" })
+    return
+  end
+
+  local cache = require("sagani.cache")
+  local cached = cache.get_cached_models("codex", opts.cache_ttl)
+  if cached then
+    callback(cached)
+    return
+  end
+
+  local models = {}
+  local codex_cache_file = vim.fn.expand("~/.codex/models_cache.json")
+  if vim.fn.filereadable(codex_cache_file) == 1 then
+    local content = table.concat(vim.fn.readfile(codex_cache_file), "\n")
+    local ok, data = pcall(vim.json.decode, content)
+    if ok and type(data) == "table" and type(data.models) == "table" then
+      for _, m in ipairs(data.models) do
+        if type(m) == "table" and m.slug then
+          table.insert(models, m.slug)
+        end
+      end
+    end
+  end
+
+  if #models > 0 then
+    cache.set_cached_models("codex", models)
+    callback(models)
+  else
+    callback(nil)
+  end
 end
 
-function M.list_models(_)
-  return { "gpt-5.6-luna", "o3", "o1", "gpt-4o" }
+function M.list_models(opts)
+  opts = type(opts) == "table" and opts or {}
+  local cache = require("sagani.cache")
+  local cached = cache.get_cached_models("codex", opts.cache_ttl)
+  if cached then return cached end
+
+  local models = {}
+  local codex_cache_file = vim.fn.expand("~/.codex/models_cache.json")
+  if vim.fn.filereadable(codex_cache_file) == 1 then
+    local content = table.concat(vim.fn.readfile(codex_cache_file), "\n")
+    local ok, data = pcall(vim.json.decode, content)
+    if ok and type(data) == "table" and type(data.models) == "table" then
+      for _, m in ipairs(data.models) do
+        if type(m) == "table" and m.slug then
+          table.insert(models, m.slug)
+        end
+      end
+    end
+  end
+
+  if #models > 0 then
+    cache.set_cached_models("codex", models)
+    return models
+  end
+
+  return nil
 end
 
 function M.build_command(prompt_text, agent_opts)
