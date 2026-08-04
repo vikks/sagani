@@ -68,26 +68,34 @@ require("sagani").setup({
   -- Default target AI coding agent harness ("agy", "codex", "opencode", "hermes", "gemini", etc.)
   target_agent = "agy",
 
-  -- Configure per-harness default models, reasoning efforts, and available choices
-  harness_opts = {
-    agy = {
-      model = nil, -- e.g. "Gemini 3.6 Flash (High)" or nil for default
-      effort = "high",
+  -- Unified Providers Configuration (alias, default model, selectable models, reasoning efforts, API key env)
+  providers = {
+    google = {
+      api_key_env = "GEMINI_API_KEY",
+      alias = "Gemini / AGY",
+      default = "Gemini 3.6 Flash (Low)",
       models = {
         "Gemini 3.6 Flash (High)",
         "Gemini 3.6 Flash (Medium)",
+        "Gemini 3.6 Flash (Low)",
         "Gemini 3.1 Pro (High)",
         "Claude Sonnet 4.6 (Thinking)",
+        "Claude Opus 4.6 (Thinking)",
       },
       efforts = { "low", "medium", "high" },
     },
-    gemini = {
-      model = nil,
-      models = { "gemini-2.5-pro", "gemini-2.5-flash" },
-    },
-    codex = {
-      model = nil,
+    openai = {
+      api_key_env = "OPENAI_API_KEY",
+      alias = "OpenAI / Codex",
+      default = "gpt-5.6-luna",
       models = { "gpt-5.6-luna", "o3", "o1" },
+      efforts = { "low", "medium", "high" },
+    },
+    anthropic = {
+      api_key_env = "ANTHROPIC_API_KEY",
+      alias = "Anthropic",
+      default = "claude-3-5-sonnet-latest",
+      models = { "claude-3-5-sonnet-latest", "claude-3-opus-latest" },
     },
   },
 
