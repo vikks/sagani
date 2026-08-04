@@ -65,9 +65,6 @@ Configure **sagani.nvim** via `require("sagani").setup(opts)`:
 
 ```lua
 require("sagani").setup({
-  -- Default target AI coding agent harness ("agy", "codex", "opencode", "hermes", "gemini", etc.)
-  target_agent = "agy",
-
   -- Provider Aliases & API Keys (Models are discovered 100% dynamically from live agent CLIs!)
   providers = {
     google = { api_key_env = "GEMINI_API_KEY", alias = "Google Gemini" },
