@@ -38,8 +38,6 @@ function M.resolve_task_agent(opts, task_type)
       harness = task_val
     elseif type(task_val) == "table" and task_val.harness then
       harness = task_val.harness
-    else
-      harness = opts.target_agent
     end
   end
   harness = (harness or "agy"):lower()

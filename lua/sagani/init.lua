@@ -80,14 +80,18 @@ M.defaults = {
 		opencode = 4096,
 		gemini = 4097,
 	},
-	target_agent = "agy",
+	tasks = {
+		ask = "agy",
+		review = "codex",
+		code = "opencode",
+		chat = "agy",
+	},
 	auto_discover = true,
 	auto_spawn = false,
 	pane_override = nil,
 	default_keymaps = true,
 	which_key = true,
 	ask_agent = {
-		target_agent = nil,
 		popup = true,
 	},
 	review = {
@@ -449,16 +453,17 @@ function M.select_agent_harness(arg, opts)
 
 	table.insert(choices, "Other...")
 
+	local active_h = M._session_harness or "none"
 	if not _G.RUNNING_TEST_SUITE and vim.ui and vim.ui.select then
 		vim.ui.select(choices, {
-			prompt = string.format("Select Agent Harness (Current: %s):", M.options.target_agent or "agy"),
+			prompt = string.format("Select Agent Harness (Active Session: %s):", active_h),
 			format_item = function(item)
-				if item == M.options.target_agent then
+				if item == M._session_harness then
 					return item .. " (active)"
 				end
 				return item
 			end,
-		}, function(choice)
+			}, function(choice)
 			if not choice then
 				return
 			end
@@ -473,11 +478,9 @@ function M.select_agent_harness(arg, opts)
 				M.prompt_model_and_effort(choice, opts)
 			end
 		end)
-	else
-		M.options.target_agent = M.options.target_agent or "agy"
 	end
 
-	return M.options.target_agent
+	return M._session_harness
 end
 
 --- Asks a general question/prompt to an agent in a Herdr popup.
@@ -594,8 +597,7 @@ function M.ask_agent_prompt(prompt_text, opts)
 
 	local task_agent = backend.resolve_task_agent(opts, "ask")
 	local configured_agent = ask_opts.target_agent or (task_agent and task_agent.harness)
-	local agent_name = (type(configured_agent) == "string" and configured_agent ~= "") and configured_agent
-		or (M.options.target_agent or "agy")
+	local agent_name = (type(configured_agent) == "string" and configured_agent ~= "") and configured_agent or "agy"
 	do_ask(agent_name, prompt_text)
 end
 
