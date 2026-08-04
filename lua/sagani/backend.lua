@@ -28,14 +28,19 @@ function M.resolve_task_agent(opts, task_type)
   local task_val = opts.tasks and opts.tasks[task_type]
 
   local sagani = pcall(require, "sagani") and require("sagani") or {}
+  local session_harness = sagani._session_harness
   local session_model = sagani._session_model
   local session_effort = sagani._session_effort
 
-  local harness = opts.target_agent
-  if type(task_val) == "string" and task_val ~= "" then
-    harness = harness or task_val
-  elseif type(task_val) == "table" then
-    harness = harness or task_val.harness
+  local harness = session_harness
+  if not session_harness then
+    if type(task_val) == "string" and task_val ~= "" then
+      harness = task_val
+    elseif type(task_val) == "table" and task_val.harness then
+      harness = task_val.harness
+    else
+      harness = opts.target_agent
+    end
   end
   harness = (harness or "agy"):lower()
 

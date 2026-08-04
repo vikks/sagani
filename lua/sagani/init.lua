@@ -106,6 +106,9 @@ M.diff = diff
 function M.setup(user_opts)
 	user_opts = type(user_opts) == "table" and user_opts or {}
 	M.options = vim.tbl_deep_extend("force", M.defaults, user_opts)
+	M._session_harness = nil
+	M._session_model = nil
+	M._session_effort = nil
 
 	-- Register Default Keymaps
 	if M.options.default_keymaps then
@@ -335,6 +338,7 @@ end
 function M.prompt_model_and_effort(harness, opts)
   opts = type(opts) == "table" and opts or M.options
   harness = (harness or "agy"):lower()
+  M._session_harness = harness
   M.options.target_agent = harness
 
   local cli_transport = require("sagani.protocol.cli")

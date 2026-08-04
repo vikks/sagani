@@ -3,6 +3,11 @@ local backend = require("sagani.backend")
 local M = {}
 
 function M.run()
+  local sagani = pcall(require, "sagani") and require("sagani") or {}
+  sagani._session_harness = nil
+  sagani._session_model = nil
+  sagani._session_effort = nil
+
   local passed = 0
   local failed = 0
   local failures = {}
