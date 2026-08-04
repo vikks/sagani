@@ -23,6 +23,35 @@ function M.build_command(prompt_text, agent_opts)
   return cmd
 end
 
+function M.list_models(opts)
+  opts = type(opts) == "table" and opts or {}
+  if _G.RUNNING_TEST_SUITE and not opts.runner then
+    return { "Gemini 3.6 Flash (High)", "Gemini 3.1 Pro (High)", "Claude Sonnet 4.6 (Thinking)" }
+  end
+
+  local cmd = { "agy", "models" }
+  local out_text = nil
+  if opts.runner then
+    local res, code = opts.runner(cmd)
+    if code == 0 then out_text = res end
+  elseif vim.fn.executable("agy") == 1 then
+    local res = vim.system(cmd, { text = true, stdin = "" }):wait()
+    if res and res.code == 0 then out_text = res.stdout end
+  end
+
+  local models = {}
+  if out_text and out_text ~= "" then
+    for line in out_text:gmatch("[^\r\n]+") do
+      local trimmed = vim.trim(line)
+      if trimmed ~= "" and not trimmed:find("^Available models:") and not trimmed:find("^Usage") then
+        table.insert(models, trimmed)
+      end
+    end
+  end
+
+  return #models > 0 and models or nil
+end
+
 function M.execute(prompt_text, agent_opts, callback, opts)
   opts = type(opts) == "table" and opts or {}
   local cmd = M.build_command(prompt_text, agent_opts)

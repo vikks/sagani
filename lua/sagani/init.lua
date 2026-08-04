@@ -369,7 +369,10 @@ function M.prompt_model_and_effort(harness, opts)
   local prov = h_prov_map[harness] or "google"
   local p_cfg = (M.options.providers and M.options.providers[prov]) or (M.options.harness_opts and M.options.harness_opts[harness]) or {}
 
-  local models = p_cfg.models or {}
+  local cli_transport = require("sagani.protocol.cli")
+  local dynamic_models = cli_transport.list_models(harness, opts)
+
+  local models = (dynamic_models and #dynamic_models > 0) and dynamic_models or p_cfg.models or {}
   local efforts = p_cfg.efforts or {}
 
 	local function finish()

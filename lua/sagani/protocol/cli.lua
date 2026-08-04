@@ -45,6 +45,14 @@ function M.build_command(harness, prompt_text, agent_opts)
   return agent.build_command(prompt_text, agent_opts)
 end
 
+function M.list_models(harness, opts)
+  local agent = M.get_agent(harness)
+  if agent and agent.list_models then
+    return agent.list_models(opts)
+  end
+  return nil
+end
+
 function M.execute(harness, prompt_text, agent_opts, callback, opts)
   local agent = M.get_agent(harness)
   agent.execute(prompt_text, agent_opts, callback, opts)
