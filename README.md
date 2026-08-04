@@ -68,35 +68,11 @@ require("sagani").setup({
   -- Default target AI coding agent harness ("agy", "codex", "opencode", "hermes", "gemini", etc.)
   target_agent = "agy",
 
-  -- Unified Providers Configuration (alias, default model, selectable models, reasoning efforts, API key env)
+  -- Provider Aliases & API Keys (Models are discovered 100% dynamically from live agent CLIs!)
   providers = {
-    google = {
-      api_key_env = "GEMINI_API_KEY",
-      alias = "Gemini / AGY",
-      default = "Gemini 3.6 Flash (Low)",
-      models = {
-        "Gemini 3.6 Flash (High)",
-        "Gemini 3.6 Flash (Medium)",
-        "Gemini 3.6 Flash (Low)",
-        "Gemini 3.1 Pro (High)",
-        "Claude Sonnet 4.6 (Thinking)",
-        "Claude Opus 4.6 (Thinking)",
-      },
-      efforts = { "low", "medium", "high" },
-    },
-    openai = {
-      api_key_env = "OPENAI_API_KEY",
-      alias = "OpenAI / Codex",
-      default = "gpt-5.6-luna",
-      models = { "gpt-5.6-luna", "o3", "o1" },
-      efforts = { "low", "medium", "high" },
-    },
-    anthropic = {
-      api_key_env = "ANTHROPIC_API_KEY",
-      alias = "Anthropic",
-      default = "claude-3-5-sonnet-latest",
-      models = { "claude-3-5-sonnet-latest", "claude-3-opus-latest" },
-    },
+    google = { api_key_env = "GEMINI_API_KEY", alias = "Google Gemini" },
+    openai = { api_key_env = "OPENAI_API_KEY", alias = "OpenAI" },
+    anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
   },
 
   -- 1. Tasks Configuration (WHAT agent harness, provider, model, protocol to run per task)
