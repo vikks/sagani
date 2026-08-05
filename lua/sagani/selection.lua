@@ -138,9 +138,15 @@ function M.send_code_context(opts)
     return false
   end
 
-  local payload = format.build_context_prompt("Context snippet for review:", selection)
+  local backend = require("sagani.backend")
+  local agent_opts = backend.resolve_task_agent(opts, "code")
+  local default_instruction = (agent_opts and type(agent_opts.instructions) == "string" and agent_opts.instructions ~= "")
+      and agent_opts.instructions
+    or "Context snippet for review:"
+
+  local payload = format.build_context_prompt(default_instruction, selection)
   local main = require("sagani")
-  local dispatch_opts = vim.tbl_deep_extend("force", opts or {}, { task_type = "code" })
+  local dispatch_opts = vim.tbl_deep_extend("force", opts or {}, { task_type = "code", agent_opts = agent_opts })
   return main.dispatch_prompt(payload, nil, dispatch_opts)
 end
 
