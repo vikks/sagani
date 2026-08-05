@@ -40,9 +40,9 @@
  |        |  extraction)      |   |  review/accept)  |                 | popup.lua  | |
  |        +--+----------------+   +------------------+                 +------------+ |
  +-----------|-----------------------------------------------------------------------+
-             |                                    |
-             | dispatch_prompt                    | get_backend(opts, task_type)
-             v                                    v
+             |                               |
+             | dispatch_prompt               | get_backend(opts, task_type)
+             v                               v
  +-----------------------------------+   +-------------------------------------------+
  |       Protocol & IPC Layer        |   |           Backend Registry Layer          |
  |                                   |   |                                           |
@@ -75,64 +75,37 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 return {
   "vikks/sagani.nvim",
-  opts = {
-    -- Default task definitions (WHAT runs)
-    tasks = {
-      ask = { harness = "opencode", model = "deepseek-v4-flash-free" },
-      code = "opencode",
-      chat = "agy",
-      review = "codex",
-    },
-  },
+  opts = {}, -- Automatically merges default options from lua/sagani/init.lua
 }
 ```
 
 ---
 
-## ⚙️ Configuration
+## ⚙️ Configuration & Defaults (`init.lua`)
 
-Configure **sagani.nvim** via `require("sagani").setup(opts)`:
+Configure **sagani.nvim** via `opts` in lazy.nvim or `require("sagani").setup(opts)`:
 
 ```lua
 require("sagani").setup({
-  -- 1. Named Agent Definitions (Hybrid Agent Registry)
-  agents = {
-    agy = { harness = "cli", cmd = { "agy" } },
-    opencode = { harness = "opencode", port = 4096 },
-    codex = { harness = "cli", cmd = { "codex" } },
-    gemini = { harness = "json_rpc", cmd = { "gemini", "--acp" } },
-  },
-
-  -- 2. Tasks Configuration (WHAT agent harness, provider, model, effort per task)
-  tasks = {
-    ask = {
-      protocol = "http",
-      harness = "opencode",
-      model = "deepseek-v4-flash-free",
-      provider = "opencode",
-    },
-    review = { harness = "codex", model = "o3-mini", effort = "high" },
-    code = "opencode",  -- Short-form string syntax defines harness name directly
-    chat = "agy",
-  },
-
-  -- 3. Global Window & UI Styling Defaults (HOW windows look)
+  -- Global Window & Visual UI Styling Defaults
   window_opts = {
     width = 0.8,         -- Floating popup width (80% or integer columns)
     height = 0.8,        -- Floating popup height (80% or integer lines)
     border = "rounded",  -- Border style: "rounded", "single", "double", "solid", "shadow", "none"
-    winblend = 10,       -- Neovim floating window transparency (0-100)
+    winblend = 0,        -- Floating window transparency (0-100)
     ratio = 0.3,         -- Pane split size ratio (30% split size)
   },
 
-  -- 4. Backend Placements & Overrides (WHERE tasks get placed per multiplexer)
+  -- Backend Placements & Overrides (WHERE tasks get placed per multiplexer)
   backends = {
     native = {
-      ask = "popup",       -- Native creates a Neovim floating window for 'ask'
+      ask = "popup",       -- Native creates a Neovim floating popup for 'ask'
       review = "vsplit",   -- Native creates a vertical split for 'review'
       code = "vsplit",
       chat = "vsplit",
-      winblend = 15,
+      border = "rounded",
+      winblend = 0,
+      split_direction = "vertical",
     },
     herdr = {
       ask = false,         -- Opts out of Herdr for 'ask' ➡️ falls back directly to native float!
@@ -140,34 +113,96 @@ require("sagani").setup({
       code = "right-pane",
       chat = "right-pane",
       ratio = 0.3,
+      auto_discover = true,
+      auto_spawn = false,
     },
     tmux = {
-      ask = "popup",
+      ask = "popup",       -- Tmux display-popup for questions
       review = "right-pane",
       code = "right-pane",
       chat = "right-pane",
+      width = "80%",
+      height = "80%",
+      border = "rounded",
+      split_direction = "right",
+      target_pane = nil,
     },
     zellij = {
-      ask = "floating",
+      ask = "floating",    -- Zellij floating pane for questions
       review = "right-pane",
       code = "right-pane",
       chat = "right-pane",
+      direction = "right",
     },
   },
 
-  -- 5. Provider Configurations (LLM API credentials & aliases)
+  -- Provider Configurations (LLM API credentials & display aliases)
   providers = {
     google = { api_key_env = "GEMINI_API_KEY", alias = "Google Gemini" },
     openai = { api_key_env = "OPENAI_API_KEY", alias = "OpenAI" },
     anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
   },
 
-  -- Interactive Edit Review Configuration
-  review = {
-    enabled = true,    -- Enable interactive edit review & accept/reject workflow
-    auto_open = false, -- Automatically open review view when agent edits occur
-    mode = "inline",   -- Review display style: "inline" or "split"
+  -- Custom Background ACP Ports per Harness
+  ports = {
+    opencode = 4096,
+    gemini = 4097,
   },
+
+  -- Agent Registry (Logical Agent ID -> Harness Driver & Execution Command)
+  agents = {
+    agy = {
+      harness = "agy",
+      cmd = { "agy" },
+      name = "Antigravity CLI",
+    },
+    codex = {
+      harness = "codex",
+      cmd = { "codex" },
+      name = "Codex CLI",
+    },
+    opencode = {
+      harness = "opencode",
+      cmd = { "opencode" },
+      name = "Opencode Agent",
+      port = 4096,
+    },
+    hermes = {
+      harness = "hermes",
+      cmd = { "hermes" },
+      name = "Hermes Agent",
+    },
+    gemini = {
+      harness = "gemini",
+      cmd = { "gemini" },
+      name = "Gemini CLI",
+    },
+  },
+
+  -- Task Configurations (WHAT agent harness runs per task)
+  tasks = {
+    chat = "agy",
+    ask = {
+      agent = "agy",
+      instructions = "Answer the user's question concisely and accurately.",
+    },
+    review = {
+      agent = "codex",
+      instructions = "Review the provided code changes and offer actionable feedback.",
+    },
+    code = {
+      agent = "opencode",
+      port = 4096,
+      instructions = "Fulfill the user's coding request directly in the buffer.",
+    },
+  },
+
+  -- General Settings
+  auto_discover = true,
+  auto_spawn = false,
+  pane_override = nil,
+  default_keymaps = true,
+  which_key = true,
 
   -- Notification Settings
   notify = {
