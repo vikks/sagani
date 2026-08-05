@@ -27,6 +27,7 @@ function M.ask_agent_prompt(prompt_text, opts)
 	local sagani_mod = package.loaded["sagani"] or require("sagani")
 	opts = vim.tbl_deep_extend("force", sagani_mod.options, type(opts) == "table" and opts or {})
 	local ask_opts = type(opts.ask_agent) == "table" and opts.ask_agent or {}
+	local calling_buf = vim.api.nvim_get_current_buf()
 
 	local function do_ask(agent_name, text)
 		if not agent_name or agent_name == "" then
@@ -34,16 +35,9 @@ function M.ask_agent_prompt(prompt_text, opts)
 			return
 		end
 
-		if not text or text == "" then
-			vim.ui.input({ prompt = string.format("Ask Agent (%s): ", agent_name:upper()) }, function(input)
-				if input and input ~= "" then
-					do_ask(agent_name, input)
-				end
-			end)
-			return
+		if text and text ~= "" then
+			text = context.inject_file_reference(text, calling_buf)
 		end
-
-		text = context.inject_file_reference(text, 0)
 
 		local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(opts, "ask")
 		local harness = (type(agent_name) == "string" and agent_name ~= "") and agent_name
@@ -75,26 +69,37 @@ function M.ask_agent_prompt(prompt_text, opts)
 
 		if agent_target then
 			local display_pane = (meta and meta.pane_id) or agent_target
-			local active_sagani = package.loaded["sagani"] or require("sagani")
-			local prompt_dispatcher = require("sagani.dispatchers.prompt")
-			local dispatch_fn = (active_sagani and active_sagani.dispatch_prompt) or prompt_dispatcher.dispatch_prompt
-			local ok, dispatch_err = dispatch_fn(text, agent_target, popup_opts)
-			if ok then
-				notify.info(
-					string.format("Asked '%s' agent in %s pane '%s'", agent_name, backend_name, display_pane),
-					opts
-				)
+			if text and text ~= "" then
+				local active_sagani = package.loaded["sagani"] or require("sagani")
+				local prompt_dispatcher = require("sagani.dispatchers.prompt")
+				local dispatch_fn = function(p_text, p_target, p_opts)
+					if active_sagani and active_sagani.dispatch_prompt then
+						return active_sagani.dispatch_prompt(p_text, p_target, p_opts)
+					end
+					return prompt_dispatcher.dispatch_prompt(p_text, p_target, p_opts)
+				end
+				local ok, dispatch_err = dispatch_fn(text, agent_target, popup_opts)
+				if ok then
+					notify.info(
+						string.format("Asked '%s' agent in %s pane '%s'", agent_name, backend_name, display_pane),
+						opts
+					)
+				else
+					notify.error(
+						string.format(
+							"Failed to prompt '%s' in %s pane '%s': %s",
+							agent_name,
+							backend_name,
+							display_pane,
+							dispatch_err or "Unknown error"
+						),
+						opts
+					)
+				end
 			else
-				notify.error(
-					string.format(
-						"Failed to prompt '%s' in %s pane '%s': %s",
-						agent_name,
-						backend_name,
-						display_pane,
-						dispatch_err or "Unknown error"
-					),
-					opts
-				)
+				if not _G.RUNNING_TEST_SUITE then
+					pcall(vim.cmd, "startinsert")
+				end
 			end
 		else
 			notify.error(string.format("Failed to spawn %s agent pane: %s", backend_name, err or "Unknown error"), opts)

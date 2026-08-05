@@ -24,33 +24,18 @@ local M = {}
 --- @param popup_opts table Popup window styling and task options
 function M.execute_acp_popup(harness, text, agent_opts, popup_opts)
 	local markdown_popup = require("sagani.ui.markdown_popup")
-	local acp = require("sagani.protocol.acp")
-
 	local display_name = (agent_opts and agent_opts.alias) or harness:upper()
-	local win, buf = markdown_popup.open(string.format("Sagani Agent (%s)", display_name), popup_opts)
-	markdown_popup.set_prompt_header(buf, text, display_name)
-	pcall(vim.cmd, "redraw")
+	local main_win, main_buf = markdown_popup.open_attached_layout(
+		string.format("Sagani Agent (%s)", display_name),
+		harness,
+		popup_opts
+	)
+	markdown_popup.set_session(main_buf, harness, nil, agent_opts, popup_opts)
 
-	local progress_cb = function(status_msg)
-		vim.schedule(function()
-			markdown_popup.update_status(buf, status_msg)
-			pcall(vim.cmd, "redraw")
-		end)
+	if text and text ~= "" then
+		text = require("sagani.dispatchers.context").inject_file_reference(text, 0)
+		markdown_popup.send_followup(main_buf, text)
 	end
-
-	acp.execute_prompt(harness, text, agent_opts, function(resp, acp_err, session_id)
-		markdown_popup.set_session(buf, harness, session_id, agent_opts, popup_opts)
-		if resp then
-			markdown_popup.set_response(buf, resp)
-			notify.info(string.format("Received response from '%s' via ACP", harness), popup_opts)
-		else
-			markdown_popup.set_response(buf, "❌ Error: " .. (acp_err or "Unknown ACP error"))
-			notify.error(
-				string.format("ACP request to '%s' failed: %s", harness, acp_err or "Unknown error"),
-				popup_opts
-			)
-		end
-	end, popup_opts, progress_cb)
 end
 
 return M

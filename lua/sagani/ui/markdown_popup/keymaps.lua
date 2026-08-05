@@ -83,6 +83,83 @@ function M.bind_popup_keymaps(buf, win, window_module)
   end, { buffer = buf, silent = true, desc = "Pin window to split/tab" })
 end
 
+--- Binds keymaps for paired attached layout windows (main markdown response + input box)
+--- @param main_buf number Main Markdown response buffer handle
+--- @param main_win number Main Markdown response window handle
+--- @param input_buf number Attached input buffer handle
+--- @param input_win number Attached input sub-window handle
+--- @param window_module table Window module reference for close/promote operations
+function M.bind_attached_keymaps(main_buf, main_win, input_buf, input_win, window_module)
+  local close_layout = function()
+    if window_module and window_module.close_layout then
+      window_module.close_layout(main_buf)
+    else
+      if input_win and vim.api.nvim_win_is_valid(input_win) then pcall(vim.api.nvim_win_close, input_win, true) end
+      if main_win and vim.api.nvim_win_is_valid(main_win) then pcall(vim.api.nvim_win_close, main_win, true) end
+    end
+  end
+
+  local submit_prompt = function()
+    local lines = vim.api.nvim_buf_get_lines(input_buf, 0, -1, false)
+    local prompt_text = vim.trim(table.concat(lines, "\n"))
+    vim.api.nvim_buf_set_lines(input_buf, 0, -1, false, { "" })
+
+    if prompt_text and prompt_text ~= "" then
+      content.send_followup(main_buf, prompt_text)
+    end
+  end
+
+  -- Input sub-window keymaps
+  vim.keymap.set({ "n", "i" }, "<CR>", submit_prompt, { buffer = input_buf, silent = true, desc = "Submit prompt to agent" })
+  vim.keymap.set("i", "<Esc>", function()
+    pcall(vim.cmd, "stopinsert")
+    if main_win and vim.api.nvim_win_is_valid(main_win) then
+      vim.api.nvim_set_current_win(main_win)
+    end
+  end, { buffer = input_buf, silent = true, desc = "Switch focus to main markdown buffer" })
+  vim.keymap.set("n", "<Esc>", close_layout, { buffer = input_buf, silent = true, desc = "Close popup layout" })
+  vim.keymap.set("n", "q", close_layout, { buffer = input_buf, silent = true, desc = "Close popup layout" })
+  vim.keymap.set("n", "<C-c>", close_layout, { buffer = input_buf, silent = true, desc = "Close popup layout" })
+
+  -- Main Markdown buffer keymaps
+  vim.keymap.set("n", "q", close_layout, { buffer = main_buf, silent = true, desc = "Close popup layout" })
+  vim.keymap.set("n", "<Esc>", close_layout, { buffer = main_buf, silent = true, desc = "Close popup layout" })
+
+  local focus_input = function()
+    if input_win and vim.api.nvim_win_is_valid(input_win) then
+      vim.api.nvim_set_current_win(input_win)
+      pcall(vim.cmd, "startinsert")
+    end
+  end
+
+  vim.keymap.set("n", "i", focus_input, { buffer = main_buf, silent = true, desc = "Focus attached input box" })
+  vim.keymap.set("n", "r", focus_input, { buffer = main_buf, silent = true, desc = "Focus attached input box" })
+  vim.keymap.set("n", "<CR>", focus_input, { buffer = main_buf, silent = true, desc = "Focus attached input box" })
+
+  vim.keymap.set("n", "yr", function()
+    local lines = vim.api.nvim_buf_get_lines(main_buf, 0, -1, false)
+    local text = table.concat(lines, "\n")
+    vim.fn.setreg("+", text)
+    vim.notify("Copied agent response to clipboard", vim.log.levels.INFO, { title = "sagani.nvim" })
+  end, { buffer = main_buf, silent = true, desc = "Copy full response to clipboard" })
+
+  local promote_fn = function(target)
+    if window_module and window_module.promote then
+      window_module.promote(main_buf, target)
+    end
+  end
+
+  vim.keymap.set("n", "<C-w>h", function() promote_fn("left") end, { buffer = main_buf, silent = true, desc = "Promote to left split" })
+  vim.keymap.set("n", "<C-w>l", function() promote_fn("right") end, { buffer = main_buf, silent = true, desc = "Promote to right split" })
+  vim.keymap.set("n", "<C-w>k", function() promote_fn("top") end, { buffer = main_buf, silent = true, desc = "Promote to top split" })
+  vim.keymap.set("n", "<C-w>j", function() promote_fn("bottom") end, { buffer = main_buf, silent = true, desc = "Promote to bottom split" })
+  vim.keymap.set("n", "<C-w>t", function() promote_fn("tab") end, { buffer = main_buf, silent = true, desc = "Promote to new tab" })
+
+  vim.keymap.set("n", "p", function()
+    M.enter_pin_mode(main_buf, window_module)
+  end, { buffer = main_buf, silent = true, desc = "Pin window to split/tab" })
+end
+
 --- Enters single-keypress Pin Mode for moving/promoting popup window
 --- @param buf number Buffer handle
 --- @param window_module table Window module handle

@@ -265,6 +265,41 @@ function M.run()
     native_backend.reset_popup("opencode")
   end)
 
+  run_test("markdown_popup.open_attached_layout: creates paired main and input windows with persistent session buffer", function()
+    local popup = require("sagani.ui.markdown_popup")
+    local window = require("sagani.ui.markdown_popup.window")
+    window.reset_session("opencode")
+
+    local main_win, main_buf, input_win, input_buf = popup.open_attached_layout("Sagani Agent (OPENCODE)", "opencode", {})
+    assert_true(vim.api.nvim_win_is_valid(main_win), "main_win is valid window")
+    assert_true(vim.api.nvim_win_is_valid(input_win), "input_win is valid window")
+    assert_true(vim.api.nvim_buf_is_valid(main_buf), "main_buf is valid buffer")
+    assert_true(vim.api.nvim_buf_is_valid(input_buf), "input_buf is valid buffer")
+
+    local main_lines = vim.api.nvim_buf_get_lines(main_buf, 0, -1, false)
+    local main_text = table.concat(main_lines, "\n")
+    assert_true(main_text:find("Sagani Agent Session (OPENCODE)", 1, true) ~= nil, "initial main buffer header rendered")
+
+    -- Simulate submitting input from input_buf
+    popup.set_session(main_buf, "opencode", "sess_opencode_999", { harness = "opencode" }, {})
+    vim.api.nvim_buf_set_lines(input_buf, 0, -1, false, { "What is ownership?" })
+
+    -- Close layout
+    window.close_layout(main_buf)
+    assert_true(not vim.api.nvim_win_is_valid(main_win), "main_win closed")
+    assert_true(not vim.api.nvim_win_is_valid(input_win), "input_win closed")
+
+    -- Re-open attached layout for same agent
+    local main_win2, main_buf2, input_win2, input_buf2 = popup.open_attached_layout("Sagani Agent (OPENCODE)", "opencode", {})
+    assert_eq(main_buf2, main_buf, "re-opened layout reuses exact same persistent session buffer")
+    assert_true(vim.api.nvim_win_is_valid(main_win2), "re-opened main_win is valid")
+    assert_true(vim.api.nvim_win_is_valid(input_win2), "re-opened input_win is valid")
+
+    -- Clean up
+    window.close_layout(main_buf)
+    window.reset_session("opencode")
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,

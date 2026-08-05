@@ -38,6 +38,21 @@ function M.open(title, opts)
   return win, buf
 end
 
+--- Creates or focuses an attached Markdown floating popup layout
+--- (Main response window + attached prompt input sub-window anchored to the bottom)
+--- @param title string Window title
+--- @param agent_name string Agent harness name
+--- @param opts table|nil Options table
+--- @return number main_win Main Markdown response window handle
+--- @return number main_buf Main Markdown response buffer handle
+--- @return number input_win Attached input sub-window handle
+--- @return number input_buf Attached input buffer handle
+function M.open_attached_layout(title, agent_name, opts)
+  opts = type(opts) == "table" and opts or {}
+  local ui_opts = opts.ui_opts or {}
+  return window.open_attached_layout(title, agent_name, ui_opts)
+end
+
 --- Promotes a floating popup window to a split or tab page
 --- @param buf number|nil Buffer handle
 --- @param placement string|nil Target placement ("left", "right", "top", "bottom", "tab")

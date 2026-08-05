@@ -47,10 +47,29 @@ function M.append_text(buf, text)
   local lines = vim.split(text, "\n", { plain = true })
   local count = vim.api.nvim_buf_line_count(buf)
   if count == 1 and vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == "" then
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  else
-    vim.api.nvim_buf_set_lines(buf, count, count, false, lines)
   end
+end
+
+--- Formats initial session header for a brand new Markdown popup buffer
+--- @param buf number Buffer handle
+--- @param agent_name string Agent harness name
+function M.set_initial_session_header(buf, agent_name)
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  if #lines > 1 or (lines[1] ~= "" and not lines[1]:find("^### 💬 Sagani Agent Session")) then
+    return
+  end
+
+  local header = {
+    string.format("### 💬 Sagani Agent Session (%s)", (agent_name or "AGY"):upper()),
+    "",
+    "> *Type your prompt in the box below and press <CR> to send.*",
+    "",
+  }
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, header)
 end
 
 --- Formats prompt and initial header in Markdown popup
