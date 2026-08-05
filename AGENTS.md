@@ -276,16 +276,19 @@ sagani.nvim/
 │   └── sagani.lua           # LazyVim plugin specification
 ├── lua/
 │   └── sagani/
-│       ├── init.lua         # Plugin setup, commands, keymaps, dispatch entry point
+│       ├── init.lua         # Plugin setup facade & dispatch entry point
 │       ├── backend.lua      # Backend registry & auto-detection router
+│       ├── commands.lua     # User command registration (:Sagani*)
+│       ├── keymaps.lua      # Default keymaps & WhichKey menu group registration
+│       ├── watchers.lua     # Autocmd event watchers (file changes & process exit)
 │       ├── cache.lua        # Persistent disk & memory cache for dynamic models
-│       ├── topology.lua     # Herdr-specific topology discovery & CLI transport
 │       ├── selection.lua    # Visual selection extraction & prompt dispatch
 │       ├── diff.lua         # Diff hunk review, accept/reject, watcher
 │       ├── format.lua       # Markdown prompt & diff block formatting helpers
 │       ├── notify.lua       # LazyVim-aware notification handler
 │       ├── ui/
-│       │   └── markdown_popup.lua # Native Markdown floating popup UI & follow-up keymaps
+│       │   ├── markdown_popup.lua # Native Markdown floating popup UI & follow-up keymaps
+│       │   └── picker.lua   # Model & reasoning effort selection UI dialogs
 │       ├── protocol/        # Protocol-first transport adapters
 │       │   ├── init.lua     # Master Protocol module entry point
 │       │   ├── acp.lua      # High-level ACP router facade
@@ -303,12 +306,18 @@ sagani.nvim/
 │       │   └── json_rpc/    # Agent JSON-RPC implementations
 │       │       └── gemini.lua
 │       └── backend/         # Multiplexer backend adapters (all implement the contract)
-│           ├── herdr.lua    # Herdr adapter (pure CLI: pane split + agent start + agent prompt)
+│           ├── herdr.lua    # Herdr facade adapter
 │           ├── herdr/
-│           │   └── topology.lua # Herdr-specific topology discovery & CLI transport
-│           ├── native.lua   # Native Neovim float/split/terminal adapter
-│           ├── tmux.lua     # Tmux adapter (split-window, display-popup, send-keys)
-│           └── zellij.lua   # Zellij adapter (new-pane, write-chars)
+│           │   └── cli.lua  # Herdr topology discovery & CLI transport (topology.lua shim)
+│           ├── native.lua   # Native Neovim facade adapter
+│           ├── native/
+│           │   └── window.lua # Native Neovim window management & channel I/O
+│           ├── tmux.lua     # Tmux facade adapter
+│           ├── tmux/
+│           │   └── cli.lua  # Tmux CLI command building & execution
+│           ├── zellij.lua   # Zellij facade adapter
+│           └── zellij/
+│               └── cli.lua  # Zellij CLI command building & execution
 └── tests/
     ├── run_tests.lua                    # Master headless test runner
     ├── minimal_init.lua                 # Plenary Busted test runner
@@ -332,12 +341,12 @@ sagani.nvim/
 
 ### ✅ Done
 - **Backend registry** (`backend.lua`): `register` / `get_backend` contract is live.
-- **Four backend adapters** fully implemented: `native`, `herdr`, `tmux`, `zellij`.
+- **Four backend adapters** fully decoupled with submodules: `native`, `herdr`, `tmux`, `zellij`.
 - **`init.lua` routes through `backend.get_backend(opts)`** for all `dispatch_prompt`, `spawn_popup`, `spawn_pane` calls.
 - **Protocol & transport abstraction layer** (`lua/sagani/protocol/`): Standardized transport contracts (`acp`, `http`, `cli`, `json_rpc`).
 - **100% Dynamic Model Discovery**: All harnesses fetch models dynamically (live CLIs, `gemini --acp` stdio JSON-RPC initialization, `~/.codex/models_cache.json`) cached under `stdpath('state')/sagani/models.json`.
 - **Background ACP Server Lifecycle**: Auto-cleanup of background server processes (`kill(9)`, `lsof`, `pkill`) bound to `VimLeavePre`, `VimLeave`, and `ExitPre`.
-- **`topology.lua` refactored**: Moved into `lua/sagani/backend/herdr/topology.lua` so Herdr topology discovery is encapsulated within its adapter package.
+- **Backend Submodules**: `herdr/cli.lua`, `tmux/cli.lua`, `zellij/cli.lua`, `native/window.lua` decouple low-level CLI and window execution from top-level backend facade adapters.
 
 ---
 

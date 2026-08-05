@@ -1,4 +1,4 @@
-local topology = require("sagani.backend.herdr.topology")
+local cli = require("sagani.backend.herdr.cli")
 
 local M = {
 	name = "herdr",
@@ -11,11 +11,11 @@ local M = {
 }
 
 function M.list_agents(runner)
-	return topology.list_agents(runner)
+	return cli.list_agents(runner)
 end
 
 function M.detect_env(runner)
-	local env = topology.detect_env(runner)
+	local env = cli.detect_env(runner)
 	return {
 		active = env.in_herdr,
 		id = env.pane_id,
@@ -24,7 +24,7 @@ function M.detect_env(runner)
 end
 
 function M.discover_target(opts)
-	return topology.discover_target_pane(opts)
+	return cli.discover_target_pane(opts)
 end
 
 function M.spawn_pane(opts)
@@ -36,7 +36,7 @@ function M.spawn_pane(opts)
 	if ui_opts.ratio then
 		opts.ratio = ui_opts.ratio
 	end
-	return topology.spawn_agent_pane(opts)
+	return cli.spawn_agent_pane(opts)
 end
 
 --- Herdr does not support floating popup windows via CLI.
@@ -83,7 +83,7 @@ end
 
 function M.wait_for_ready(target_id, opts)
 	opts = type(opts) == "table" and opts or {}
-	return topology.wait_for_agent_ready(target_id, opts.timeout_ms or 20000, opts)
+	return cli.wait_for_agent_ready(target_id, opts.timeout_ms or 20000, opts)
 end
 
 return M
