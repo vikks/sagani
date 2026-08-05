@@ -29,9 +29,21 @@ function M.build_context_prompt(user_instruction, selection)
 
   local instruction = (type(user_instruction) == "string" and user_instruction ~= "") and user_instruction or "Context snippet for review:"
 
+  local sagani = pcall(require, "sagani") and require("sagani") or {}
+  local is_learn_mode = (sagani._session_mode == "learn")
+    or (type(sagani.options) == "table" and type(sagani.options.modes) == "table" and type(sagani.options.modes.learn) == "table" and sagani.options.modes.learn.enabled)
+
+  local learn_prefix = ""
+  if is_learn_mode then
+    local prefix = (type(sagani.options) == "table" and type(sagani.options.modes) == "table" and type(sagani.options.modes.learn) == "table" and sagani.options.modes.learn.prompt_prefix)
+      or "Learning Mode Active: Provide a clear educational breakdown of the core concepts, syntax, architectural decisions, and trade-offs."
+    learn_prefix = string.format("\n\n> 🎓 **%s**", prefix)
+  end
+
   return string.format(
-    "%s%s\n\nContext from `%s` (%s):\n```%s\n%s\n```",
+    "%s%s%s\n\nContext from `%s` (%s):\n```%s\n%s\n```",
     instruction,
+    learn_prefix,
     file_mention,
     file_path,
     line_range,

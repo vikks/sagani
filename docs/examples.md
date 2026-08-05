@@ -194,7 +194,7 @@ return {
   opts = {
     agents = {
       ollama_coder = {
-        harness = "cli",
+        agent = "cli",
         cmd = { "ollama", "run", "qwen2.5-coder:32b" },
         name = "Ollama Qwen Coder",
         is_local = true,
@@ -212,3 +212,29 @@ return {
   },
 }
 ```
+
+---
+
+## 8. Pedagogical Learn Mode Workflow
+
+Enable Learn Mode to turn Sagani into an educational programming assistant. Injects educational concepts, syntax breakdowns, and architectural trade-offs into prompt payloads:
+
+```lua
+return {
+  "vikks/sagani.nvim",
+  opts = {
+    modes = {
+      review = {
+        enabled = true,
+        auto_open = false,
+        mode = "inline",
+      },
+      learn = {
+        enabled = true,        -- Enable educational Learn Mode
+        mode = "split",         -- Render explanation in side-by-side split
+      },
+    },
+  },
+}
+```
+Toggle between modes at runtime with `<leader>am` (Mode Switcher Menu), `<leader>aml` (Toggle Learn Mode), or `<leader>ar` (Toggle Review Mode).

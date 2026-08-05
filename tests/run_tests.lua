@@ -47,6 +47,13 @@ for _, file_path in ipairs(test_files) do
   local filename = vim.fn.fnamemodify(file_path, ":t")
   print("\n>>> Executing Test Suite: " .. filename)
 
+  sagani_init._session_agent = nil
+  sagani_init._session_harness = nil
+  sagani_init._session_model = nil
+  sagani_init._session_effort = nil
+  sagani_init._session_backend = nil
+  sagani_init._session_mode = nil
+
   local mod = dofile(file_path)
   local results = nil
   if type(mod) == "table" and type(mod.run) == "function" then

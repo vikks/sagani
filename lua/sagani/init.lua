@@ -122,6 +122,19 @@ M.defaults = {
 		enabled = true,
 		title = "sagani.nvim",
 	},
+	modes = {
+		review = {
+			enabled = true,
+			auto_open = false,
+			mode = "inline",
+		},
+		learn = {
+			enabled = false,
+			auto_open = false,
+			mode = "split",
+			prompt_prefix = "Learning Mode Active: Provide a clear educational breakdown of the core concepts, syntax, architectural decisions, and trade-offs.",
+		},
+	},
 }
 
 --- Ensures backward compatibility for legacy opts.ask_agent and opts.review property access
@@ -179,10 +192,58 @@ M._session_harness = nil
 M._session_model = nil
 M._session_effort = nil
 M._session_backend = nil
+M._session_mode = nil
 
 M.format = format
 M.selection = selection
 M.diff = diff
+
+--- Sets or explicitly toggles active operating mode ("review", "learn", or "off")
+--- @param mode_arg string|nil Target mode identifier ("review", "learn", "off", "none")
+--- @return string|nil active_mode Active mode identifier or nil
+function M.set_mode(mode_arg)
+	if type(mode_arg) == "string" and mode_arg ~= "" then
+		local m = mode_arg:lower()
+		if m == "off" or m == "none" or m == "normal" then
+			M._session_mode = nil
+			notify.info("Sagani operating mode: OFF (standard operation)", M.options)
+		else
+			M._session_mode = m
+			notify.info(string.format("Sagani operating mode set to: %s", m:upper()), M.options)
+		end
+	else
+		local current = M._session_mode
+		if not current then
+			M._session_mode = "review"
+		elseif current == "review" then
+			M._session_mode = "learn"
+		else
+			M._session_mode = nil
+		end
+		local active = M._session_mode and M._session_mode:upper() or "OFF"
+		notify.info(string.format("Sagani operating mode toggled to: %s", active), M.options)
+	end
+	return M._session_mode
+end
+
+--- Toggles specific mode on or off
+--- @param mode_arg string|nil Target mode string ("review", "learn")
+--- @return string|nil active_mode
+function M.toggle_mode(mode_arg)
+	if type(mode_arg) == "string" and mode_arg ~= "" then
+		local m = mode_arg:lower()
+		if M._session_mode == m then
+			M._session_mode = nil
+			notify.info(string.format("Sagani mode '%s' disabled", m), M.options)
+		else
+			M._session_mode = m
+			notify.info(string.format("Sagani mode set to: %s", m:upper()), M.options)
+		end
+	else
+		return M.set_mode(nil)
+	end
+	return M._session_mode
+end
 
 --- Toggles or explicitly sets active backend mode ("auto" vs "native" or custom)
 --- @param mode_arg string|nil Optional backend mode string ("auto", "native", "herdr", "tmux", "zellij")

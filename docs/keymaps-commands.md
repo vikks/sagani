@@ -19,6 +19,9 @@ This document lists all default keymaps and user commands available in **sagani.
 | `<leader>an` | Normal | `:SaganiSpawnPane` | Spawn new agent pane in active multiplexer |
 | `<leader>ah` | Normal | `:SaganiSelectAgent` | Select target agent harness & model interactively |
 | `<leader>ar` | Normal | `:SaganiReview` | Toggle side-by-side agent edit review diff split |
+| `<leader>am` | Normal | `:SaganiMode` | Open interactive mode switcher menu |
+| `<leader>amr` | Normal | `:SaganiReview` | Toggle Review Mode (edit review diff inspection) |
+| `<leader>aml` | Normal | `:SaganiLearn` | Toggle Learn Mode (pedagogical AI assistant explanations) |
 | `<leader>ay` | Normal | `:SaganiAccept` | Accept change hunk under cursor (or all pending edits) |
 | `<leader>ax` | Normal | `:SaganiReject` | Reject change hunk under cursor (or revert all edits) |
 | `<leader>a]` | Normal | `:SaganiNextHunk` | Navigate cursor to next edit hunk |
@@ -30,6 +33,8 @@ This document lists all default keymaps and user commands available in **sagani.
 
 | Command | Description |
 |---|---|
+| `:SaganiMode [mode]` | Set or toggle active operating mode (`review`, `learn`, `off`) |
+| `:SaganiLearn` | Toggle Learn Mode (pedagogical AI assistant explanations) |
 | `:SaganiToggleBackend [mode]` | Toggle active session backend transport mode between `auto` and `native` (or set explicit backend) |
 | `:SaganiBackend [mode]` | Alias for `:SaganiToggleBackend` |
 | `:SaganiAskAgent [prompt]` | Ask agent general questions in floating popup or dedicated pane |

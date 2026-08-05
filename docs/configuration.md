@@ -122,11 +122,18 @@ require("sagani").setup({
     },
   },
 
-  -- 7. Interactive Edit Review Settings
-  review = {
-    enabled = true,            -- Enable interactive edit review & accept/reject workflow
-    auto_open = false,         -- Automatically open review view when agent modifies buffer on disk
-    mode = "inline",           -- Review display style: "inline" (virtual text) or "split" (side-by-side)
+  -- 7. Operating Modes Settings (Review & Learn)
+  modes = {
+    review = {
+      enabled = true,            -- Enable interactive edit review & accept/reject workflow
+      auto_open = false,         -- Automatically open review view when agent modifies buffer on disk
+      mode = "inline",           -- Review display style: "inline" (virtual text) or "split" (side-by-side)
+    },
+    learn = {
+      enabled = false,           -- Enable pedagogical AI assistant explanations
+      auto_open = false,         -- Automatically open explanation view when agent responds
+      mode = "split",            -- Explanation display style: "split" (side-by-side) or "popup"
+    },
   },
 
   -- 8. Notification Settings
@@ -146,6 +153,6 @@ require("sagani").setup({
 | `opts.tasks` | **Task Intent & Transport Routing** | Binds task types (`ask`, `code`, `review`, custom) to specific agents (`agent`) and transport backends (`backend = "native"` / `"auto"`). |
 | `opts.backends` | **UI Placement & Window Layout** | Controls WHERE windows render (`ask = "popup"`, `review = "vsplit"`) and backend-specific visual styling (`ratio`, `winblend`, `border`). |
 | `opts.agents` | **Executable Execution Registry** | Controls CLI binaries (`cmd`), protocol drivers (`harness`), daemon ports (`port`), and timeout settings (`timeout`). |
+| `opts.modes` | **Operating Modes** | Configures Review Mode (`review`) for edit inspection diffs, and Learn Mode (`learn`) for pedagogical explanations. |
 | `opts.providers` | **LLM API Credentials** | Controls environment variable names (`api_key_env`) and human-readable aliases (`alias`). |
 | `opts.window_opts` | **Global UI Geometry Defaults** | Default fallback width, height, border, and transparency across all backends. |
-| `opts.review` | **Edit Acceptance Workflow** | Configures automatic review triggers (`auto_open`) and visual diff rendering style (`mode = "inline"` vs `"split"`). |

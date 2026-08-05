@@ -22,6 +22,9 @@ function M.setup_keymaps(opts)
     set("n", "<leader>ab", "<cmd>SaganiToggleBackend<cr>", "Toggle Native/Auto Backend Mode")
     set({ "n", "v" }, "<leader>aa", "<cmd>SaganiAskAgent<cr>", "Ask Agent (Herdr Popup)")
     set("n", "<leader>ar", "<cmd>SaganiReview<cr>", "Review Agent Edits Diff")
+    set("n", "<leader>am", "<cmd>SaganiMode<cr>", "Sagani Mode Switcher Menu")
+    set("n", "<leader>amr", "<cmd>SaganiReview<cr>", "Toggle Review Mode")
+    set("n", "<leader>aml", "<cmd>SaganiLearn<cr>", "Toggle Learn Mode")
     set("n", "<leader>ay", "<cmd>SaganiAccept<cr>", "Accept Edit Hunk/File")
     set("n", "<leader>ax", "<cmd>SaganiReject<cr>", "Reject Edit Hunk/File")
     set("n", "<leader>a]", "<cmd>SaganiNextHunk<cr>", "Next Agent Edit Hunk")
@@ -35,10 +38,12 @@ function M.setup_keymaps(opts)
       if type(wk.add) == "function" then
         pcall(wk.add, {
           { "<leader>a", group = "Sagani", mode = { "n", "v" } },
+          { "<leader>am", group = "Sagani Mode", mode = "n" },
         })
       elseif type(wk.register) == "function" then
         pcall(wk.register, {
           ["<leader>a"] = { name = "+Sagani" },
+          ["<leader>am"] = { name = "+Sagani Mode" },
         }, { mode = { "n", "v" } })
       end
     end

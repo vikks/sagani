@@ -219,6 +219,27 @@ function M.register_commands(opts)
     local sagani = require("sagani")
     sagani.toggle_backend(cmd_args.args)
   end, { nargs = "?", desc = "Alias for SaganiToggleBackend" })
+
+  vim.api.nvim_create_user_command("SaganiMode", function(cmd_args)
+    local sagani = require("sagani")
+    local mode_arg = cmd_args.args
+    if mode_arg and mode_arg ~= "" then
+      sagani.set_mode(mode_arg)
+    else
+      require("sagani.ui.picker").select_mode(sagani.options or opts)
+    end
+  end, {
+    nargs = "?",
+    complete = function()
+      return { "review", "learn", "off" }
+    end,
+    desc = "Set or toggle active operating mode (review, learn, off)",
+  })
+
+  vim.api.nvim_create_user_command("SaganiLearn", function()
+    local sagani = require("sagani")
+    sagani.toggle_mode("learn")
+  end, { desc = "Toggle Learn Mode (pedagogical AI assistant explanations)" })
 end
 
 return M

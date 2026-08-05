@@ -204,4 +204,32 @@ function M.select_agent_harness(arg, opts, on_complete)
   return sagani._session_harness
 end
 
+--- Interactively selects active Sagani operating mode (review, learn, or off)
+--- @param opts table Configuration options
+function M.select_mode(opts)
+  local sagani = require("sagani")
+  opts = type(opts) == "table" and opts or sagani.options
+
+  local modes = { "review", "learn", "off" }
+  local active = sagani._session_mode or "off"
+
+  if not _G.RUNNING_TEST_SUITE and vim.ui and vim.ui.select then
+    vim.ui.select(modes, {
+      prompt = string.format("Select Sagani Operating Mode (Current: %s):", active:upper()),
+      format_item = function(item)
+        if item == sagani._session_mode then
+          return item:upper() .. " (active)"
+        elseif item == "off" and not sagani._session_mode then
+          return "OFF (standard operation)"
+        end
+        return item:upper()
+      end,
+    }, function(choice)
+      if choice then
+        sagani.set_mode(choice)
+      end
+    end)
+  end
+end
+
 return M
