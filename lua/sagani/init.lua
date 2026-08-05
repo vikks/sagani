@@ -7,6 +7,8 @@ local keymaps = require("sagani.keymaps")
 local commands = require("sagani.commands")
 local watchers = require("sagani.watchers")
 local picker = require("sagani.ui.picker")
+local defaults = require("sagani.defaults")
+local deprecations = require("sagani.deprecations")
 
 -- Register Built-in Backend Providers
 backend.register("native", require("sagani.backend.native"))
@@ -16,176 +18,9 @@ backend.register("zellij", require("sagani.backend.zellij"))
 
 local M = {}
 
-M.defaults = {
-	window_opts = {
-		width = 0.8,
-		height = 0.8,
-		border = "rounded",
-		winblend = 0,
-		ratio = 0.3,
-	},
+M.defaults = defaults.defaults
+M.options = defaults.ensure_compat_getters(vim.tbl_deep_extend("force", {}, M.defaults))
 
-	--- capabilities and layout stuff
-	backends = {
-		native = {
-			ask = "popup",
-			review = "vsplit",
-			code = "vsplit",
-			chat = "vsplit",
-			border = "rounded",
-			winblend = 0,
-			split_direction = "vertical",
-		},
-		herdr = {
-			ask = false,
-			review = "right-pane",
-			code = "right-pane",
-			chat = "right-pane",
-			ratio = 0.3,
-			auto_discover = true,
-			auto_spawn = false,
-		},
-		tmux = {
-			ask = "popup",
-			review = "right-pane",
-			code = "right-pane",
-			chat = "right-pane",
-			width = "80%",
-			height = "80%",
-			border = "rounded",
-			split_direction = "right",
-			target_pane = nil,
-		},
-		zellij = {
-			ask = "floating",
-			review = "right-pane",
-			code = "right-pane",
-			chat = "right-pane",
-			direction = "right",
-		},
-	},
-
-	providers = {
-		google = { api_key_env = "GEMINI_API_KEY", alias = "Google Gemini" },
-		openai = { api_key_env = "OPENAI_API_KEY", alias = "OpenAI" },
-		anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
-	},
-
-	-- Agent Definitions Registry (Logical Agent ID -> Actual Execution Command)
-	agents = {
-		agy = {
-			cmd = { "agy" },
-			name = "Antigravity CLI",
-		},
-		codex = {
-			cmd = { "codex" },
-			name = "Codex CLI",
-		},
-		opencode = {
-			cmd = { "opencode" },
-			name = "Opencode Agent",
-			port = 4096,
-		},
-		hermes = {
-			cmd = { "hermes" },
-			name = "Hermes Agent",
-		},
-		gemini = {
-			cmd = { "gemini" },
-			name = "Gemini CLI",
-		},
-	},
-
-	-- Configuration for agents grouped by tasks (built-in or custom user tasks)
-	tasks = {
-		chat = "agy",
-		ask = {
-			agent = "agy",
-			backend = "native",
-			instructions = "Answer the user's question concisely and accurately.",
-		},
-		review = {
-			agent = "codex",
-			instructions = "Review the provided code changes and offer actionable feedback.",
-		},
-		code = {
-			agent = "opencode",
-			instructions = "Fulfill the user's coding request directly in the buffer.",
-		},
-	},
-	auto_discover = true,
-	auto_spawn = false,
-	pane_override = nil,
-	default_keymaps = true,
-	which_key = true,
-	notify = {
-		enabled = true,
-		title = "sagani.nvim",
-	},
-	modes = {
-		review = {
-			enabled = true,
-			auto_open = false,
-			mode = "inline",
-		},
-		learn = {
-			enabled = false,
-			auto_open = false,
-			mode = "split",
-			prompt_prefix = "Learning Mode Active: Provide a clear educational breakdown of the core concepts, syntax, architectural decisions, and trade-offs.",
-		},
-	},
-}
-
---- Ensures backward compatibility for legacy opts.ask_agent and opts.review property access
-local function ensure_compat_getters(opts)
-	if type(opts) ~= "table" then
-		return opts
-	end
-
-	-- If raw review table exists, backfill default values if missing
-	local raw_review = rawget(opts, "review")
-	if type(raw_review) == "table" then
-		if raw_review.enabled == nil then
-			raw_review.enabled = true
-		end
-		if raw_review.auto_open == nil then
-			raw_review.auto_open = false
-		end
-		if raw_review.mode == nil then
-			raw_review.mode = "inline"
-		end
-	end
-
-	setmetatable(opts, {
-		__index = function(t, k)
-			if k == "ask_agent" then
-				local ask_task = type(t.tasks) == "table" and t.tasks.ask or {}
-				local agent_name = (type(ask_task) == "string" and ask_task)
-					or (type(ask_task) == "table" and ask_task.agent)
-				return {
-					target_agent = agent_name,
-					popup = true,
-				}
-			elseif k == "review" then
-				local review_task = type(t.tasks) == "table" and t.tasks.review or {}
-				return {
-					enabled = true,
-					auto_open = false,
-					mode = "inline",
-					agent = (type(review_task) == "string" and review_task)
-						or (type(review_task) == "table" and review_task.agent)
-						or "codex",
-				}
-			end
-			return nil
-		end,
-	})
-
-	return opts
-end
-
-M.options = ensure_compat_getters(vim.tbl_deep_extend("force", {}, M.defaults))
 M._session_ask_agent = nil
 M._session_agent = nil
 M._session_harness = nil
@@ -198,8 +33,28 @@ M.format = format
 M.selection = selection
 M.diff = diff
 
---- Sets or explicitly toggles active operating mode ("review", "learn", or "off")
---- @param mode_arg string|nil Target mode identifier ("review", "learn", "off", "none")
+setmetatable(M, {
+	__index = function(_, k)
+		if k == "_deprecation_warned" then
+			return deprecations._deprecation_warned
+		end
+		return nil
+	end,
+	__newindex = function(_, k, v)
+		if k == "_deprecation_warned" then
+			deprecations._deprecation_warned = v
+		else
+			rawset(M, k, v)
+		end
+	end,
+})
+
+function M.notify_deprecation(key, msg, opts)
+	return deprecations.notify_deprecation(key, msg, opts)
+end
+
+--- Sets or explicitly toggles active operating mode ("review", "learn", or custom)
+--- @param mode_arg string|nil Target mode identifier
 --- @return string|nil active_mode Active mode identifier or nil
 function M.set_mode(mode_arg)
 	if type(mode_arg) == "string" and mode_arg ~= "" then
@@ -245,8 +100,7 @@ function M.toggle_mode(mode_arg)
 			M._session_mode = nil
 			notify.info(string.format("Sagani mode '%s' disabled", m), M.options)
 		else
-			M._session_mode = m
-			notify.info(string.format("Sagani mode set to: %s", m:upper()), M.options)
+			M.set_mode(m)
 		end
 	else
 		return M.set_mode(nil)
@@ -274,82 +128,18 @@ function M.toggle_backend(mode_arg)
 	return M._session_backend
 end
 
-M._deprecation_warned = {}
-
-local function notify_deprecation(key, msg, opts)
-	if not M._deprecation_warned[key] then
-		M._deprecation_warned[key] = true
-		notify.warn("[sagani.nvim] Deprecation Warning: " .. msg, opts)
-	end
-end
-
-M.notify_deprecation = notify_deprecation
-
-local function check_deprecations(user_opts)
-	if type(user_opts) ~= "table" then
-		return
-	end
-
-	if rawget(user_opts, "target_agent") ~= nil then
-		notify_deprecation(
-			"target_agent",
-			"'target_agent' is deprecated. Configure 'opts.tasks.chat = \"<agent>\"' instead.",
-			user_opts
-		)
-	end
-
-	if rawget(user_opts, "ask_agent") ~= nil then
-		notify_deprecation(
-			"ask_agent",
-			"'opts.ask_agent' is deprecated. Configure 'opts.tasks.ask = { agent = \"<agent>\" }' instead.",
-			user_opts
-		)
-	end
-
-	if rawget(user_opts, "ports") ~= nil then
-		notify_deprecation(
-			"ports",
-			"'opts.ports' is deprecated. Move port options directly under 'opts.agents.<agent_id>.port'.",
-			user_opts
-		)
-	end
-
-	if type(user_opts.tasks) == "table" then
-		for t_name, t_val in pairs(user_opts.tasks) do
-			if type(t_val) == "table" and rawget(t_val, "harness") ~= nil then
-				notify_deprecation(
-					"task_harness_" .. t_name,
-					string.format("Specifying 'harness' in opts.tasks.%s is deprecated. Use 'agent' instead.", t_name),
-					user_opts
-				)
-			end
-		end
-	end
-
-	if type(user_opts.agents) == "table" then
-		for a_name, a_val in pairs(user_opts.agents) do
-			if type(a_val) == "table" and rawget(a_val, "harness") ~= nil then
-				notify_deprecation(
-					"agent_harness_" .. a_name,
-					string.format("Specifying 'harness' in opts.agents.%s is deprecated. Use 'agent' or omit it.", a_name),
-					user_opts
-				)
-			end
-		end
-	end
-end
-
 --- Setup function called by LazyVim plugin spec or user init.lua
 --- @param user_opts table|nil User configuration options
 function M.setup(user_opts)
 	user_opts = type(user_opts) == "table" and user_opts or {}
-	check_deprecations(user_opts)
-	M.options = ensure_compat_getters(vim.tbl_deep_extend("force", M.defaults, user_opts))
+	deprecations.check_deprecations(user_opts)
+	M.options = defaults.ensure_compat_getters(vim.tbl_deep_extend("force", M.defaults, user_opts))
 	M._session_agent = nil
 	M._session_harness = nil
 	M._session_model = nil
 	M._session_effort = nil
 	M._session_backend = nil
+	M._session_mode = nil
 
 	keymaps.setup_keymaps(M.options)
 	commands.register_commands(M.options)
