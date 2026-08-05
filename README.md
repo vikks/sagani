@@ -52,7 +52,7 @@ return {
 For detailed configuration schemas, system architecture blueprints, and developer guides, explore the `docs/` folder:
 
 - ⚙️ **[Configuration Guide](docs/configuration.md)** — Detailed `opts` schema (`tasks`, `backends`, `agents`, `providers`, `window_opts`).
-- 💡 **[Use Cases & Blueprints](docs/use-cases.md)** — Ready-to-use configuration recipes for Herdr, Tmux, Zellij, OpenCode ACP, and local Ollama.
+- 💡 **[Examples & Recipes](docs/examples.md)** — Ready-to-use configuration recipes for Herdr, Tmux, Zellij, OpenCode ACP, and local Ollama.
 - 🏛️ **[System Architecture](docs/architecture.md)** — 4-layer decoupled architecture and backend adapter contracts.
 - 📜 **[Keymaps & Commands Reference](docs/keymaps-commands.md)** — Complete list of user commands and popup keybindings.
 - 🛠️ **[Developer & Contributor Guide](docs/contributing.md)** — Headless test suite runner and open-source PR workflows.

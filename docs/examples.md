@@ -1,4 +1,4 @@
-# Use Cases & Configuration Blueprints — sagani.nvim
+# Examples & Configuration Recipes — sagani.nvim
 
 This document provides ready-to-use configuration recipes for common workflows, developer environments, and multi-model setups.
 
