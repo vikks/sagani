@@ -230,6 +230,7 @@ function M.run()
 
   run_test("ask_agent_prompt: picks up tasks.ask.agent when agent = 'opencode' is specified in minimal opts", function()
     local sagani = require("sagani")
+    sagani._session_agent = nil
     sagani._session_harness = nil
 
     local minimal_opts = {

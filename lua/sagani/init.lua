@@ -174,6 +174,7 @@ end
 
 M.options = ensure_compat_getters(vim.tbl_deep_extend("force", {}, M.defaults))
 M._session_ask_agent = nil
+M._session_agent = nil
 M._session_harness = nil
 M._session_model = nil
 M._session_effort = nil
@@ -208,6 +209,7 @@ end
 function M.setup(user_opts)
 	user_opts = type(user_opts) == "table" and user_opts or {}
 	M.options = ensure_compat_getters(vim.tbl_deep_extend("force", M.defaults, user_opts))
+	M._session_agent = nil
 	M._session_harness = nil
 	M._session_model = nil
 	M._session_effort = nil
@@ -218,14 +220,14 @@ function M.setup(user_opts)
 	watchers.setup_watchers(M.options)
 end
 
---- Delegates agent harness and model/effort selection UI to picker submodule
-function M.prompt_model_and_effort(harness, opts, on_complete)
-	return picker.prompt_model_and_effort(harness, opts or M.options, on_complete)
+--- Delegates agent selection UI to picker submodule
+function M.select_agent(arg, opts, on_complete)
+	return picker.select_agent_harness(arg, opts or M.options, on_complete)
 end
 
---- Delegates agent harness selection UI to picker submodule
+--- Alias for select_agent for backward compatibility
 function M.select_agent_harness(arg, opts, on_complete)
-	return picker.select_agent_harness(arg, opts or M.options, on_complete)
+	return M.select_agent(arg, opts, on_complete)
 end
 
 --- Asks a general question/prompt to an agent in a Herdr popup or floating window

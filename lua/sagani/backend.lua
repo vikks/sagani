@@ -29,7 +29,7 @@ function M.resolve_task_agent(opts, task_type)
   local task_val = opts.tasks and opts.tasks[task_type]
 
   local sagani = pcall(require, "sagani") and require("sagani") or {}
-  local session_harness = sagani._session_harness
+  local session_agent = sagani._session_agent or sagani._session_harness
   local session_model = sagani._session_model
   local session_effort = sagani._session_effort
 
@@ -44,15 +44,16 @@ function M.resolve_task_agent(opts, task_type)
     task_instructions = task_val.instructions or task_val.prompt_template
   end
 
-  local agent_id = session_harness or (type(raw_agent_ref) == "string" and raw_agent_ref) or "agy"
+  local agent_id = session_agent or (type(raw_agent_ref) == "string" and raw_agent_ref) or "agy"
 
   -- 2. Check for inline agent table or registry lookup in opts.agents
   local inline_agent = (type(raw_agent_ref) == "table") and raw_agent_ref or nil
   local registered_agent = (opts.agents and type(opts.agents[agent_id]) == "table") and opts.agents[agent_id] or nil
   local agent_cfg = inline_agent or registered_agent or {}
 
-  -- 3. Resolve harness protocol driver name
-  local harness = session_harness
+  -- 3. Resolve agent protocol driver name
+  local harness = session_agent
+    or agent_cfg.agent
     or agent_cfg.harness
     or (type(raw_agent_ref) == "string" and raw_agent_ref)
     or agent_id
@@ -105,6 +106,7 @@ function M.resolve_task_agent(opts, task_type)
 
   return {
     agent_id = agent_id,
+    agent = harness,
     harness = harness,
     provider = provider,
     model = model,

@@ -4,6 +4,7 @@ local M = {}
 
 function M.run()
   local sagani = pcall(require, "sagani") and require("sagani") or {}
+  sagani._session_agent = nil
   sagani._session_harness = nil
   sagani._session_model = nil
   sagani._session_effort = nil

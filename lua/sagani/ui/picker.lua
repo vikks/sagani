@@ -63,6 +63,7 @@ function M.prompt_model_and_effort(harness, opts, on_complete)
   local sagani = require("sagani")
   opts = type(opts) == "table" and opts or sagani.options
   harness = (harness or "agy"):lower()
+  sagani._session_agent = harness
   sagani._session_harness = harness
 
   local cli_transport = require("sagani.protocol.cli")
@@ -173,12 +174,12 @@ function M.select_agent_harness(arg, opts, on_complete)
 
   table.insert(choices, "Other...")
 
-  local active_h = sagani._session_harness or "none"
+  local active_h = sagani._session_agent or sagani._session_harness or "none"
   if not _G.RUNNING_TEST_SUITE and vim.ui and vim.ui.select then
     vim.ui.select(choices, {
-      prompt = string.format("Select Agent Harness (Active Session: %s):", active_h),
+      prompt = string.format("Select Target Agent (Active Session: %s):", active_h),
       format_item = function(item)
-        if item == sagani._session_harness then
+        if item == sagani._session_agent or item == sagani._session_harness then
           return item .. " (active)"
         end
         return item
