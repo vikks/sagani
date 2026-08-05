@@ -170,6 +170,64 @@ function M.run()
     pcall(vim.api.nvim_win_close, float_win, true)
   end)
 
+  run_test("opencode.execute: handles 3-turn ACP multi-turn conversation and preserves session_id", function()
+    local opencode_http = require("sagani.protocol.http.opencode")
+    local popup = require("sagani.ui.markdown_popup")
+    local content = require("sagani.ui.markdown_popup.content")
+
+    local float_win, buf = popup.open("OpenCode Test Popup", {})
+    local agent_opts = { harness = "opencode", port = 4096 }
+
+    -- Turn 1: Initial prompt
+    content.set_session(buf, "opencode", "sess_opencode_test_123", agent_opts, {})
+    local session_1 = content._active_sessions[buf].session_id
+    assert_eq(session_1, "sess_opencode_test_123", "Turn 1 session_id stored")
+
+    -- Turn 2: Follow-up 1
+    content.set_prompt_header(buf, "Turn 1 Prompt", "OPENCODE")
+    content.set_response(buf, "Turn 1 Response")
+
+    local orig_send_msg = opencode_http.send_message
+    local orig_ensure = opencode_http.ensure_server_async
+    local sent_sessions = {}
+    local sent_prompts = {}
+
+    opencode_http.ensure_server_async = function(port, prog_cb, on_ready)
+      on_ready(true)
+    end
+
+    opencode_http.send_message = function(url, s_id, p_text, cb, prog_cb)
+      table.insert(sent_sessions, s_id)
+      table.insert(sent_prompts, p_text)
+      cb("Response for: " .. p_text, nil, s_id)
+    end
+
+    _G.RUNNING_TEST_SUITE = false
+    -- Call opencode_http.execute directly for Turn 2
+    opencode_http.execute("Turn 2 prompt", agent_opts, function(resp, err, s_id)
+      assert_eq(resp, "Response for: Turn 2 prompt", "Turn 2 response text received")
+      assert_eq(err, nil, "Turn 2 err is nil")
+      assert_eq(s_id, "sess_opencode_test_123", "Turn 2 session_id preserved")
+    end, nil, session_1)
+
+    -- Turn 3: Follow-up 2
+    opencode_http.execute("Turn 3 prompt", agent_opts, function(resp, err, s_id)
+      assert_eq(resp, "Response for: Turn 3 prompt", "Turn 3 response text received")
+      assert_eq(err, nil, "Turn 3 err is nil")
+      assert_eq(s_id, "sess_opencode_test_123", "Turn 3 session_id preserved")
+    end, nil, session_1)
+
+    _G.RUNNING_TEST_SUITE = true
+    opencode_http.send_message = orig_send_msg
+    opencode_http.ensure_server_async = orig_ensure
+
+    assert_eq(#sent_sessions, 2, "send_message called twice for turns 2 & 3")
+    assert_eq(sent_sessions[1], "sess_opencode_test_123", "Turn 2 used correct session_id")
+    assert_eq(sent_sessions[2], "sess_opencode_test_123", "Turn 3 used correct session_id")
+
+    pcall(vim.api.nvim_win_close, float_win, true)
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,
