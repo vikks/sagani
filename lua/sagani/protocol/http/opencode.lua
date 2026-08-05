@@ -126,9 +126,22 @@ function M.ensure_server_async(port, progress_cb, on_ready)
   end)
 end
 
-local function parse_opencode_response(stdout)
-  if not stdout or stdout == "" then
-    return nil, "Empty response from OpenCode HTTP server"
+local function parse_opencode_response(m_obj)
+  if not m_obj then
+    return nil, "No response object received"
+  end
+
+  local stdout = m_obj.stdout or ""
+  local stderr = m_obj.stderr or ""
+  local code = m_obj.code or 0
+
+  if code ~= 0 then
+    local err_msg = (stderr ~= "") and stderr or string.format("curl exited with code %d", code)
+    return nil, err_msg
+  end
+
+  if stdout == "" then
+    return nil, (stderr ~= "") and stderr or "Empty response stdout from OpenCode HTTP server"
   end
 
   local ok, data = pcall(vim.json.decode, stdout)
@@ -136,7 +149,15 @@ local function parse_opencode_response(stdout)
     if stdout and vim.trim(stdout) ~= "" then
       return vim.trim(stdout), nil
     end
-    return nil, "Invalid response from OpenCode HTTP server"
+    return nil, "Invalid JSON response: " .. (stdout:sub(1, 100))
+  end
+
+  if data.error or data.err then
+    local json_err = type(data.error) == "string" and data.error
+      or (type(data.error) == "table" and (data.error.message or data.error.msg))
+      or (type(data.err) == "string" and data.err)
+      or "OpenCode server returned error response"
+    return nil, json_err
   end
 
   local parts = data.parts or (type(data.result) == "table" and data.result.parts) or (type(data.message) == "table" and data.message.parts)
@@ -167,7 +188,7 @@ local function parse_opencode_response(stdout)
     return direct, nil
   end
 
-  return nil, "OpenCode HTTP server response missing text content"
+  return nil, "OpenCode response missing text content"
 end
 
 local function extract_session_id(s_data)
@@ -205,12 +226,28 @@ function M.send_message(url, session_id, prompt_text, callback, progress_cb)
 
   vim.system(msg_cmd, { text = true }, function(m_obj)
     vim.schedule(function()
-      local text, err = parse_opencode_response(m_obj and m_obj.stdout)
+      local text, err = parse_opencode_response(m_obj)
       if text then
         callback(text, nil, session_id)
-      else
-        callback(nil, err or "Failed to parse OpenCode response", session_id)
+        return
       end
+
+      -- Fallback secondary endpoint: POST /session/<id>
+      local alt_cmd = {
+        "curl", "-s", "-X", "POST", url .. "/session/" .. session_id,
+        "-H", "Content-Type: application/json",
+        "-d", msg_payload,
+      }
+      vim.system(alt_cmd, { text = true }, function(alt_obj)
+        vim.schedule(function()
+          local alt_text, alt_err = parse_opencode_response(alt_obj)
+          if alt_text then
+            callback(alt_text, nil, session_id)
+          else
+            callback(nil, err or alt_err or "Failed to send message to OpenCode ACP session", session_id)
+          end
+        end)
+      end)
     end)
   end)
 end
@@ -240,7 +277,7 @@ function M.create_session_and_send(url, prompt_text, callback, progress_cb)
         new_session_id = "sess_opencode_" .. tostring(os.time()) .. "_" .. math.random(1000, 9999)
       end
 
-      local text, _ = parse_opencode_response(stdout)
+      local text, _ = parse_opencode_response(s_obj)
       if text and text ~= "" then
         callback(text, nil, new_session_id)
       else
