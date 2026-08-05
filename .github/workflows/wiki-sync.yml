@@ -1,0 +1,43 @@
+name: Sync Docs to GitHub Wiki
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Checkout Wiki Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+          token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Sync docs to Wiki
+        run: |
+          if [ -d "wiki" ]; then
+            cp -r docs/*.md wiki/
+            cd wiki
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .
+            if git diff --staged --quiet; then
+              echo "No doc changes to commit to Wiki."
+            else
+              git commit -m "docs: sync documentation from docs/ to Wiki"
+              git push
+            fi
+          else
+            echo "Wiki repository not found or not initialized yet. Please initialize the Wiki on GitHub once."
+          fi
