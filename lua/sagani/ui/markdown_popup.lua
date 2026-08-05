@@ -132,6 +132,9 @@ function M.enter_pin_mode(buf)
     return
   end
 
+  local notify = require("sagani.notify")
+  notify.info("Pin Mode Active: Press h, l, k, j, or t to pin window (Esc/q to cancel)")
+
   local pin_hint = "> 📌 *Pin window to: [h] Left | [l] Right | [k] Top | [j] Bottom | [t] Tab | [Esc/q] Cancel*"
   local std_hint = "> 💡 *Press <CR> or 'r' to reply | 'p' to pin window | 'yr' to copy | 'q' to close*"
 
@@ -157,6 +160,20 @@ function M.enter_pin_mode(buf)
     pcall(vim.keymap.del, "n", "k", { buffer = buf })
     pcall(vim.keymap.del, "n", "j", { buffer = buf })
     pcall(vim.keymap.del, "n", "t", { buffer = buf })
+    pcall(vim.keymap.del, "n", "q", { buffer = buf })
+    pcall(vim.keymap.del, "n", "<Esc>", { buffer = buf })
+
+    -- Restore standard close keymaps
+    vim.keymap.set("n", "q", function()
+      local win = M._active_wins[buf] or vim.api.nvim_get_current_win()
+      if vim.api.nvim_win_is_valid(win) then pcall(vim.api.nvim_win_close, win, true) end
+    end, { buffer = buf, silent = true, desc = "Close Markdown popup" })
+
+    vim.keymap.set("n", "<Esc>", function()
+      local win = M._active_wins[buf] or vim.api.nvim_get_current_win()
+      if vim.api.nvim_win_is_valid(win) then pcall(vim.api.nvim_win_close, win, true) end
+    end, { buffer = buf, silent = true, desc = "Close Markdown popup" })
+
     if restore_hint then
       local cur_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
       for i = #cur_lines, 1, -1 do
@@ -170,8 +187,16 @@ function M.enter_pin_mode(buf)
   end
 
   local function do_pin(target)
-    clear_pin_keymaps(false)
+    clear_pin_keymaps(true)
     M.promote(buf, target)
+    notify.info(string.format("Pinned window to %s", target))
+    pcall(vim.cmd, "stopinsert")
+  end
+
+  local function cancel_pin()
+    clear_pin_keymaps(true)
+    notify.info("Pin mode cancelled")
+    pcall(vim.cmd, "stopinsert")
   end
 
   vim.keymap.set("n", "h", function() do_pin("left") end, { buffer = buf, silent = true, desc = "Pin window to left split" })
@@ -179,6 +204,8 @@ function M.enter_pin_mode(buf)
   vim.keymap.set("n", "k", function() do_pin("top") end, { buffer = buf, silent = true, desc = "Pin window to top split" })
   vim.keymap.set("n", "j", function() do_pin("bottom") end, { buffer = buf, silent = true, desc = "Pin window to bottom split" })
   vim.keymap.set("n", "t", function() do_pin("tab") end, { buffer = buf, silent = true, desc = "Pin window to new tab" })
+  vim.keymap.set("n", "q", cancel_pin, { buffer = buf, silent = true, desc = "Cancel pin mode" })
+  vim.keymap.set("n", "<Esc>", cancel_pin, { buffer = buf, silent = true, desc = "Cancel pin mode" })
 end
 
 --- Promotes a floating popup window to a split or tab page
