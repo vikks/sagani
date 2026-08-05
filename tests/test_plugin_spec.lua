@@ -199,7 +199,7 @@ function M.run()
     local main_spec = find_spec(specs, "sagani.nvim")
     assert_true(main_spec ~= nil and type(main_spec.opts) == "table", "opts is table")
 
-    assert_eq(main_spec.opts.target_agent, "agy", "default target_agent")
+    assert_eq(main_spec.opts.tasks.ask, "agy", "default task ask agy")
     assert_eq(main_spec.opts.auto_discover, true, "default auto_discover")
   end)
 
@@ -208,10 +208,10 @@ function M.run()
     local main_spec = find_spec(specs, "sagani.nvim")
     assert_true(main_spec ~= nil and type(main_spec.config) == "function", "config is function")
 
-    local test_opts = { target_agent = "spec_test_agent" }
+    local test_opts = { tasks = { ask = "spec_test_agent" } }
     main_spec.config(main_spec, test_opts)
 
-    assert_eq(init.options.target_agent, "spec_test_agent", "setup called with test_opts")
+    assert_eq(init.options.tasks.ask, "spec_test_agent", "setup called with test_opts")
     assert_true(vim.fn.exists(":SaganiStatus") == 2, ":SaganiStatus user command registered")
     assert_true(vim.fn.exists(":SaganiSelectTarget") == 2, ":SaganiSelectTarget user command registered")
     assert_true(vim.fn.exists(":SaganiSelectAgent") == 2, ":SaganiSelectAgent user command registered")
@@ -224,7 +224,7 @@ function M.run()
 
   run_test("minimal_setup: setup({}) registers default keymaps and user commands cleanly", function()
     init.setup({})
-    assert_eq(init.options.target_agent, "agy", "minimal setup retains default target_agent agy")
+    assert_eq(init.options.tasks.ask, "agy", "minimal setup retains default task ask agy")
     assert_eq(init.options.default_keymaps, true, "default_keymaps enabled")
 
     local maps = vim.api.nvim_get_keymap("n")
@@ -239,33 +239,33 @@ function M.run()
 
   run_test("custom_setup: setup(user_opts) merges custom settings and propagates to options table", function()
     init.setup({
-      target_agent = "hermes",
-      auto_spawn = "bottom",
+      tasks = { ask = "hermes" },
+      auto_spawn = false,
       startup_delay = 9999,
       pane_override = "w3:p12",
       notify = { enabled = false, title = "custom title" },
     })
 
-    assert_eq(init.options.target_agent, "hermes", "target_agent overridden to hermes")
-    assert_eq(init.options.auto_spawn, "bottom", "auto_spawn overridden to bottom")
+    assert_eq(init.options.tasks.ask, "hermes", "tasks.ask overridden to hermes")
+    assert_eq(init.options.auto_spawn, false, "auto_spawn overridden to false")
     assert_eq(init.options.startup_delay, 9999, "startup_delay overridden to 9999")
     assert_eq(init.options.pane_override, "w3:p12", "pane_override set to w3:p12")
     assert_eq(init.options.notify.enabled, false, "notify.enabled set to false")
     assert_eq(init.options.notify.title, "custom title", "notify.title overridden to custom title")
   end)
 
-  run_test("select_agent_harness: direct argument sets target_agent and choice selection works", function()
-    init.setup({ target_agent = "agy" })
-    assert_eq(init.options.target_agent, "agy", "initial target_agent is agy")
+  run_test("select_agent_harness: direct argument sets _session_harness and choice selection works", function()
+    init.setup({ tasks = { ask = "agy" } })
+    assert_eq(init._session_harness, nil, "initial session harness is nil")
 
     init.select_agent_harness("codex")
-    assert_eq(init.options.target_agent, "codex", "explicit arg sets target_agent to codex")
+    assert_eq(init._session_harness, "codex", "explicit arg sets _session_harness to codex")
 
     init.select_agent_harness("opencode")
-    assert_eq(init.options.target_agent, "opencode", "explicit arg sets target_agent to opencode")
+    assert_eq(init._session_harness, "opencode", "explicit arg sets _session_harness to opencode")
 
     init.select_agent_harness("hermes")
-    assert_eq(init.options.target_agent, "hermes", "explicit arg sets target_agent to hermes")
+    assert_eq(init._session_harness, "hermes", "explicit arg sets _session_harness to hermes")
 
     local backend_lib = require("sagani.backend")
     local _, _, _, _, agent_opts = backend_lib.get_backend(init.options, "chat")

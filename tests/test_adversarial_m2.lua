@@ -275,7 +275,7 @@ function M.run()
 
     local ok = pcall(main_spec.config, main_spec, nil)
     assert_true(ok, "config(spec, nil) executes without exception")
-    assert_eq(init.options.target_agent, "agy", "options fall back to defaults")
+    assert_eq(init.options.tasks.ask, "agy", "options fall back to defaults")
   end)
 
   run_test("adversarial_config: handles primitive non-table opts without crashing", function()

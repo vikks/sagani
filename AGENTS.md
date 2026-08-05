@@ -348,5 +348,5 @@ sagani.nvim/
 3. **Preserve Compatibility**: Keep the single-line installation spec (`{ "vikks/sagani", opts = {} }`) fully functional by ensuring `require("sagani").setup(opts)` handles default keymap and WhichKey registration out of the box.
 4. **Test Isolation**: All CLI and shell execution code must honour `_G.RUNNING_TEST_SUITE`. Pass `opts.runner` to mock external commands in tests.
 5. **No Unneeded File Churn**: Do not commit local `.agents/` workspace logs to git. Keep `.gitignore` updated.
-6. **Decoupling Direction**: When adding new transport mechanisms (HTTP, stdio, etc.), add a new module under `lib/`. When adding new multiplexer support, add a new adapter under `backend/`. Never mix transport logic into `init.lua` or `selection.lua`/`diff.lua`.
+6. **Decoupling Direction**: When adding new transport mechanisms (HTTP, stdio, etc.), add a new module under `protocol/`. When adding new multiplexer support, add a new adapter under `backend/`. Never mix transport logic into `init.lua` or `selection.lua`/`diff.lua`.
 7. **Task-Driven & Dynamic Model Principles**: Always resolve task execution options via `backend.resolve_task_agent(opts, task_type)`. Never hardcode model lists or introduce top-level global default harness options.

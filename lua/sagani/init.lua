@@ -15,15 +15,6 @@ local native_vim_system = vim.system
 local M = {}
 
 M.defaults = {
-	target_agent = "agy",
-
-	tasks = {
-		ask = { effort = "high" },
-		review = { effort = "medium" },
-	},
-
-
-
 	window_opts = {
 		width = 0.8,
 		height = 0.8,
@@ -163,13 +154,15 @@ function M.setup(user_opts)
 		local env = env_info.metadata or env_info
 		local status_opts = vim.tbl_deep_extend("force", M.options, { auto_spawn = false })
 		local pane_id, err, _ = adapter.discover_target(status_opts)
+		local task_agent = backend.resolve_task_agent(M.options, "chat")
+		local harness = (task_agent and task_agent.harness) or "agy"
 		local msg = string.format(
 			"Backend: %s | Pane: %s | Tab: %s | Workspace: %s\nTarget Pane (%s): %s",
 			backend_name:upper(),
 			env.pane_id or "N/A",
 			env.tab_id or "N/A",
 			env.workspace_id or "N/A",
-			M.options.target_agent or "agy",
+			harness,
 			pane_id or ("NONE (" .. (err or "Unknown") .. ")")
 		)
 		if pane_id then
@@ -205,11 +198,11 @@ function M.setup(user_opts)
 
 	vim.api.nvim_create_user_command("SaganiSpawnPane", function()
 		local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(M.options, "chat")
-		local harness = (agent_opts and agent_opts.harness) or M.options.target_agent or "agy"
+		local harness = (agent_opts and agent_opts.harness) or "agy"
 		local opts = vim.tbl_deep_extend(
 			"force",
 			M.options,
-			{ target_agent = harness, placement = placement, ui_opts = ui_opts, agent_opts = agent_opts }
+			{ placement = placement, ui_opts = ui_opts, agent_opts = agent_opts }
 		)
 		local pane_id, err, _ = adapter.spawn_pane(opts)
 		if pane_id then
@@ -241,7 +234,8 @@ function M.setup(user_opts)
 		end
 
 		if prompt_text == "" then
-			local agent_name = (M.options.target_agent or "agy"):upper()
+			local task_agent = backend.resolve_task_agent(M.options, "chat")
+			local agent_name = ((task_agent and task_agent.harness) or "agy"):upper()
 			vim.ui.input({ prompt = string.format("Prompt for %s: ", agent_name) }, function(input)
 				dispatch(input)
 			end)
@@ -355,112 +349,127 @@ function M.setup(user_opts)
 end
 
 local function supports_effort(harness_name, selected_model)
-  harness_name = (harness_name or ""):lower()
-  selected_model = (selected_model or ""):lower()
+	harness_name = (harness_name or ""):lower()
+	selected_model = (selected_model or ""):lower()
 
-  if selected_model:find("thinking") or selected_model:find("reasoning")
-      or selected_model:find("o1") or selected_model:find("o3")
-      or selected_model:find("luna") or selected_model:find("claude%-3%-7")
-      or selected_model:find("deepseek") then
-    return true
-  end
+	if
+		selected_model:find("thinking")
+		or selected_model:find("reasoning")
+		or selected_model:find("o1")
+		or selected_model:find("o3")
+		or selected_model:find("luna")
+		or selected_model:find("claude%-3%-7")
+		or selected_model:find("deepseek")
+	then
+		return true
+	end
 
-  if harness_name == "agy" or harness_name == "antigravity" then
-    if selected_model == "" or selected_model == "[use default model]"
-        or selected_model:find("gemini 3") or selected_model:find("flash")
-        or selected_model:find("pro") then
-      return true
-    end
-  end
+	if harness_name == "agy" or harness_name == "antigravity" then
+		if
+			selected_model == ""
+			or selected_model == "[use default model]"
+			or selected_model:find("gemini 3")
+			or selected_model:find("flash")
+			or selected_model:find("pro")
+		then
+			return true
+		end
+	end
 
-  if harness_name == "codex" then
-    if selected_model:find("o1") or selected_model:find("o3") or selected_model:find("luna") then
-      return true
-    end
-  end
+	if harness_name == "codex" then
+		if selected_model:find("o1") or selected_model:find("o3") or selected_model:find("luna") then
+			return true
+		end
+	end
 
-  if harness_name == "opencode" then
-    if selected_model:find("deepseek") or selected_model:find("gemini%-3")
-        or selected_model:find("pickle") or selected_model:find("free") then
-      return true
-    end
-  end
+	if harness_name == "opencode" then
+		if
+			selected_model:find("deepseek")
+			or selected_model:find("gemini%-3")
+			or selected_model:find("pickle")
+			or selected_model:find("free")
+		then
+			return true
+		end
+	end
 
-  return false
+	return false
 end
 
 function M.prompt_model_and_effort(harness, opts, on_complete)
-  opts = type(opts) == "table" and opts or M.options
-  harness = (harness or "agy"):lower()
-  M._session_harness = harness
-  M.options.target_agent = harness
+	opts = type(opts) == "table" and opts or M.options
+	harness = (harness or "agy"):lower()
+	M._session_harness = harness
 
-  local cli_transport = require("sagani.protocol.cli")
-  local efforts = { "low", "medium", "high" }
+	local cli_transport = require("sagani.protocol.cli")
+	local efforts = { "low", "medium", "high" }
 
-  cli_transport.list_models_async(harness, opts, function(models)
-    models = models or {}
+	cli_transport.list_models_async(harness, opts, function(models)
+		models = models or {}
 
-    local function finish()
-      local m_str = M._session_model or "Default"
-      local e_str = M._session_effort or "Default"
-      notify.info(string.format("Active Agent: '%s' | Model: %s | Effort: %s", harness:upper(), m_str, e_str), opts)
-      if on_complete then
-        on_complete(harness)
-      end
-    end
+		local function finish()
+			local m_str = M._session_model or "Default"
+			local e_str = M._session_effort or "Default"
+			notify.info(
+				string.format("Active Agent: '%s' | Model: %s | Effort: %s", harness:upper(), m_str, e_str),
+				opts
+			)
+			if on_complete then
+				on_complete(harness)
+			end
+		end
 
-    local function pick_effort()
-      local model_name = M._session_model or ""
-      if not supports_effort(harness, model_name) then
-        M._session_effort = nil
-        finish()
-        return
-      end
+		local function pick_effort()
+			local model_name = M._session_model or ""
+			if not supports_effort(harness, model_name) then
+				M._session_effort = nil
+				finish()
+				return
+			end
 
-      if not _G.RUNNING_TEST_SUITE and #efforts > 0 and vim.ui and vim.ui.select then
-        local e_choices = { "[Use Default Effort]" }
-        for _, e in ipairs(efforts) do
-          table.insert(e_choices, e)
-        end
-        vim.ui.select(e_choices, {
-          prompt = string.format("Select Reasoning Effort for %s:", harness:upper()),
-        }, function(e_choice)
-          if e_choice and e_choice ~= "[Use Default Effort]" then
-            M._session_effort = e_choice
-          else
-            M._session_effort = nil
-          end
-          finish()
-        end)
-      else
-        finish()
-      end
-    end
+			if not _G.RUNNING_TEST_SUITE and #efforts > 0 and vim.ui and vim.ui.select then
+				local e_choices = { "[Use Default Effort]" }
+				for _, e in ipairs(efforts) do
+					table.insert(e_choices, e)
+				end
+				vim.ui.select(e_choices, {
+					prompt = string.format("Select Reasoning Effort for %s:", harness:upper()),
+				}, function(e_choice)
+					if e_choice and e_choice ~= "[Use Default Effort]" then
+						M._session_effort = e_choice
+					else
+						M._session_effort = nil
+					end
+					finish()
+				end)
+			else
+				finish()
+			end
+		end
 
-    local function pick_model()
-      if not _G.RUNNING_TEST_SUITE and #models > 0 and vim.ui and vim.ui.select then
-        local m_choices = { "[Use Default Model]" }
-        for _, m in ipairs(models) do
-          table.insert(m_choices, m)
-        end
-        vim.ui.select(m_choices, {
-          prompt = string.format("Select Model for %s:", harness:upper()),
-        }, function(m_choice)
-          if m_choice and m_choice ~= "[Use Default Model]" then
-            M._session_model = m_choice
-          else
-            M._session_model = nil
-          end
-          pick_effort()
-        end)
-      else
-        pick_effort()
-      end
-    end
+		local function pick_model()
+			if not _G.RUNNING_TEST_SUITE and #models > 0 and vim.ui and vim.ui.select then
+				local m_choices = { "[Use Default Model]" }
+				for _, m in ipairs(models) do
+					table.insert(m_choices, m)
+				end
+				vim.ui.select(m_choices, {
+					prompt = string.format("Select Model for %s:", harness:upper()),
+				}, function(m_choice)
+					if m_choice and m_choice ~= "[Use Default Model]" then
+						M._session_model = m_choice
+					else
+						M._session_model = nil
+					end
+					pick_effort()
+				end)
+			else
+				pick_effort()
+			end
+		end
 
-    pick_model()
-  end)
+		pick_model()
+	end)
 end
 
 function M.select_agent_harness(arg, opts, on_complete)
@@ -475,11 +484,6 @@ function M.select_agent_harness(arg, opts, on_complete)
 	local seen = {}
 	for _, c in ipairs(choices) do
 		seen[c] = true
-	end
-
-	if M.options.target_agent and not seen[M.options.target_agent] then
-		table.insert(choices, M.options.target_agent)
-		seen[M.options.target_agent] = true
 	end
 
 	local adapter, _ = backend.get_backend(opts)
@@ -508,7 +512,7 @@ function M.select_agent_harness(arg, opts, on_complete)
 				end
 				return item
 			end,
-			}, function(choice)
+		}, function(choice)
 			if not choice then
 				return
 			end
@@ -563,14 +567,12 @@ function M.ask_agent_prompt(prompt_text, opts)
 		local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(opts, "ask")
 		local harness = (type(agent_name) == "string" and agent_name ~= "") and agent_name
 			or (agent_opts and agent_opts.harness)
-			or M.options.target_agent
 			or "agy"
 		agent_opts.harness = harness
 		local popup_opts = vim.tbl_deep_extend("force", opts, {
 			adapter = adapter,
 			backend_name = backend_name,
 			task_type = "ask",
-			target_agent = harness,
 			placement = placement,
 			ui_opts = ui_opts,
 			agent_opts = agent_opts,
@@ -641,7 +643,9 @@ function M.ask_agent_prompt(prompt_text, opts)
 	end
 
 	local task_val = opts.tasks and opts.tasks.ask
-	local has_config = ask_opts.target_agent or M._session_harness or (task_val and (type(task_val) == "string" or (type(task_val) == "table" and task_val.harness)))
+	local has_config = ask_opts.target_agent
+		or M._session_harness
+		or (task_val and (type(task_val) == "string" or (type(task_val) == "table" and task_val.harness)))
 
 	if not has_config and not _G.RUNNING_TEST_SUITE and vim.ui and vim.ui.select then
 		notify.info("No active agent harness configured for 'ask'. Please select your target agent harness:", opts)
@@ -713,8 +717,9 @@ function M.dispatch_prompt(prompt_text, target_pane, opts)
 		return false, msg
 	end
 
+	local active_harness = (opts.agent_opts and opts.agent_opts.harness) or M._session_harness or "agy"
 	notify.info(
-		string.format("Prompt dispatched to %s via %s backend", (opts.target_agent or "agy"):upper(), backend_name),
+		string.format("Prompt dispatched to %s via %s backend", active_harness:upper(), backend_name),
 		opts
 	)
 

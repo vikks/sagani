@@ -61,12 +61,16 @@ return {
 			{ "<leader>a[", "<cmd>SaganiPrevHunk<cr>", desc = "Previous Agent Edit Hunk", mode = "n" },
 		},
 		opts = {
-			target_agent = "agy",
+			tasks = {
+				ask = "agy",
+				review = "codex",
+				code = "opencode",
+				chat = "agy",
+			},
 			auto_discover = true,
 			startup_delay = 5000,
-			auto_spawn = "left",
+			auto_spawn = false,
 			ask_agent = {
-				target_agent = nil,
 				popup = true,
 			},
 			review = {

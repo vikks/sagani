@@ -90,12 +90,12 @@ function M.run()
     _G.RUNNING_TEST_SUITE = true
 
     init.select_agent_harness("codex")
-    assert_eq(init.options.target_agent, "codex", "target_agent set to codex via select_agent_harness")
+    assert_eq(init._session_harness, "codex", "target_agent set to codex via select_agent_harness")
 
     local dispatched_agent = nil
     local orig_dispatch = init.dispatch_prompt
     init.dispatch_prompt = function(text, target, opts)
-      dispatched_agent = opts.target_agent
+      dispatched_agent = opts.agent_opts and opts.agent_opts.harness
       return true, nil
     end
 

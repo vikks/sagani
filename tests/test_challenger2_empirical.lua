@@ -58,7 +58,7 @@ function M.run()
   -- ============================================================================
 
   test("Target Agent Lifecycle: Selection via select_agent_harness propagates to ask_agent_prompt", function()
-    sagani.setup({ target_agent = "agy", ask_agent = { target_agent = nil, popup = true } })
+    sagani.setup({ tasks = { ask = "agy" }, ask_agent = { popup = true } })
 
     local last_dispatched_opts = nil
     local orig_dispatch = sagani.dispatch_prompt
@@ -68,17 +68,17 @@ function M.run()
     end
 
     sagani.select_agent_harness("hermes")
-    assert_equal("hermes", sagani.options.target_agent, "Target agent set to 'hermes'")
+    assert_equal("hermes", sagani._session_harness, "Target agent set to 'hermes'")
 
     sagani.ask_agent_prompt("Test prompt", { notify = { enabled = false } })
-    assert_equal("hermes", last_dispatched_opts.target_agent, "ask_agent_prompt uses target_agent 'hermes'")
+    local dispatched_harness = last_dispatched_opts.agent_opts and last_dispatched_opts.agent_opts.harness
+    assert_equal("hermes", dispatched_harness, "ask_agent_prompt uses target_agent 'hermes'")
 
     sagani.dispatch_prompt = orig_dispatch
   end)
 
-  test("Session Caching Lifecycle: Explicit opts.ask_agent.target_agent overrides session cache", function()
-    sagani.setup({ target_agent = "agy" })
-    sagani._session_ask_agent = "hermes" -- pre-existing session cache
+  test("Session Caching Lifecycle: Explicit opts.tasks.ask overrides default", function()
+    sagani.setup({ tasks = { ask = "agy" } })
 
     local dispatched_opts = nil
     sagani.dispatch_prompt = function(prompt, pane, opts)
@@ -91,9 +91,10 @@ function M.run()
       on_confirm("Test query")
     end
 
-    -- Invoke with explicit target_agent in options
-    sagani.ask_agent_prompt("Test prompt", { ask_agent = { target_agent = "codex" } })
-    assert_equal("codex", dispatched_opts.target_agent, "Dispatched opts should use explicit 'codex'")
+    -- Invoke with explicit tasks.ask in options
+    sagani.ask_agent_prompt("Test prompt", { tasks = { ask = "codex" } })
+    local dispatched_harness = dispatched_opts.agent_opts and dispatched_opts.agent_opts.harness
+    assert_equal("codex", dispatched_harness, "Dispatched opts should use explicit 'codex'")
 
     vim.ui.input = original_input
   end)
@@ -227,11 +228,11 @@ function M.run()
     assert_equal("function", type(main_spec.config), "Config must be a function")
 
     sagani.setup(main_spec.opts)
-    assert_equal("agy", sagani.options.target_agent, "Default target_agent should be agy")
+    assert_equal("agy", sagani.options.tasks.ask, "Default task ask should be agy")
     assert_equal(true, sagani.options.ask_agent.popup, "ask_agent.popup default should be true")
 
-    sagani.setup({ ask_agent = { target_agent = "codex" } })
-    assert_equal("codex", sagani.options.ask_agent.target_agent, "Partial ask_agent.target_agent override should apply")
+    sagani.setup({ tasks = { ask = "codex" } })
+    assert_equal("codex", sagani.options.tasks.ask, "Partial tasks.ask override should apply")
     assert_equal(true, sagani.options.ask_agent.popup, "Unspecified ask_agent.popup should retain default value")
 
     sagani.setup({ review = { auto_open = true } })
