@@ -81,10 +81,10 @@ function M.resolve_task_agent(opts, task_type)
 
   local timeout = agent_cfg.timeout or (type(task_val) == "table" and task_val.timeout)
   local protocol = agent_cfg.protocol or (type(task_val) == "table" and task_val.protocol)
+  local registered_harness_agent = (opts.agents and type(opts.agents[harness]) == "table") and opts.agents[harness] or nil
   local port = agent_cfg.port
+    or (registered_harness_agent and registered_harness_agent.port)
     or (type(task_val) == "table" and task_val.port)
-    or (opts.ports and opts.ports[harness])
-    or (opts.harness_opts and opts.harness_opts[harness] and opts.harness_opts[harness].port)
     or 4096
 
   local raw_cmd = agent_cfg.cmd or (type(task_val) == "table" and task_val.cmd) or { harness }
