@@ -97,6 +97,22 @@ Every backend adapter **must** implement the following interface:
 }
 ```
 
+### Harness Resolution & Dynamic Model Discovery Principles
+
+1. **Task-Driven Precedence**:
+   Harness resolution for any dispatch operation strictly follows:
+   `Session Override (_session_harness) -> Task Config (tasks[type]) -> Task Default Fallback`.
+   There is no top-level global `target_agent` property.
+
+2. **Zero Hardcoded Model Lists**:
+   All model options must be discovered dynamically from live CLIs, ACP JSON-RPC initialization (`gemini --acp`), or system registries (`~/.codex/models_cache.json`). Cached under `stdpath('state')/sagani/models.json` (24h TTL, flushable via `:SaganiClearCache`).
+
+3. **Intelligent Effort Selection**:
+   Reasoning effort prompts (`low`, `medium`, `high`) are presented only when `supports_effort(harness, model)` confirms the target model supports reasoning/thinking. For standard models, effort selection is skipped automatically.
+
+4. **Interactive Onboarding**:
+   If an unconfigured task is executed without active session state, Sagani prompts the user interactively via the `<leader>ah` selection flow instead of throwing errors or using missing CLI fallbacks.
+
 ---
 
 ## ⚡ 2. Feature Inventory
