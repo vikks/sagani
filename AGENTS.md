@@ -15,7 +15,7 @@ The plugin is decoupled into four independent, single-responsibility layers:
 | Layer | Responsibility | Key Modules |
 |-------|----------------|-------------|
 | **Neovim Layer** | Visual selections, diff review, prompt formatting, user commands, keymaps, native Markdown floating UI | `init.lua`, `selection.lua`, `diff.lua`, `format.lua`, `notify.lua`, `ui/markdown_popup.lua` |
-| **Backend Registry Layer** | Multiplexer auto-detection, layout placement, and pane/popup adapter resolution | `backend.lua`, `backend/herdr.lua`, `backend/native.lua`, `backend/tmux.lua`, `backend/zellij.lua` |
+| **Backend Registry Layer** | Multiplexer auto-detection, layout placement, facade adapter resolution (`herdr.lua`, `tmux.lua`, `zellij.lua`, `native.lua`), and hybrid agent registry resolution (`opts.agents`). | `backend.lua`, `backend/*.lua`, `backend/*/*.lua` |
 | **Protocol & IPC Layer** | Harness-agnostic agent protocol drivers (`acp`, `http`, `cli`, `json_rpc`) and CLI command builders | `protocol/init.lua`, `protocol/acp.lua`, `protocol/http.lua`, `protocol/cli.lua`, `protocol/json_rpc.lua`, `protocol/cli/*.lua` |
 | **Model Cache & State Layer** | 100% dynamic CLI/API model discovery and persistent local disk cache | `cache.lua` (`stdpath('state')/sagani/models.json`) |
 
@@ -362,3 +362,5 @@ sagani.nvim/
 8. **Uniform Backend Submodule Structure**: Every multiplexer backend under `lua/sagani/backend/` MUST consist of a clean facade adapter (`<backend>.lua`) implementing the Backend Adapter Contract and delegating execution to a dedicated submodule (`<backend>/cli.lua` or `<backend>/window.lua`).
 9. **Lean Entry Point (`init.lua`)**: `lua/sagani/init.lua` MUST remain a lean facade entry point (~120 lines). Commands MUST live in `commands.lua`, keymaps in `keymaps.lua`, autocmd watchers in `watchers.lua`, and picker dialogs in `ui/picker.lua`.
 10. **Interactive Onboarding (Zero Silent Fallbacks)**: Never re-introduce a top-level global `target_agent` option or silent hardcoded harness fallbacks. Unconfigured tasks without active session state must interactively prompt the user via `select_agent_harness`.
+11. **Hybrid Agent Registry (`opts.agents`) & CLI Command Resolution**: Agent definitions MUST be registered under `opts.agents[agent_id]` or provided as inline agent tables with explicit `harness` (protocol driver) and `cmd` (CLI execution command array). Always use `backend.resolve_task_agent(opts, task_type)` and `backend.resolve_agent_cmd(agent_opts)` to resolve executable commands for backends.
+12. **Strict UI Placement vs Task Separation**: UI layout placement properties (`popup`, `vsplit`, `right-pane`, `direction`) belong exclusively under `opts.backends[bname]`. `opts.tasks` MUST only contain agent references (`agent`) and task-specific `instructions`.
