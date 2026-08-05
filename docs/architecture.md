@@ -61,6 +61,7 @@ Every multiplexer backend adapter MUST implement the standard adapter contract i
   name = "backend_name",
   detect_env = function(runner) ... end,       -- Returns { active = bool, id = string|nil }
   discover_target = function(opts) ... end,    -- Returns target_id, err, metadata
+  list_agents = function(runner) ... end,      -- Returns array of active agent pane tables
   spawn_pane = function(opts) ... end,         -- Returns pane_id, err, metadata
   spawn_popup = function(opts) ... end,        -- Returns agent_target, err, metadata
   prompt_target = function(id, text, opts) ... end, -- Returns ok (bool), err

@@ -346,7 +346,11 @@ function M.run()
 
     local agents = native_win.list_agents(nil)
     assert_true(#agents >= 1, "native list_agents found active popup agent")
-    assert_eq(agents[1].agent, "opencode", "native agent is opencode")
+    local found_opencode = false
+    for _, a in ipairs(agents) do
+      if a.agent == "opencode" then found_opencode = true break end
+    end
+    assert_true(found_opencode, "native list_agents contains opencode agent")
 
     native_win.reset_popup("opencode")
   end)

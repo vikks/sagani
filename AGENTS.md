@@ -80,6 +80,7 @@ Every backend adapter **must** implement the following interface:
 
   detect_env(runner)                  -- returns { active=bool, id=string|nil, metadata=table }
   discover_target(opts)               -- returns pane_id, err, metadata
+  list_agents(runner)                 -- returns agents (table of active agent pane objects), err
   spawn_pane(opts)                    -- returns pane_id, err, metadata
   spawn_popup(opts)                   -- returns agent_target, err, metadata
                                       -- (for Herdr: agent_target is the agent name used by `herdr agent prompt`)
