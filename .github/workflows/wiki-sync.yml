@@ -40,7 +40,7 @@ jobs:
               echo "No doc changes to commit to Wiki."
             else
               git commit -m "docs: sync documentation from docs/ to Wiki"
-              git push
+              git push origin HEAD
             fi
           else
             echo "Wiki repository not found or not initialized yet. Please initialize the Wiki on GitHub once."
