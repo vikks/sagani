@@ -63,7 +63,7 @@ function M.register_commands(opts)
   vim.api.nvim_create_user_command("SaganiAskAgent", function(cmd_args)
     local sagani = require("sagani")
     sagani.ask_agent_prompt(cmd_args.args)
-  end, { nargs = "*", range = true, desc = "Ask general question to agent in Herdr popup" })
+  end, { nargs = "*", range = true, desc = "Ask general question to agent in floating popup" })
 
   vim.api.nvim_create_user_command("SaganiSelectHarness", function(cmd_args)
     local sagani = require("sagani")

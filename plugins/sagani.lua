@@ -67,7 +67,7 @@ return {
 			{ "<leader>at", "<cmd>SaganiSend<cr>", desc = "Send Selection to Sagani", mode = "v" },
 			{ "<leader>an", "<cmd>SaganiSpawnPane<cr>", desc = "Spawn New Sagani Pane", mode = "n" },
 			{ "<leader>ah", "<cmd>SaganiSelectAgent<cr>", desc = "Select Agent Harness", mode = "n" },
-			{ "<leader>aa", "<cmd>SaganiAskAgent<cr>", desc = "Ask Agent (Herdr Popup)", mode = { "n", "v" } },
+			{ "<leader>aa", "<cmd>SaganiAskAgent<cr>", desc = "Ask Agent in Popup", mode = { "n", "v" } },
 			{ "<leader>ar", "<cmd>SaganiReview<cr>", desc = "Review Agent Edits Diff", mode = "n" },
 			{ "<leader>ay", "<cmd>SaganiAccept<cr>", desc = "Accept Edit Hunk/File", mode = "n" },
 			{ "<leader>ax", "<cmd>SaganiReject<cr>", desc = "Reject Edit Hunk/File", mode = "n" },
