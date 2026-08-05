@@ -165,16 +165,20 @@ local function parse_opencode_response(m_obj)
     local text_parts = {}
     for _, p in ipairs(parts) do
       if type(p) == "table" then
-        local t = p.text or p.content or p.value
-        if type(t) == "string" and t ~= "" then
-          table.insert(text_parts, t)
+        local p_type = p.type or p.kind
+        -- Skip internal reasoning, thought, and step lifecycle parts
+        if p_type ~= "reasoning" and p_type ~= "thought" and p_type ~= "step-start" and p_type ~= "step-finish" then
+          local t = p.text or p.content or p.value
+          if type(t) == "string" and t ~= "" then
+            table.insert(text_parts, t)
+          end
         end
       elseif type(p) == "string" and p ~= "" then
         table.insert(text_parts, p)
       end
     end
     if #text_parts > 0 then
-      return table.concat(text_parts, "\n"), nil
+      return table.concat(text_parts, "\n\n"), nil
     end
   end
 
