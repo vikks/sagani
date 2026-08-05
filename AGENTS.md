@@ -104,6 +104,29 @@ Every backend adapter **must** implement the following interface:
 4. **Interactive Onboarding**:
    If an unconfigured task is executed without active session state, Sagani prompts the user interactively via the `<leader>ah` selection flow instead of throwing errors or using missing CLI fallbacks.
 
+### Code & Documentation Quality Standards
+
+1. **Mandatory Standardized LuaDoc Top Headers**:
+   Every non-test `.lua` source file across `plugins/` and `lua/` MUST begin with a standardized LuaDoc header block detailing `Module`, `Description`, and a bulleted `Responsibilities` list:
+   ```lua
+   --- ==============================================================================
+   --- Module: <module_name>
+   ---
+   --- Description:
+   ---   <High-level description of what this module does and its role in sagani.nvim>
+   ---
+   --- Responsibilities:
+   ---   - <Responsibility 1>
+   ---   - <Responsibility 2>
+   --- ==============================================================================
+   ```
+
+2. **Ultra-Lean Setup Facade**:
+   `lua/sagani/init.lua` must remain ultra-lean (~100-120 lines), acting strictly as a setup entry point and delegating domain logic to modular packages (`state/`, `dispatchers/`, `backend/`, `protocol/`, `ui/`).
+
+3. **Deep Submodule Decoupling**:
+   Complex feature domains must be decomposed into dedicated single-responsibility submodules (e.g. `dispatchers/context.lua`, `dispatchers/acp.lua`, `dispatchers/delivery.lua`, `state/mode.lua`, `state/backend.lua`) rather than monolithic files.
+
 ---
 
 ## ⚡ 2. Feature Inventory
