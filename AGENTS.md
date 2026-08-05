@@ -139,7 +139,10 @@ Every backend adapter **must** implement the following interface:
    `lua/sagani/init.lua` must remain ultra-lean (~100-120 lines), acting strictly as a setup entry point and delegating domain logic to modular packages (`state/`, `dispatchers/`, `backend/`, `protocol/`, `ui/`).
 
 3. **Deep Submodule Decoupling**:
-   Complex feature domains must be decomposed into dedicated single-responsibility submodules (e.g. `dispatchers/context.lua`, `dispatchers/acp.lua`, `dispatchers/delivery.lua`, `state/mode.lua`, `state/backend.lua`) rather than monolithic files.
+   Complex feature domains MUST be decomposed into dedicated single-responsibility submodules within package directories (e.g. `diff/` -> `baseline`, `hunks`, `view`, `actions`, `comment`; `ui/picker/` -> `agent`, `target`, `mode`; `backend/` -> `registry`, `task`) rather than monolithic files.
+
+4. **Backwards-Compatible Package Facades**:
+   Top-level module entry points (`lua/sagani/diff.lua`, `lua/sagani/ui/picker.lua`, `lua/sagani/backend.lua`) and package `init.lua` files MUST act as lean re-export facades, delegating domain operations to submodules while re-exporting internal state tables (`_snapshots`, `_review_wins`, `_inline_active`, `backends`) to guarantee 100% backwards compatibility.
 
 ---
 
