@@ -38,6 +38,23 @@ function M.ensure_server_async(port, progress_cb, on_ready)
   end
 
   port = port or 4096
+
+  -- 1. Fast-path: Memory check if Sagani already spawned the server in this session
+  if M._server_proc and M._server_port == port then
+    on_ready(true)
+    return
+  end
+
+  -- 2. Fast-path: Check if port is already bound via lsof (instant check)
+  if vim.fn.executable("lsof") == 1 then
+    local pids = vim.system({ "lsof", "-ti", ":" .. tostring(port) }, { text = true }):wait()
+    if pids and pids.code == 0 and pids.stdout and pids.stdout:find("%d+") then
+      M._server_port = port
+      on_ready(true)
+      return
+    end
+  end
+
   local url = string.format("http://127.0.0.1:%d", port)
 
   if vim.fn.executable("curl") == 0 or vim.fn.executable("opencode") == 0 then
@@ -47,12 +64,13 @@ function M.ensure_server_async(port, progress_cb, on_ready)
 
   if progress_cb then progress_cb("Checking OpenCode ACP server health on port " .. port .. "...") end
 
-  local check_cmd = { "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-m", "1", url .. "/session" }
+  local check_cmd = { "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-m", "1", url .. "/" }
   vim.system(check_cmd, { text = true }, function(c_obj)
     vim.schedule(function()
       local code_str = vim.trim((c_obj and c_obj.stdout) or "")
       -- Any HTTP status code (200, 400, 404, 405) means the ACP server is already running!
       if c_obj and c_obj.code == 0 and code_str ~= "" and code_str ~= "000" then
+        M._server_port = port
         on_ready(true)
         return
       end
