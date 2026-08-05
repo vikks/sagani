@@ -143,12 +143,6 @@ require("sagani").setup({
     anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
   },
 
-  -- Custom Background ACP Ports per Harness
-  ports = {
-    opencode = 4096,
-    gemini = 4097,
-  },
-
   -- Agent Registry (Logical Agent ID -> Harness Driver & Execution Command)
   agents = {
     agy = {

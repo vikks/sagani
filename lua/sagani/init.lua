@@ -70,10 +70,6 @@ M.defaults = {
 		openai = { api_key_env = "OPENAI_API_KEY", alias = "OpenAI" },
 		anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
 	},
-	ports = {
-		opencode = 4096,
-		gemini = 4097,
-	},
 	-- Agent Definitions Registry (Logical Agent ID -> Harness Driver & Execution Command)
 	agents = {
 		agy = {
