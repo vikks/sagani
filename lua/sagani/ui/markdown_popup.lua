@@ -92,6 +92,32 @@ function M.open(title, opts)
   vim.keymap.set("n", "<C-w>t", function() M.promote(buf, "tab") end, { buffer = buf, silent = true, desc = "Promote popup to new tab" })
   vim.keymap.set("n", "<C-w>T", function() M.promote(buf, "tab") end, { buffer = buf, silent = true, desc = "Promote popup to new tab" })
 
+  -- Interactive window promotion menu (a / <leader>a / <localleader>a)
+  local function prompt_promote_menu()
+    local choices = {
+      "h: Left Split",
+      "l: Right Split",
+      "k: Top Split",
+      "j: Bottom Split",
+      "t: New Tab Page",
+      "q: Cancel",
+    }
+    vim.ui.select(choices, { prompt = "Promote / Move Window To:" }, function(choice)
+      if not choice then return end
+      local key = choice:sub(1, 1):lower()
+      if key == "h" then M.promote(buf, "left")
+      elseif key == "l" then M.promote(buf, "right")
+      elseif key == "k" then M.promote(buf, "top")
+      elseif key == "j" then M.promote(buf, "bottom")
+      elseif key == "t" then M.promote(buf, "tab")
+      end
+    end)
+  end
+
+  vim.keymap.set("n", "a", prompt_promote_menu, { buffer = buf, silent = true, desc = "Promote window menu (h/l/k/j/t)" })
+  vim.keymap.set("n", "<leader>a", prompt_promote_menu, { buffer = buf, silent = true, desc = "Promote window menu (h/l/k/j/t)" })
+  vim.keymap.set("n", "<localleader>a", prompt_promote_menu, { buffer = buf, silent = true, desc = "Promote window menu (h/l/k/j/t)" })
+
   M._active_wins[buf] = win
   return win, buf
 end
@@ -296,7 +322,7 @@ function M.set_response(buf, response_text)
     if lines[i]:find("^⏳") then
       lines[i] = response_text
       table.insert(lines, "")
-      table.insert(lines, "> 💡 *Press <CR> or 'r' to ask a follow-up question | 'yr' to copy | 'q' to close*")
+      table.insert(lines, "> 💡 *Press <CR> or 'r' to reply | 'a' to promote window (h/j/k/l/t) | 'yr' to copy | 'q' to close*")
       replaced = true
       break
     end
