@@ -210,18 +210,27 @@ function M.set_mode(mode_arg)
 		else
 			M._session_mode = m
 			notify.info(string.format("Sagani operating mode set to: %s", m:upper()), M.options)
+			if not (M.options and type(M.options.tasks) == "table" and M.options.tasks[m] ~= nil) then
+				notify.warn(
+					string.format(
+						"Mode '%s' has no matching task configuration in 'opts.tasks.%s'. Operations will fall back to default task settings.\nTo customize this mode, define:\n  tasks = {\n    %s = { agent = \"<agent>\", instructions = \"...\" }\n  }",
+						m,
+						m,
+						m
+					),
+					M.options
+				)
+			end
 		end
 	else
 		local current = M._session_mode
 		if not current then
-			M._session_mode = "review"
+			M.set_mode("review")
 		elseif current == "review" then
-			M._session_mode = "learn"
+			M.set_mode("learn")
 		else
-			M._session_mode = nil
+			M.set_mode("off")
 		end
-		local active = M._session_mode and M._session_mode:upper() or "OFF"
-		notify.info(string.format("Sagani operating mode toggled to: %s", active), M.options)
 	end
 	return M._session_mode
 end

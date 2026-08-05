@@ -56,6 +56,23 @@ function M.run()
     assert_eq(sagani._session_mode, nil, "mode set to nil when off")
   end)
 
+  run_test("modes: set_mode notifies user when active mode has no matching opts.tasks entry", function()
+    local notify = require("sagani.notify")
+    local warned_msg = nil
+    local orig_warn = notify.warn
+    notify.warn = function(msg, _)
+      warned_msg = msg
+    end
+
+    sagani.options = { tasks = { chat = "agy" } }
+    sagani.set_mode("custom_unconfigured")
+    assert_eq(sagani._session_mode, "custom_unconfigured", "custom mode set")
+    assert_true(warned_msg ~= nil and warned_msg:find("custom_unconfigured") ~= nil, "warned user about missing task config")
+
+    notify.warn = orig_warn
+    sagani._session_mode = nil
+  end)
+
   run_test("modes: toggle_mode toggles specific mode on and off", function()
     sagani._session_mode = nil
     sagani.toggle_mode("learn")
