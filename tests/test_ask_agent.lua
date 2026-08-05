@@ -228,6 +228,25 @@ function M.run()
     pcall(vim.api.nvim_win_close, float_win, true)
   end)
 
+  run_test("ask_agent_prompt: picks up tasks.ask.agent when agent = 'opencode' is specified in minimal opts", function()
+    local sagani = require("sagani")
+    sagani._session_harness = nil
+
+    local minimal_opts = {
+      agents = {
+        agy = { name = "Antigravity CLI", cmd = "agy" },
+        opencode = { cmd = { "opencode" }, name = "Opencode Agent", port = 4096 },
+      },
+      tasks = {
+        ask = { agent = "opencode" },
+      },
+    }
+
+    local task_agent = require("sagani.backend").resolve_task_agent(minimal_opts, "ask")
+    assert_eq(task_agent.harness, "opencode", "resolve_task_agent resolves harness opencode from ask.agent")
+    assert_eq(task_agent.port, 4096, "resolve_task_agent inherits agent port 4096")
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,

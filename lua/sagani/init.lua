@@ -339,7 +339,7 @@ function M.ask_agent_prompt(prompt_text, opts)
 	local task_val = opts.tasks and opts.tasks.ask
 	local has_config = ask_opts.target_agent
 		or M._session_harness
-		or (task_val and (type(task_val) == "string" or (type(task_val) == "table" and task_val.harness)))
+		or (task_val and (type(task_val) == "string" or (type(task_val) == "table" and (task_val.agent or task_val.harness))))
 
 	if not has_config and not _G.RUNNING_TEST_SUITE and vim.ui and vim.ui.select then
 		notify.info("No active agent harness configured for 'ask'. Please select your target agent harness:", opts)

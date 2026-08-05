@@ -55,6 +55,7 @@ function M.resolve_task_agent(opts, task_type)
   local harness = session_harness
     or agent_cfg.harness
     or (type(raw_agent_ref) == "string" and raw_agent_ref)
+    or agent_id
     or "agy"
   harness = harness:lower()
 
