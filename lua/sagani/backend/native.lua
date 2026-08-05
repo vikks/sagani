@@ -1,3 +1,16 @@
+--- ==============================================================================
+--- Module: sagani.backend.native
+---
+--- Description:
+---   Native Neovim backend adapter for sagani.nvim. Runs AI coding agents directly
+---   inside Neovim split windows or centered floating popup windows without requiring
+---   an external terminal multiplexer.
+---
+--- Responsibilities:
+---   - Implement standard backend adapter interface (detect_env, discover_target, spawn_pane, spawn_popup, prompt_target).
+---   - Delegate window creation and terminal job execution to sagani.backend.native.window.
+--- ==============================================================================
+
 local window = require("sagani.backend.native.window")
 
 local M = {

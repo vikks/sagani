@@ -1,3 +1,16 @@
+--- ==============================================================================
+--- Module: sagani.ui.markdown_popup.content
+---
+--- Description:
+---   Buffer content renderer for sagani Markdown floating UI popups. Manages header
+---   formatting, status updates, markdown body rendering, session history, and footer hints.
+---
+--- Responsibilities:
+---   - Set prompt headers and status message indicators in popup buffers.
+---   - Append streaming responses and markdown payloads.
+---   - Manage session history state (_active_sessions) for follow-up questions.
+--- ==============================================================================
+
 local M = {
   _active_sessions = {},
 }

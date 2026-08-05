@@ -1,3 +1,19 @@
+--- ==============================================================================
+--- Module: sagani.diff
+---
+--- Description:
+---   Diff hunk management, baseline snapshotting, and interactive edit review system
+---   for sagani.nvim. Supports side-by-side split review windows (diffview.nvim / vim.wo.diff)
+---   and virtual-text inline review. Manages hunk navigation, hunk acceptance, and hunk
+---   rejection back to baseline snapshots.
+---
+--- Responsibilities:
+---   - Capture baseline snapshot lines prior to agent prompt execution.
+---   - Calculate diff hunks between baseline snapshots and current buffer lines via vim.diff.
+---   - Manage side-by-side split review windows and inline virtual text highlights.
+---   - Provide accept_change, reject_change, next_hunk, and prev_hunk edit controls.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 local format = require("sagani.format")
 

@@ -1,3 +1,15 @@
+--- ==============================================================================
+--- Module: sagani.protocol.cli.opencode
+---
+--- Description:
+---   OpenCode CLI harness driver for sagani.nvim. Constructs `opencode` CLI subshell command
+---   arrays and queries live available models (`opencode models`).
+---
+--- Responsibilities:
+---   - Construct command line arrays for `opencode` execution.
+---   - Query live models via `opencode models` CLI.
+--- ==============================================================================
+
 local M = {
   name = "opencode",
 }

@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.ui.picker
+---
+--- Description:
+---   Interactive selection picker UI for agent harness selection (`:SaganiSelectAgent`),
+---   dynamic model selection (`<leader>ah`), reasoning effort level selection, and
+---   operating mode toggles. Uses Snacks.picker / Telescope / Snacks / vim.ui.select.
+---
+--- Responsibilities:
+---   - Render agent harness selection UI with dynamic model discovery.
+---   - Prompt for reasoning effort levels (low, medium, high) based on model capabilities.
+---   - Invoke completion callbacks on harness/model selection.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 local backend = require("sagani.backend")
 

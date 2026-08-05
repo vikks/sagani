@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: plugins.sagani
+---
+--- Description:
+---   LazyVim / lazy.nvim plugin specification for sagani.nvim. Configures plugin
+---   loading, lazy setup initialization, keymap registration, and optional
+---   WhichKey menu group bindings (<leader>a).
+---
+--- Responsibilities:
+---   - Expose lazy.nvim plugin specification table.
+---   - Configure WhichKey menu group integration for "<leader>a" (Sagani).
+---   - Invoke sagani.setup(opts) on plugin load.
+--- ==============================================================================
+
 local plugin_dir = vim.fn.expand("~/CreatorSpace/Coder/OpenSource/NeovimPlugins/sagani.nvim")
 if vim.fn.isdirectory(plugin_dir) == 0 then
 	plugin_dir = "."

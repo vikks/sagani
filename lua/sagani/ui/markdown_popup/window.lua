@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.ui.markdown_popup.window
+---
+--- Description:
+---   Floating window geometry math and creation engine for sagani Markdown popups.
+---   Calculates centered floating window bounds based on screen dimensions and config options,
+---   creates floating windows via nvim_open_win, and sets window options (wrap, winblend).
+---
+--- Responsibilities:
+---   - Calculate floating window width, height, row, col placement.
+---   - Create floating windows via vim.api.nvim_open_win.
+---   - Manage active window handle tracking.
+--- ==============================================================================
+
 local M = {
   _active_wins = {},
 }

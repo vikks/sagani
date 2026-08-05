@@ -1,3 +1,16 @@
+--- ==============================================================================
+--- Module: sagani.backend.zellij
+---
+--- Description:
+---   Zellij multiplexer backend adapter for sagani.nvim. Connects Neovim workflows
+---   with Zellij terminal multiplexer panes (`zellij action new-pane`) and character
+---   writing (`zellij action write-chars`).
+---
+--- Responsibilities:
+---   - Implement standard backend adapter interface for Zellij environment.
+---   - Delegate Zellij action commands to sagani.backend.zellij.cli.
+--- ==============================================================================
+
 local cli = require("sagani.backend.zellij.cli")
 
 local M = {

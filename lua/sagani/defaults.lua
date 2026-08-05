@@ -1,3 +1,16 @@
+--- ==============================================================================
+--- Module: sagani.defaults
+---
+--- Description:
+---   Master default configuration repository and backward compatibility getter manager
+---   for sagani.nvim. Defines default options for backends, task bindings, agent CLI
+---   commands, UI layouts, and operating modes.
+---
+--- Responsibilities:
+---   - Expose default M.defaults options table.
+---   - Provide ensure_compat_getters metatable helper for legacy option access.
+--- ==============================================================================
+
 local M = {}
 
 M.defaults = {

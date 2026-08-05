@@ -1,3 +1,18 @@
+--- ==============================================================================
+--- Module: sagani.format
+---
+--- Description:
+---   Markdown prompt formatting and structured payload builder for sagani.nvim.
+---   Formats visual selection context payloads and structured diff hunk review blocks
+---   with file paths, line ranges, language filetypes, and user commentary.
+---   Injects operating mode prompt prefixes (e.g. Learn Mode educational guidance).
+---
+--- Responsibilities:
+---   - Construct Markdown code context prompt strings.
+---   - Construct Markdown diff review comment block prompt strings.
+---   - Format selection metadata headers and code blocks.
+--- ==============================================================================
+
 local M = {}
 
 --- Formats a context prompt string containing user instruction and visual code selection.

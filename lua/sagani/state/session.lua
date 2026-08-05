@@ -1,3 +1,15 @@
+--- ==============================================================================
+--- Module: sagani.state.session
+---
+--- Description:
+---   Session state lifecycle manager for sagani.nvim. Handles setup re-initialization
+---   resets (`reset_session`) and full session state purges (`clear_all`).
+---
+--- Responsibilities:
+---   - Reset active operating mode, backend, agent, model, and effort session fields.
+---   - Provide clear_all helper for complete state cleanup.
+--- ==============================================================================
+
 local mode_state = require("sagani.state.mode")
 local backend_state = require("sagani.state.backend")
 local agent_state = require("sagani.state.agent")

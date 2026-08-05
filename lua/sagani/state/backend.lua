@@ -1,3 +1,15 @@
+--- ==============================================================================
+--- Module: sagani.state.backend
+---
+--- Description:
+---   Backend session state and switching manager for sagani.nvim. Manages active session
+---   backend override (`_session_backend`) and provides set_backend and toggle_backend.
+---
+--- Responsibilities:
+---   - Store active session backend override.
+---   - Provide set_backend and toggle_backend interactive switching.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 
 local M = {}

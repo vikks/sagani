@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.state.mode
+---
+--- Description:
+---   Operating mode session state and mode switching manager for sagani.nvim. Manages
+---   active operating mode override (`_session_mode`), maps modes to task bindings,
+---   and issues missing mode configuration notifications.
+---
+--- Responsibilities:
+---   - Store active session operating mode override.
+---   - Provide set_mode and toggle_mode interactive mode toggles.
+---   - Issue configuration warning notifications when an active mode is unconfigured.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 
 local M = {}

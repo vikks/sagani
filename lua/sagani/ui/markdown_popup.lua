@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.ui.markdown_popup
+---
+--- Description:
+---   Master facade for native Markdown floating UI popup windows in sagani.nvim.
+---   Renders native floating popup windows for ACP protocol agent interactions, displaying
+---   real-time streaming progress, user prompts, markdown responses, and session metadata.
+---
+--- Responsibilities:
+---   - Delegate window creation to sagani.ui.markdown_popup.window.
+---   - Delegate buffer content formatting to sagani.ui.markdown_popup.content.
+---   - Delegate buffer keymaps to sagani.ui.markdown_popup.keymaps.
+--- ==============================================================================
+
 local window = require("sagani.ui.markdown_popup.window")
 local content = require("sagani.ui.markdown_popup.content")
 local keymaps = require("sagani.ui.markdown_popup.keymaps")

@@ -1,3 +1,16 @@
+--- ==============================================================================
+--- Module: sagani.watchers
+---
+--- Description:
+---   Autocmd event watcher module for sagani.nvim. Sets up Neovim autocmd listeners
+---   for disk file changes (BufWritePost / FileChangedShellPost) to trigger automatic
+---   diff review views when enabled, and clean up temporary state upon VimLeavePre.
+---
+--- Responsibilities:
+---   - Register file change autocmd watchers for agent edit review auto-open.
+---   - Register VimLeavePre autocmd cleanup handlers.
+--- ==============================================================================
+
 local diff = require("sagani.diff")
 
 local M = {}

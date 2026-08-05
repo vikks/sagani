@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.ui.markdown_popup.keymaps
+---
+--- Description:
+---   Buffer-local keymap manager for sagani Markdown floating UI popups. Binds
+---   interactive controls for replying ('r' / '<CR>'), pinning windows ('p'),
+---   copying responses ('yr'), and closing popups ('q' / '<Esc>').
+---
+--- Responsibilities:
+---   - Register buffer-local keymaps on popup creation.
+---   - Handle interactive reply prompts and continuation ACP sessions.
+---   - Handle response copying to register and window pinning.
+--- ==============================================================================
+
 local content = require("sagani.ui.markdown_popup.content")
 
 local M = {}

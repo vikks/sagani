@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.notify
+---
+--- Description:
+---   Notification wrapper module for sagani.nvim. Integrates with vim.notify / nvim-notify
+---   / snacks.notifier and respects user notification configuration (enabled, title, log levels).
+---   Provides safe execution in headless test suite mode.
+---
+--- Responsibilities:
+---   - Expose notify.info, notify.warn, notify.error helper methods.
+---   - Respect opts.notify table or boolean flags to suppress notifications when requested.
+---   - Format notification titles and levels cleanly.
+--- ==============================================================================
+
 local M = {}
 
 local level_map = {

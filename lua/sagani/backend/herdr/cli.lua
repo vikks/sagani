@@ -1,3 +1,19 @@
+--- ==============================================================================
+--- Module: sagani.backend.herdr.cli
+---
+--- Description:
+---   Herdr CLI command runner and topology auto-discovery engine for sagani.nvim.
+---   Queries Herdr state (`herdr pane current`, `herdr agent list`, `herdr pane list`),
+---   executes Tier 1-8 target agent discovery algorithms (Workspace -> Tab -> CWD -> Global),
+---   and executes pane splitting & popup spawning CLI calls (`herdr pane split`, `herdr agent prompt`).
+---
+--- Responsibilities:
+---   - Detect HERDR_ENV, HERDR_PANE_ID, HERDR_TAB_ID, HERDR_WORKSPACE_ID environment variables.
+---   - Execute Tier 1-8 topology resolution to find active agent panes.
+---   - Split target panes and wait for agent readiness (herdr agent start --timeout).
+---   - Dispatch prompts to agent panes via herdr agent prompt.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 
 local M = {}

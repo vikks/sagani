@@ -1,3 +1,15 @@
+--- ==============================================================================
+--- Module: sagani.protocol.cli.hermes
+---
+--- Description:
+---   Hermes CLI harness driver for sagani.nvim. Constructs `hermes` CLI subshell command
+---   arrays and queries live available models (`hermes models`).
+---
+--- Responsibilities:
+---   - Construct command line arrays for `hermes` execution.
+---   - Query live models via `hermes models` CLI.
+--- ==============================================================================
+
 local M = {
   name = "hermes",
 }

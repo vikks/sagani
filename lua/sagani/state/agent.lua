@@ -1,3 +1,15 @@
+--- ==============================================================================
+--- Module: sagani.state.agent
+---
+--- Description:
+---   Agent harness session state manager for sagani.nvim. Holds active session
+---   overrides for target agent harness (`_session_agent`, `_session_harness`) and
+---   ask agent popup target (`_session_ask_agent`).
+---
+--- Responsibilities:
+---   - Store and retrieve active session agent harness overrides.
+--- ==============================================================================
+
 local M = {}
 
 M._session_agent = nil

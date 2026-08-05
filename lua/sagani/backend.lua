@@ -1,3 +1,19 @@
+--- ==============================================================================
+--- Module: sagani.backend
+---
+--- Description:
+---   Backend registry, environment auto-detection, layout placement, and agent
+---   option resolver for sagani.nvim. Manages terminal multiplexer auto-detection
+---   hierarchy (Herdr -> Tmux -> Zellij -> Native), maps task types to agent
+---   execution options (opts.tasks), and resolves window placement specifications.
+---
+--- Responsibilities:
+---   - Maintain backend adapter registry (backend.register).
+---   - Auto-detect active terminal environment (backend.get_backend).
+---   - Resolve flat agent execution options from task configurations.
+---   - Resolve backend window placement & UI styling specs.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 
 local M = {}

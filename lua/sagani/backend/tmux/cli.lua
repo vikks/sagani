@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.backend.tmux.cli
+---
+--- Description:
+---   Tmux CLI command executor for sagani.nvim. Detects $TMUX environment variables,
+---   splits Tmux panes (`tmux split-window`), launches popup windows (`tmux display-popup`),
+---   and sends keys (`tmux send-keys`) to target Tmux pane handles.
+---
+--- Responsibilities:
+---   - Detect active Tmux environment via $TMUX.
+---   - Execute Tmux pane splitting and popup display commands.
+---   - Deliver prompt text to target Tmux panes via tmux send-keys.
+--- ==============================================================================
+
 local M = {}
 
 --- Executes a command via runner or vim.system / vim.fn.system

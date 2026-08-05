@@ -1,3 +1,15 @@
+--- ==============================================================================
+--- Module: sagani.protocol.cli.agy
+---
+--- Description:
+---   Antigravity (`agy`) CLI harness driver for sagani.nvim. Constructs `agy` CLI subshell
+---   command arrays and queries live available models (`agy models`).
+---
+--- Responsibilities:
+---   - Construct command line arrays for `agy` execution.
+---   - Query live dynamic models via `agy models` CLI execution.
+--- ==============================================================================
+
 local M = {
   name = "agy",
 }

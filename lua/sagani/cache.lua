@@ -1,3 +1,18 @@
+--- ==============================================================================
+--- Module: sagani.cache
+---
+--- Description:
+---   Persistent disk and memory caching system for dynamic AI model discovery.
+---   Caches live model queries (`stdpath('state')/sagani/models.json`) with a 24-hour TTL,
+---   enabling instant model list rendering while supporting cache invalidation via
+---   `:SaganiClearCache`.
+---
+--- Responsibilities:
+---   - Read and write dynamic model entries to persistent JSON disk storage.
+---   - Provide memory caching layer with TTL expiration checks.
+---   - Expose cache flushing helpers (clear_cache).
+--- ==============================================================================
+
 local M = {
   _mem_cache = {},
   _cache_dir = nil,

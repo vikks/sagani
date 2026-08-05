@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.protocol.acp
+---
+--- Description:
+---   Agent Communication Protocol (ACP) driver for sagani.nvim. Manages JSON-RPC 2.0
+---   session initialization, client/server capability negotiation (`initialize`), session
+---   updates (`session/new`, `session/prompt`), and response parsing for ACP-compliant agents.
+---
+--- Responsibilities:
+---   - Spawn ACP agent process over stdio JSON-RPC.
+---   - Send initialize request and process initialization response.
+---   - Stream status notifications and return completion responses to caller.
+--- ==============================================================================
+
 local cli_transport = require("sagani.protocol.cli")
 local http_transport = require("sagani.protocol.http")
 

@@ -1,3 +1,19 @@
+--- ==============================================================================
+--- Module: sagani.init
+---
+--- Description:
+---   Lean facade entry point and setup interface for sagani.nvim. Initializes default
+---   configuration options, registers user commands, binds keymaps, sets up autocmd
+---   watchers, registers built-in backend adapters, and delegates prompt execution
+---   and session state handling to dedicated submodules.
+---
+--- Responsibilities:
+---   - Primary M.setup(user_opts) entry point for user initialization.
+---   - Register built-in backend adapters (native, herdr, tmux, zellij).
+---   - Delegate prompt dispatching to sagani.dispatchers package.
+---   - Delegate session state & operating modes to sagani.state package.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 local format = require("sagani.format")
 local selection = require("sagani.selection")

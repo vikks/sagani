@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.protocol.cli
+---
+--- Description:
+---   CLI protocol driver registry and command builder for sagani.nvim. Maps harness
+---   identifiers (`agy`, `codex`, `opencode`, `hermes`, `gemini`) to their respective
+---   CLI driver submodules, providing CLI command array construction and dynamic model discovery.
+---
+--- Responsibilities:
+---   - Register CLI driver adapters under protocol/cli/.
+---   - Construct shell command arrays for multiplexer pane spawning.
+---   - Provide query_models dynamic model discovery API.
+--- ==============================================================================
+
 local M = {
   _agents = {},
 }

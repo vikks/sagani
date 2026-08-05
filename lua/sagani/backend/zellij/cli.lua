@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.backend.zellij.cli
+---
+--- Description:
+---   Zellij CLI command executor for sagani.nvim. Detects $ZELLIJ environment variables,
+---   spawns new Zellij panes/floating windows (`zellij action new-pane`), and writes
+---   prompt text (`zellij action write-chars`).
+---
+--- Responsibilities:
+---   - Detect active Zellij environment via $ZELLIJ.
+---   - Execute Zellij new-pane action commands.
+---   - Deliver prompt text via zellij action write-chars.
+--- ==============================================================================
+
 local M = {}
 
 --- Executes a command via runner or vim.system / vim.fn.system

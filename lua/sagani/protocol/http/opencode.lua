@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.protocol.http.opencode
+---
+--- Description:
+---   OpenCode HTTP REST server protocol driver for sagani.nvim. Manages local HTTP
+---   server process lifecycle (`opencode serve`), REST endpoint requests (`/prompt`, `/models`),
+---   and JSON response parsing over curl/vim.system.
+---
+--- Responsibilities:
+---   - Start and manage local OpenCode REST server daemon process.
+---   - Send prompt requests over HTTP REST API.
+---   - Query available models via HTTP GET /models endpoint.
+--- ==============================================================================
+
 local M = {
   name = "opencode",
   _server_proc = nil,

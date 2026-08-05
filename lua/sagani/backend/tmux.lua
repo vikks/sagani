@@ -1,3 +1,16 @@
+--- ==============================================================================
+--- Module: sagani.backend.tmux
+---
+--- Description:
+---   Tmux multiplexer backend adapter for sagani.nvim. Connects Neovim workflows
+---   with Tmux panes (`tmux split-window`), popup windows (`tmux display-popup`),
+---   and key sending (`tmux send-keys`).
+---
+--- Responsibilities:
+---   - Implement standard backend adapter interface for Tmux environment.
+---   - Delegate Tmux CLI commands to sagani.backend.tmux.cli.
+--- ==============================================================================
+
 local cli = require("sagani.backend.tmux.cli")
 
 local M = {

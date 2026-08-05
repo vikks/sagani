@@ -1,3 +1,15 @@
+--- ==============================================================================
+--- Module: sagani.protocol.http
+---
+--- Description:
+---   HTTP REST protocol driver registry for sagani.nvim. Maps agent harnesses to
+---   HTTP REST API adapters (e.g. OpenCode server API) for sending prompts over HTTP endpoints.
+---
+--- Responsibilities:
+---   - Register HTTP protocol adapters per harness.
+---   - Provide get_agent lookup for HTTP drivers.
+--- ==============================================================================
+
 local M = {
   _agents = {},
 }

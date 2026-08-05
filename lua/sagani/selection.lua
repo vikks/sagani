@@ -1,3 +1,18 @@
+--- ==============================================================================
+--- Module: sagani.selection
+---
+--- Description:
+---   Visual selection extraction and prompt dispatch module for sagani.nvim.
+---   Extracts visual selection ranges, snippet text, and buffer metadata for
+---   characterwise ('v'), linewise ('V'), and blockwise ('<C-v>') visual modes,
+---   and handles user input prompt dispatching.
+---
+--- Responsibilities:
+---   - Extract visual selection range, snippet text, and mode metadata.
+---   - Prompt user interactively for instructions via vim.ui.input.
+---   - Dispatch selection prompts and code context to agent via dispatchers.
+--- ==============================================================================
+
 local format = require("sagani.format")
 local notify = require("sagani.notify")
 

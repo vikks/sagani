@@ -1,3 +1,15 @@
+--- ==============================================================================
+--- Module: sagani.protocol.cli.codex
+---
+--- Description:
+---   Codex CLI harness driver for sagani.nvim. Constructs `codex` CLI subshell command
+---   arrays and queries local disk model cache registry (`~/.codex/models_cache.json`).
+---
+--- Responsibilities:
+---   - Construct command line arrays for `codex` execution.
+---   - Query available models from `~/.codex/models_cache.json`.
+--- ==============================================================================
+
 local M = {
   name = "codex",
 }

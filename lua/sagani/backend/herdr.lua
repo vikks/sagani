@@ -1,3 +1,16 @@
+--- ==============================================================================
+--- Module: sagani.backend.herdr
+---
+--- Description:
+---   Herdr multiplexer backend adapter for sagani.nvim. Connects Neovim workflows
+---   with Herdr terminal multiplexer agent panes, auto-discovering agent pane targets,
+---   spawning new agent panes, and sending prompt text via Herdr CLI.
+---
+--- Responsibilities:
+---   - Implement standard backend adapter interface (detect_env, discover_target, spawn_pane, spawn_popup, prompt_target).
+---   - Delegate topology discovery and command execution to sagani.backend.herdr.cli & topology.
+--- ==============================================================================
+
 local cli = require("sagani.backend.herdr.cli")
 
 local M = {

@@ -1,3 +1,16 @@
+--- ==============================================================================
+--- Module: sagani.deprecations
+---
+--- Description:
+---   Deprecation tracking and warning notification system for sagani.nvim.
+---   Inspects user configuration options for legacy keys (target_agent, ask_agent,
+---   ports, harness properties) and issues deduplicated single-session warnings.
+---
+--- Responsibilities:
+---   - Inspect user_opts for deprecated configuration keys.
+---   - Issue deduplicated warning notifications via notify.warn.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 
 local M = {}

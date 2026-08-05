@@ -1,3 +1,19 @@
+--- ==============================================================================
+--- Module: sagani.state.init
+---
+--- Description:
+---   Master facade module for the sagani.state package. Aggregates all state submodules
+---   (mode, backend, agent, model, effort, session) and provides unified proxy access.
+---
+--- Submodules:
+---   - mode:    Operating mode state and mode switching logic.
+---   - backend: Active session backend state and backend switching.
+---   - agent:   Target agent harness session state.
+---   - model:   Target model session state.
+---   - effort:  Reasoning effort level session state.
+---   - session: Session lifecycle resets.
+--- ==============================================================================
+
 local mode = require("sagani.state.mode")
 local backend = require("sagani.state.backend")
 local agent = require("sagani.state.agent")

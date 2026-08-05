@@ -1,3 +1,15 @@
+--- ==============================================================================
+--- Module: sagani.state.effort
+---
+--- Description:
+---   Reasoning effort level session state manager for sagani.nvim. Manages active
+---   reasoning effort level (`_session_effort`: low, medium, high) for thinking models.
+---
+--- Responsibilities:
+---   - Store active session reasoning effort level.
+---   - Provide set_effort setter helper.
+--- ==============================================================================
+
 local M = {}
 
 M._session_effort = nil

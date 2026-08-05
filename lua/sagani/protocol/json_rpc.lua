@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.protocol.json_rpc
+---
+--- Description:
+---   Stdio JSON-RPC 2.0 transport encoder & decoder for sagani.nvim. Provides
+---   low-level JSON-RPC 2.0 message framing, request ID generation, and notification
+---   parsing over stdio subshell pipes.
+---
+--- Responsibilities:
+---   - Encode JSON-RPC 2.0 request and notification payloads.
+---   - Decode incoming JSON-RPC 2.0 responses and notification events.
+---   - Manage auto-incrementing JSON-RPC request IDs.
+--- ==============================================================================
+
 local M = {
   _request_id = 0,
 }

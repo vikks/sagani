@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.commands
+---
+--- Description:
+---   User command registration module for sagani.nvim. Exposes all user-facing
+---   :Sagani* commands for agent prompt dispatch, status checks, target pane overrides,
+---   diff review, hunk acceptance/rejection, agent harness selection, operating modes,
+---   and hot module reloading.
+---
+--- Responsibilities:
+---   - Register all :Sagani* commands with command completion logic.
+---   - Delegate command execution to sagani submodules.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 local selection = require("sagani.selection")
 local diff = require("sagani.diff")

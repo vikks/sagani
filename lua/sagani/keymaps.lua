@@ -1,3 +1,16 @@
+--- ==============================================================================
+--- Module: sagani.keymaps
+---
+--- Description:
+---   Keymap binding & WhichKey integration module for sagani.nvim. Binds standard
+---   "<leader>a*" keymaps for visual prompt sending, code context dispatch, status checks,
+---   mode switching, hunk acceptance/rejection, and asking agent popups.
+---
+--- Responsibilities:
+---   - Register default Neovim keymaps under <leader>a prefix.
+---   - Register WhichKey menu groups and descriptions when which-key.nvim is present.
+--- ==============================================================================
+
 local M = {}
 
 --- Registers default keymap bindings and WhichKey integration

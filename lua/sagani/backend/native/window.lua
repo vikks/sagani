@@ -1,3 +1,17 @@
+--- ==============================================================================
+--- Module: sagani.backend.native.window
+---
+--- Description:
+---   Window layout & terminal buffer runner for the Native Neovim backend.
+---   Handles split window creation, floating popup window layout math, terminal channel
+---   execution (vim.fn.termopen), and text prompt sending (vim.api.nvim_chan_send).
+---
+--- Responsibilities:
+---   - Manage vertical and horizontal split window creation for agent panes.
+---   - Manage centered floating window popups with border options.
+---   - Send prompt text payloads directly to open terminal channels.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 
 local M = {

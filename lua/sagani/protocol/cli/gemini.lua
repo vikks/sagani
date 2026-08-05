@@ -1,3 +1,15 @@
+--- ==============================================================================
+--- Module: sagani.protocol.cli.gemini
+---
+--- Description:
+---   Gemini CLI harness driver for sagani.nvim. Constructs `gemini` CLI subshell command
+---   arrays and queries live available models via ACP stdio initialization (`gemini --acp`).
+---
+--- Responsibilities:
+---   - Construct command line arrays for `gemini` execution.
+---   - Query live models via ACP stdio handshake.
+--- ==============================================================================
+
 local M = {
   name = "gemini",
 }
