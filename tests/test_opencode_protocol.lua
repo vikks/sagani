@@ -162,6 +162,60 @@ function M.run()
     assert_true(resp_err ~= nil and resp_err:find("OpenCode model overloaded") ~= nil, "error message extracted from server JSON error field")
   end)
 
+  run_test("opencode.send_message: filters out internal reasoning/thought parts from final text", function()
+    local mock_stdout = vim.json.encode({
+      parts = {
+        { type = "step-start" },
+        { type = "reasoning", text = "Internal thinking step..." },
+        { type = "text", text = "Clean user-facing response" },
+        { type = "step-finish" },
+      },
+    })
+
+    local orig_system = vim.system
+    vim.system = function(cmd, opts, cb)
+      if cb then
+        cb({ code = 0, stdout = mock_stdout, stderr = "" })
+      end
+      return { wait = function() return { code = 0, stdout = mock_stdout } end }
+    end
+
+    local resp_text, resp_err
+    opencode_http.send_message("http://127.0.0.1:4096", "sess_123", "hi", function(resp, err)
+      resp_text = resp
+      resp_err = err
+    end)
+
+    vim.wait(500, function() return resp_text ~= nil end)
+    vim.system = orig_system
+
+    assert_eq(resp_text, "Clean user-facing response", "filters reasoning parts and returns clean user text")
+    assert_eq(resp_err, nil, "no error on valid response")
+  end)
+
+  run_test("opencode.send_message: builds structured model object in request JSON", function()
+    local captured_payload
+    local orig_system = vim.system
+    vim.system = function(cmd, opts, cb)
+      local payload_str = cmd[#cmd]
+      captured_payload = vim.json.decode(payload_str)
+      if cb then
+        cb({ code = 0, stdout = vim.json.encode({ parts = { { type = "text", text = "ok" } } }), stderr = "" })
+      end
+      return { wait = function() return { code = 0, stdout = "" } end }
+    end
+
+    local agent_opts = { model = "deepseek-v4-flash-free", provider = "opencode" }
+    opencode_http.send_message("http://127.0.0.1:4096", "sess_123", "hi", function() end, nil, agent_opts)
+
+    vim.wait(500, function() return captured_payload ~= nil end)
+    vim.system = orig_system
+
+    assert_true(type(captured_payload.model) == "table", "model in payload is a structured table object")
+    assert_eq(captured_payload.model.providerID, "opencode", "model.providerID is opencode")
+    assert_eq(captured_payload.model.modelID, "deepseek-v4-flash-free", "model.modelID is deepseek-v4-flash-free")
+  end)
+
   -- ==========================================================
   -- 2. FAST-PATH & RETRY RECOVERY TESTS
   -- ==========================================================
