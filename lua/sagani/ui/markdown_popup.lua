@@ -80,8 +80,63 @@ function M.open(title, opts)
   vim.keymap.set("n", "r", prompt_followup, { buffer = buf, silent = true, desc = "Reply / Ask follow-up question" })
   vim.keymap.set("n", "i", prompt_followup, { buffer = buf, silent = true, desc = "Ask follow-up question" })
 
+  -- Promote floating popup to split/tab keymaps (<C-w>h/j/k/l/t)
+  vim.keymap.set("n", "<C-w>h", function() M.promote(buf, "left") end, { buffer = buf, silent = true, desc = "Promote popup to left split" })
+  vim.keymap.set("n", "<C-w>H", function() M.promote(buf, "left") end, { buffer = buf, silent = true, desc = "Promote popup to left split" })
+  vim.keymap.set("n", "<C-w>l", function() M.promote(buf, "right") end, { buffer = buf, silent = true, desc = "Promote popup to right split" })
+  vim.keymap.set("n", "<C-w>L", function() M.promote(buf, "right") end, { buffer = buf, silent = true, desc = "Promote popup to right split" })
+  vim.keymap.set("n", "<C-w>k", function() M.promote(buf, "top") end, { buffer = buf, silent = true, desc = "Promote popup to top split" })
+  vim.keymap.set("n", "<C-w>K", function() M.promote(buf, "top") end, { buffer = buf, silent = true, desc = "Promote popup to top split" })
+  vim.keymap.set("n", "<C-w>j", function() M.promote(buf, "bottom") end, { buffer = buf, silent = true, desc = "Promote popup to bottom split" })
+  vim.keymap.set("n", "<C-w>J", function() M.promote(buf, "bottom") end, { buffer = buf, silent = true, desc = "Promote popup to bottom split" })
+  vim.keymap.set("n", "<C-w>t", function() M.promote(buf, "tab") end, { buffer = buf, silent = true, desc = "Promote popup to new tab" })
+  vim.keymap.set("n", "<C-w>T", function() M.promote(buf, "tab") end, { buffer = buf, silent = true, desc = "Promote popup to new tab" })
+
   M._active_wins[buf] = win
   return win, buf
+end
+
+--- Promotes a floating popup window to a split or tab page
+--- @param buf number|nil Buffer handle
+--- @param placement string|nil Target placement ("left", "right", "top", "bottom", "tab")
+--- @return number|nil new_win Created window handle
+function M.promote(buf, placement)
+  buf = buf or vim.api.nvim_get_current_buf()
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    return nil
+  end
+
+  placement = (type(placement) == "string" and placement ~= "") and placement:lower() or "right"
+
+  -- Ensure bufhidden is set to hide so buffer isn't wiped when floating window closes
+  vim.bo[buf].bufhidden = "hide"
+
+  local win = M._active_wins[buf] or vim.api.nvim_get_current_win()
+  if win and vim.api.nvim_win_is_valid(win) then
+    local config = vim.api.nvim_win_get_config(win)
+    if config and config.relative and config.relative ~= "" then
+      pcall(vim.api.nvim_win_close, win, true)
+    end
+  end
+
+  local cmd = "rightbelow vsplit"
+  if placement == "left" or placement == "left-split" or placement == "left-pane" then
+    cmd = "leftabove vsplit"
+  elseif placement == "right" or placement == "right-split" or placement == "right-pane" then
+    cmd = "rightbelow vsplit"
+  elseif placement == "top" or placement == "top-split" or placement == "top-pane" then
+    cmd = "leftabove split"
+  elseif placement == "bottom" or placement == "bottom-split" or placement == "bottom-pane" then
+    cmd = "rightbelow split"
+  elseif placement == "tab" or placement == "new-tab" then
+    cmd = "tabnew"
+  end
+
+  vim.cmd(cmd)
+  local new_win = vim.api.nvim_get_current_win()
+  vim.api.nvim_win_set_buf(new_win, buf)
+  M._active_wins[buf] = new_win
+  return new_win
 end
 
 --- Stores session metadata for multi-turn follow-up queries

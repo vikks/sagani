@@ -195,6 +195,15 @@ function M.register_commands(opts)
     notify.info("Flushed all sagani.* modules and reloaded configuration", options)
   end, { desc = "Hot-reload all sagani modules" })
 
+  vim.api.nvim_create_user_command("SaganiPromote", function(cmd_args)
+    local target = cmd_args.args
+    if not target or target == "" then
+      target = "right"
+    end
+    local popup = require("sagani.ui.markdown_popup")
+    popup.promote(nil, target)
+  end, { nargs = "?", desc = "Promote floating popup window to split (left, right, top, bottom) or tab" })
+
   vim.api.nvim_create_user_command("SaganiClearCache", function()
     local sagani = require("sagani")
     require("sagani.cache").clear_cache()

@@ -144,6 +144,19 @@ function M.run()
     native_backend.reset_popup("agy")
   end)
 
+  run_test("markdown_popup.promote: promotes floating popup window to split or tab", function()
+    local popup = require("sagani.ui.markdown_popup")
+    local float_win, buf = popup.open("Test Popup", {})
+    assert_true(vim.api.nvim_win_is_valid(float_win), "float window created")
+
+    local split_win = popup.promote(buf, "right")
+    assert_true(vim.api.nvim_win_is_valid(split_win), "promoted to split window")
+    assert_true(split_win ~= float_win, "split window handle differs from float window handle")
+    assert_eq(vim.api.nvim_win_get_buf(split_win), buf, "promoted window contains original buffer")
+
+    pcall(vim.api.nvim_win_close, split_win, true)
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,
