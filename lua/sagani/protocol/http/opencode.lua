@@ -39,13 +39,7 @@ function M.ensure_server_async(port, progress_cb, on_ready)
 
   port = port or 4096
 
-  -- 1. Fast-path: Memory check if Sagani already spawned the server in this session
-  if M._server_proc and M._server_port == port then
-    on_ready(true)
-    return
-  end
-
-  -- 2. Fast-path: Check if port is already bound via lsof (instant check)
+  -- 1. Primary Fast-path: Check OS process table via lsof (instant, bypasses busy HTTP loop)
   if vim.fn.executable("lsof") == 1 then
     local pids = vim.system({ "lsof", "-ti", ":" .. tostring(port) }, { text = true }):wait()
     if pids and pids.code == 0 and pids.stdout and pids.stdout:find("%d+") then
@@ -55,6 +49,12 @@ function M.ensure_server_async(port, progress_cb, on_ready)
     end
   end
 
+  -- 2. Secondary Fast-path: Memory check if Sagani spawned server handle in this session
+  if M._server_proc and M._server_port == port then
+    on_ready(true)
+    return
+  end
+
   local url = string.format("http://127.0.0.1:%d", port)
 
   if vim.fn.executable("curl") == 0 or vim.fn.executable("opencode") == 0 then
@@ -62,8 +62,8 @@ function M.ensure_server_async(port, progress_cb, on_ready)
     return
   end
 
-  -- Fast-check if port is already listening via HTTP probe
-  local check_cmd = { "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-m", "1", url .. "/" }
+  -- 3. HTTP health probe with generous timeout (5s) for initial startup
+  local check_cmd = { "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-m", "5", url .. "/" }
   vim.system(check_cmd, { text = true }, function(c_obj)
     vim.schedule(function()
       local code_str = vim.trim((c_obj and c_obj.stdout) or "")
@@ -73,7 +73,17 @@ function M.ensure_server_async(port, progress_cb, on_ready)
         return
       end
 
-      -- Port is not responding. Spawn detached background daemon
+      -- Double-check via lsof before attempting to spawn to prevent port collisions
+      if vim.fn.executable("lsof") == 1 then
+        local pids = vim.system({ "lsof", "-ti", ":" .. tostring(port) }, { text = true }):wait()
+        if pids and pids.code == 0 and pids.stdout and pids.stdout:find("%d+") then
+          M._server_port = port
+          on_ready(true)
+          return
+        end
+      end
+
+      -- Port is definitely free; spawn detached background daemon
       if progress_cb then progress_cb("Starting OpenCode ACP background daemon on port " .. port .. "...") end
       local spawn_cmd = { "opencode", "acp", "--port", tostring(port) }
       pcall(function()
