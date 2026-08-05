@@ -14,8 +14,8 @@ The plugin is decoupled into four independent, single-responsibility layers:
 
 | Layer | Responsibility | Key Modules |
 |-------|----------------|-------------|
-| **Neovim Layer** | Visual selections, diff review, prompt formatting, user commands, keymaps, native Markdown floating UI | `init.lua`, `selection.lua`, `diff.lua`, `format.lua`, `notify.lua`, `ui/markdown_popup.lua` |
-| **Backend Registry Layer** | Multiplexer auto-detection, layout placement, facade adapter resolution (`herdr.lua`, `tmux.lua`, `zellij.lua`, `native.lua`), and hybrid agent registry resolution (`opts.agents`). | `backend.lua`, `backend/*.lua`, `backend/*/*.lua` |
+| **Neovim Layer** | Visual selections, diff review, prompt formatting, user commands, keymaps, native Markdown floating UI, interactive pickers | `init.lua`, `selection.lua`, `diff/` (`baseline`, `hunks`, `view`, `actions`), `format.lua`, `notify.lua`, `ui/markdown_popup/`, `ui/picker/` (`agent`, `target`, `mode`) |
+| **Backend Registry Layer** | Multiplexer auto-detection, layout placement, facade adapter resolution, task options resolution | `backend/` (`registry`, `task`, `herdr`, `tmux`, `zellij`, `native`) |
 | **Protocol & IPC Layer** | Harness-agnostic agent protocol drivers (`acp`, `http`, `cli`, `json_rpc`) and CLI command builders | `protocol/init.lua`, `protocol/acp.lua`, `protocol/http.lua`, `protocol/cli.lua`, `protocol/json_rpc.lua`, `protocol/cli/*.lua` |
 | **Model Cache & State Layer** | 100% dynamic CLI/API model discovery and persistent local disk cache | `cache.lua` (`stdpath('state')/sagani/models.json`) |
 
@@ -172,6 +172,7 @@ Every backend adapter **must** implement the following interface:
 | 22 | **F22: Agent Protocol Adapters** | Per-harness protocol implementations under `acp/`, `http/`, `cli/`, `json_rpc/` subfolders | `lua/sagani/protocol/` | ✅ Done |
 | 23 | **F23: Dynamic CLI Model Discovery** | Queries live model availability (`agy models`, etc.) during interactive `<leader>ah` selection | `lua/sagani/protocol/cli/` | ✅ Done |
 | 24 | **F24: Provider-Centric Configuration** | Unified `opts.providers` schema (models, reasoning efforts, default models, aliases, API keys) | `lua/sagani/init.lua` | ✅ Done |
+| 25 | **F25: Interactive Target Agent Pane Selection** | Interactively select target agent pane via `:SaganiSelectTarget` (`<leader>ac`) listing running multiplexer agent panes (Herdr, Tmux, Zellij) and Native Neovim agent panes | `lua/sagani/ui/picker/target.lua` | ✅ Done |
 
 ---
 
@@ -189,7 +190,7 @@ Every backend adapter **must** implement the following interface:
 |---------|--------|-------------|
 | `:SaganiStatus` | `<leader>as` (n) | Show topology and target pane status |
 | `:SaganiSend` | `<leader>as` (v), `<leader>at` (v) | Send visual selection with instruction |
-| `:SaganiSelectTarget` | `<leader>ac` (n) | Set manual pane override |
+| `:SaganiSelectTarget` | `<leader>ac` (n) | Interactively select target agent pane from running multiplexer & native panes |
 | `:SaganiContext` | `<leader>ac` (v) | Send code context to agent |
 | `:SaganiDiff` | `<leader>ad` (n,v) | Send diff comment to agent |
 | `:SaganiPrompt` | `<leader>ap` (n,v) | Send custom prompt |
