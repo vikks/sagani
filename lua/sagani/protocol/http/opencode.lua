@@ -83,9 +83,9 @@ function M.ensure_server_async(port, progress_cb, on_ready)
         end
       end
 
-      -- Port is definitely free; spawn detached background daemon
+      -- Port is definitely free; spawn detached background daemon with persistent stdin stream
       if progress_cb then progress_cb("Starting OpenCode ACP background daemon on port " .. port .. "...") end
-      local spawn_cmd = { "opencode", "acp", "--port", tostring(port) }
+      local spawn_cmd = { "sh", "-c", string.format("nohup sh -c 'tail -f /dev/null | opencode acp --port %d' > /dev/null 2>&1 &", port) }
       pcall(function()
         M._server_proc = vim.system(spawn_cmd, { detach = true })
         M._server_port = port
