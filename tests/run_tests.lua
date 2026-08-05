@@ -15,11 +15,6 @@ vim.ui.input = function(opts, cb)
   end
 end
 
--- Global mock for sagani.dispatch_prompt during test suite execution to prevent polluting active buffers/sessions
-local sagani_init = require("sagani")
-sagani_init.dispatch_prompt = function(prompt_text, target_pane, opts)
-  return true, nil
-end
 
 print("==========================================================")
 print("  sagani.nvim Master Test Runner")
@@ -47,6 +42,7 @@ for _, file_path in ipairs(test_files) do
   local filename = vim.fn.fnamemodify(file_path, ":t")
   print("\n>>> Executing Test Suite: " .. filename)
 
+  local sagani_init = require("sagani")
   sagani_init._session_agent = nil
   sagani_init._session_harness = nil
   sagani_init._session_model = nil

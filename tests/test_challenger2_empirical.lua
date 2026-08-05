@@ -108,8 +108,8 @@ function M.run()
     sagani.setup({})
     sagani._session_ask_agent = "opencode"
     package.loaded["sagani"] = nil
-    local fresh_sagani = require("sagani")
-    assert_equal(nil, fresh_sagani._session_ask_agent, "Fresh module require after reload should reset session cache")
+    sagani = require("sagani")
+    assert_equal(nil, sagani._session_ask_agent, "Fresh module require after reload should reset session cache")
   end)
 
   test("Session Caching Lifecycle: Cancellation does not pollute session cache", function()
@@ -137,6 +137,7 @@ function M.run()
     vim.api.nvim_buf_set_name(buf1, "/tmp/project/src/main.lua")
     vim.api.nvim_buf_set_name(buf2, "/tmp/project/tests/test_main.py")
 
+    local orig_dispatch = sagani.dispatch_prompt
     local last_prompt = nil
     sagani.dispatch_prompt = function(prompt, pane, opts)
       last_prompt = prompt
@@ -153,6 +154,7 @@ function M.run()
     sagani.ask_agent_prompt("Check imports", { ask_agent = { target_agent = "agy" } })
     assert_true(last_prompt:find("@[/tmp/project/tests/test_main.py]", 1, true) ~= nil, "Should inject buf2 path into prompt")
 
+    sagani.dispatch_prompt = orig_dispatch
     vim.api.nvim_buf_delete(buf1, { force = true })
     vim.api.nvim_buf_delete(buf2, { force = true })
   end)
@@ -161,6 +163,7 @@ function M.run()
     local buf = vim.api.nvim_create_buf(true, false)
     vim.api.nvim_set_current_buf(buf) -- [No Name] buffer
 
+    local orig_dispatch = sagani.dispatch_prompt
     local last_prompt = nil
     sagani.dispatch_prompt = function(prompt, pane, opts)
       last_prompt = prompt
@@ -171,6 +174,7 @@ function M.run()
     assert_equal("What is this?", last_prompt, "Prompt should be unchanged for unnamed buffer")
     assert_false(last_prompt:find("@%[") ~= nil, "No @[] reference should be added for unnamed buffer")
 
+    sagani.dispatch_prompt = orig_dispatch
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 
@@ -179,6 +183,7 @@ function M.run()
     vim.api.nvim_buf_set_name(buf, "/tmp/project/src/app.lua")
     vim.api.nvim_set_current_buf(buf)
 
+    local orig_dispatch = sagani.dispatch_prompt
     local last_prompt = nil
     sagani.dispatch_prompt = function(prompt, pane, opts)
       last_prompt = prompt
@@ -188,6 +193,7 @@ function M.run()
     sagani.ask_agent_prompt("Refactor @[/tmp/other.lua] please", { ask_agent = { target_agent = "agy" } })
     assert_equal("Refactor @[/tmp/other.lua] please", last_prompt, "Should preserve existing @[...] reference without appending active buffer")
 
+    sagani.dispatch_prompt = orig_dispatch
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 
@@ -196,6 +202,7 @@ function M.run()
     vim.api.nvim_buf_set_name(buf, "/tmp/my path/file [v1].lua")
     vim.api.nvim_set_current_buf(buf)
 
+    local orig_dispatch = sagani.dispatch_prompt
     local last_prompt = nil
     sagani.dispatch_prompt = function(prompt, pane, opts)
       last_prompt = prompt
@@ -205,6 +212,7 @@ function M.run()
     sagani.ask_agent_prompt("Review this file", { ask_agent = { target_agent = "agy" } })
     assert_true(last_prompt:find("@[/tmp/my path/file [v1].lua]", 1, true) ~= nil, "Should correctly handle spaces and brackets in path")
 
+    sagani.dispatch_prompt = orig_dispatch
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 
