@@ -179,18 +179,15 @@ require("sagani").setup({
     chat = "agy",
     ask = {
       agent = "agy",
-      backend = "native",
+      backend = "native", -- Defaults to native floating popup
       instructions = "Answer the user's question concisely and accurately.",
     },
     review = {
       agent = "codex",
-      backend = "default",
       instructions = "Review the provided code changes and offer actionable feedback.",
     },
     code = {
       agent = "opencode",
-      port = 4096,
-      backend = "default",
       instructions = "Fulfill the user's coding request directly in the buffer.",
     },
   },

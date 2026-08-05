@@ -106,13 +106,10 @@ M.defaults = {
 		},
 		review = {
 			agent = "codex",
-			backend = "default",
 			instructions = "Review the provided code changes and offer actionable feedback.",
 		},
 		code = {
 			agent = "opencode",
-			port = 4096,
-			backend = "default",
 			instructions = "Fulfill the user's coding request directly in the buffer.",
 		},
 	},

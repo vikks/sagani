@@ -72,6 +72,7 @@ return {
 				chat = "agy",
 				ask = {
 					agent = "agy",
+					backend = "native",
 					instructions = "Answer the user's question concisely and accurately.",
 				},
 				review = {
@@ -80,7 +81,6 @@ return {
 				},
 				code = {
 					agent = "opencode",
-					port = 4096,
 					instructions = "Fulfill the user's coding request directly in the buffer.",
 				},
 			},
