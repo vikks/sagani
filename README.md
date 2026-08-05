@@ -2,34 +2,69 @@
 
 [![Neovim](https://img.shields.io/badge/Neovim-0.9+-57A143?style=for-the-badge&logo=neovim&logoColor=white)](https://neovim.io)
 [![Lua](https://img.shields.io/badge/Lua-5.1%20%2F%20JIT-2C2D72?style=for-the-badge&logo=lua&logoColor=white)](https://www.lua.org)
+[![Tests](https://img.shields.io/badge/Tests-526%20Passed-success?style=for-the-badge&logo=github)](tests/run_tests.lua)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
-A harness-agnostic Neovim plugin (tailored for [LazyVim](https://www.lazyvim.org/)) that seamlessly connects your Neovim buffer workflows with terminal multiplexers ([`herdr`](https://github.com/herdr/herdr)) and AI coding agent harnesses (`agy`, `codex`, `opencode`, `hermes`, etc.).
+**sagani.nvim** is a harness-agnostic, decoupled AI coding agent integration plugin for [Neovim](https://neovim.io) (tailored for [LazyVim](https://www.lazyvim.org/)). It bridges your buffer workflows directly with terminal multiplexers ([`herdr`](https://github.com/herdr/herdr), `tmux`, `zellij`, or native Neovim splits/floats) and AI agent harnesses (`agy`, `codex`, `opencode`, `hermes`, `gemini`, etc.).
 
 ---
 
-## ⚡ Features
+## ✨ Features
 
-- **🌐 Harness-Agnostic Agent Switching**: Switch target agent harnesses (`agy`, `codex`, `opencode`, `hermes`, or custom CLI tools) on the fly via an interactive menu (`:SaganiSelectAgent`).
-- **⚡ Reliable CLI-Based Agent Dispatch**: Communicates with Herdr via direct CLI commands (`herdr agent prompt`, `herdr pane split`, `herdr agent start --timeout`). Agent startup readiness is verified at the CLI level — no race conditions, no timing hacks.
-- **🧩 Automatic Topology Discovery**: Automatically detects your active `herdr` terminal environment (pane, tab, workspace IDs) and discovers active agent target panes.
-- **✨ Visual Selection & Code Context**: Dispatch visual selections (`v`, `V`, `<C-v>`) formatted with file path, line range, syntax highlighting, and instruction prompts directly to your agent.
-- **💬 Ask General Agent in a New Pane**: Prompt an agent for general questions or assistance in a dedicated new pane (`:SaganiAskAgent`, `<leader>aa`) with automatic file context references (`@[abs_path]`) and session-cached agent selection.
-- **🔍 Structured Diff Review**: Review git diffs (via `diffview.nvim` or native Neovim diff split), calculate hunks, and submit formatted Markdown diff review comments to your agent.
-- **🔎 Interactive Edit Review & Accept/Reject**: See exactly where agent edits occurred in your buffer via side-by-side diff review splits (`:SaganiReview`), navigate hunks (`]c` / `[c`), and accept (`<leader>ay` / `:SaganiAccept`) or reject (`<leader>ax` / `:SaganiReject`) individual edit hunks or all file changes.
-- **⌨️ LazyVim & WhichKey Integration**: Includes pre-configured LazyVim plugin specs with optional `folke/which-key.nvim` menu grouping (`<leader>a` → `"Sagani"`).
-- **🧪 Headless Test Suite**: Fully covered by a headless Neovim unit and integration test suite.
+- 🖥️ **Multi-Backend Transport Routing**: Auto-detects active terminal environment in order: **Herdr → Tmux → Zellij → Native Neovim**. Run agents seamlessly across multiplexers or in standalone floats/splits without external dependencies.
+- 🔌 **Protocol-First Agent Driver Layer**: Transport drivers (`acp`, `http`, `cli`, `json_rpc`) connect directly to agent daemons (e.g. OpenCode HTTP ACP, Gemini JSON-RPC, Antigravity CLI).
+- 📌 **Single-Keypress Floating Popup & Pin Mode**: Ask general questions in floating Markdown popups (`:SaganiAskAgent`, `<leader>aa`). Press `p` inside the popup to instantly promote floating windows to directional splits (`[h]` Left, `[l]` Right, `[k]` Top, `[j]` Bottom) or a new tab (`[t]`).
+- 🤖 **100% Dynamic Model Discovery**: Discovers models live from agent CLIs, ACP daemons, and system caches (cached under `stdpath('state')/sagani/models.json` with 24h TTL). Intelligent reasoning effort prompts (`low`, `medium`, `high`) are dynamically presented only when supported by the selected model.
+- 🔍 **Interactive Edit Review & Hunk Acceptance**: Review agent edits side-by-side (`:SaganiReview`), navigate change hunks (`]c` / `[c`), and accept (`:SaganiAccept`, `<leader>ay`) or reject (`:SaganiReject`, `<leader>ax`) hunks individually or across the whole file.
+- 📐 **Visual Context & Diff Feedback**: Extract characterwise, linewise, or blockwise visual selections formatted as structured Markdown code blocks with file path, line range, and syntax highlighting. Send diff review feedback directly to your target agent.
+- ⌨️ **LazyVim & WhichKey Integration**: Built-in plugin spec with automatic `folke/which-key.nvim` menu registration (`<leader>a` → `"Sagani"`).
+- 🧪 **Zero-Dependency Headless Test Suite**: Tested headlessly with **526 unit & integration tests** covering cross-module stress, multi-turn HTTP ACP sessions, and process table recovery.
 
 ---
+
+## 🏛️ System Architecture
+
+```
+ +-----------------------------------------------------------------------------------+
+ |                                    Neovim Layer                                   |
+ |                                                                                   |
+ |  +--------------------------+          +--------------------------------+          |
+ |  | plugins/sagani.lua       |          | lua/sagani/init.lua            |          |
+ |  | (LazyVim Plugin Spec &   |--------->| (Setup, Commands, Keymaps,     |          |
+ |  |  WhichKey Configuration) |          |  dispatch_prompt entry point)  |          |
+ |  +--------------------------+          +--------+---------------+-------+          |
+ |                                                 |               |                  |
+ |        +-------------------+   +------------------+             |   +------------+ |
+ |        | selection.lua     |   | diff.lua         |             +-->| ui/        | |
+ |        | (Visual selection |   | (Diff hunk       |                 | markdown_  | |
+ |        |  extraction)      |   |  review/accept)  |                 | popup.lua  | |
+ |        +--+----------------+   +------------------+                 +------------+ |
+ +-----------|-----------------------------------------------------------------------+
+             |                                    |
+             | dispatch_prompt                    | get_backend(opts, task_type)
+             v                                    v
+ +-----------------------------------+   +-------------------------------------------+
+ |       Protocol & IPC Layer        |   |           Backend Registry Layer          |
+ |                                   |   |                                           |
+ |   +---------------------------+   |   |   backend.get_backend(opts) auto-detects: |
+ |   | protocol/ (ACP/HTTP/CLI)  |   |   |   Herdr -> Tmux -> Zellij -> Native       |
+ |   +-------------+-------------+   |   +-------+---------+--------+--------+-------+
+ |                 |                 |           |         |        |        |       |
+ |  +--------------+--------------+  |           v         v        v        v       |
+ |  | protocol/cli/ (agy, codex,  |  |  +--------+  +------+--+ +---+----+ +--+----+ |
+ |  |  opencode, gemini, hermes)  |  |  |backend/|  |backend/ | |backend/| |backend| |
+ |  +-----------------------------+  |  |herdr   |  |tmux     | |zellij  | |native |
+ +-----------------------------------+  +---+----+  +----+----+ +---+----+ +--+----+
+```
 
 ---
 
 ## 📦 Requirements
 
 - **Neovim**: `>= 0.9.0`
-- **Terminal Multiplexer**: `herdr` CLI installed and available in `$PATH`
-- **AI Agent Harness**: One or more installed agent harnesses (`agy`, `codex`, `opencode`, `hermes`, etc.)
-- **(Optional)**: `folke/which-key.nvim` for keymap menu integration
+- **Agent Harnesses**: One or more installed agent CLIs (`agy`, `opencode`, `codex`, `gemini`, `hermes`, etc.)
+- **(Optional)** Terminal Multiplexer: `herdr`, `tmux`, or `zellij` (if running inside a multiplexer)
+- **(Optional)** UI Integrations: `folke/which-key.nvim` for keymap menu popups, `sindrets/diffview.nvim` for diff reviews
 
 ---
 
@@ -39,23 +74,18 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 return {
-  "vikks/sagani",
+  "vikks/sagani.nvim",
   opts = {
-    target_agent = "agy",
-    auto_discover = true,
-    auto_spawn = "left",
-    ask_agent = {
-      target_agent = nil,
-    },
-    review = {
-      enabled = true,
-      auto_open = false,
+    -- Default task definitions (WHAT runs)
+    tasks = {
+      ask = { harness = "opencode", model = "deepseek-v4-flash-free" },
+      code = "opencode",
+      chat = "agy",
+      review = "codex",
     },
   },
 }
 ```
-
-That's it! `sagani.nvim` will automatically register its default user commands, default keymaps (`<leader>a...`), and WhichKey menu integration upon setup.
 
 ---
 
@@ -65,36 +95,28 @@ Configure **sagani.nvim** via `require("sagani").setup(opts)`:
 
 ```lua
 require("sagani").setup({
-  -- Provider Aliases & API Keys (Models are discovered 100% dynamically from live agent CLIs!)
-  providers = {
-    google = { api_key_env = "GEMINI_API_KEY", alias = "Google Gemini" },
-    openai = { api_key_env = "OPENAI_API_KEY", alias = "OpenAI" },
-    anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
+  -- 1. Named Agent Definitions (Hybrid Agent Registry)
+  agents = {
+    agy = { harness = "cli", cmd = { "agy" } },
+    opencode = { harness = "opencode", port = 4096 },
+    codex = { harness = "cli", cmd = { "codex" } },
+    gemini = { harness = "json_rpc", cmd = { "gemini", "--acp" } },
   },
 
-  -- Configure custom background ACP server ports per agent harness
-  ports = {
-    opencode = 4096,
-    gemini = 4097,
-  },
-
-  -- 1. Tasks Configuration (WHAT agent harness, provider, model, effort, alias, protocol to run per task)
+  -- 2. Tasks Configuration (WHAT agent harness, provider, model, effort per task)
   tasks = {
     ask = {
-      protocol = "acp",
-      harness = "agy",
-      model = "gemini-3.6-flash-low",
-      effort = "low",
-      alias = "Gemini 3.6 Flash (Low)",
+      protocol = "http",
+      harness = "opencode",
+      model = "deepseek-v4-flash-free",
+      provider = "opencode",
     },
-    review = { protocol = "terminal", harness = "codex", model = "o3", effort = "high" },
-
-    -- Short-form string syntax specifies the agent harness name directly:
-    code = "opencode",  -- Short for { harness = "opencode" }
-    chat = "agy",       -- Short for { harness = "agy" }
+    review = { harness = "codex", model = "o3-mini", effort = "high" },
+    code = "opencode",  -- Short-form string syntax defines harness name directly
+    chat = "agy",
   },
 
-  -- 2. Global Window & UI Styling Defaults (HOW windows look visually)
+  -- 3. Global Window & UI Styling Defaults (HOW windows look)
   window_opts = {
     width = 0.8,         -- Floating popup width (80% or integer columns)
     height = 0.8,        -- Floating popup height (80% or integer lines)
@@ -103,62 +125,51 @@ require("sagani").setup({
     ratio = 0.3,         -- Pane split size ratio (30% split size)
   },
 
-  -- 3. Backend Placements & Overrides (WHERE tasks get placed per multiplexer + flat UI/backend overrides)
+  -- 4. Backend Placements & Overrides (WHERE tasks get placed per multiplexer)
   backends = {
     native = {
       ask = "popup",       -- Native creates a Neovim floating window for 'ask'
       review = "vsplit",   -- Native creates a vertical split for 'review'
       code = "vsplit",
       chat = "vsplit",
-      border = "rounded",
-      winblend = 15,       -- Native-specific UI transparency override
+      winblend = 15,
     },
     herdr = {
-      ask = false,         -- Herdr opts out of 'ask' ➡️ falls back directly to native floating popup!
+      ask = false,         -- Opts out of Herdr for 'ask' ➡️ falls back directly to native float!
       review = "right-pane",
       code = "right-pane",
       chat = "right-pane",
-      ratio = 0.3,         -- Herdr-specific split ratio override (herdr pane split --ratio 0.3)
-      auto_discover = true,
-      auto_spawn = false,
+      ratio = 0.3,
     },
     tmux = {
-      ask = "popup",       -- Tmux display-popup for questions
+      ask = "popup",
       review = "right-pane",
       code = "right-pane",
       chat = "right-pane",
-      width = "80%",
-      height = "80%",
-      border = "rounded",  -- tmux display-popup -b rounded
     },
     zellij = {
-      ask = "floating",    -- Zellij floating pane for questions
+      ask = "floating",
       review = "right-pane",
       code = "right-pane",
       chat = "right-pane",
     },
   },
 
-  -- 4. Provider Configurations (LLM API credentials & endpoints)
+  -- 5. Provider Configurations (LLM API credentials & aliases)
   providers = {
-    google = { api_key_env = "GEMINI_API_KEY" },
-    openai = { api_key_env = "OPENAI_API_KEY" },
-    anthropic = { api_key_env = "ANTHROPIC_API_KEY" },
+    google = { api_key_env = "GEMINI_API_KEY", alias = "Google Gemini" },
+    openai = { api_key_env = "OPENAI_API_KEY", alias = "OpenAI" },
+    anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
   },
 
-  -- General question agent configuration
-  ask_agent = {
-    target_agent = nil, -- Specific target agent for general questions (if nil, uses active session agent set via <leader>ah or target_agent)
-  },
-
-  -- Agent edit review configuration
+  -- Interactive Edit Review Configuration
   review = {
     enabled = true,    -- Enable interactive edit review & accept/reject workflow
     auto_open = false, -- Automatically open review view when agent edits occur
-    mode = "inline",   -- Review display style: "inline" (virtual text & line highlights) or "split" (side-by-side vsplit)
+    mode = "inline",   -- Review display style: "inline" or "split"
   },
 
-  -- Notification settings
+  -- Notification Settings
   notify = {
     enabled = true,
     title = "sagani.nvim",
@@ -168,99 +179,68 @@ require("sagani").setup({
 
 ---
 
-### 🎯 Task & Backend Configuration Guidelines
+## ⌨️ Keymaps & User Commands
 
-`sagani.nvim` separates your configuration into four clean concern domains:
+### Default Keymaps (`<leader>a`)
 
-1. **`tasks` (WHAT agent runs)**: Configures agent harnesses, providers, models, thinking effort, and timeouts. Short-form string syntax defines the **agent harness name** directly (`code = "opencode"`).
-2. **`window_opts` (HOW windows look)**: Configures global visual UI styling (`width`, `height`, `border`, `winblend` transparency, `ratio` split ratio).
-3. **`backends` (WHERE tasks get placed)**: Configures per-multiplexer task placements (`ask = false`, `review = "right-pane"`) and backend UI/options overrides.
-4. **`providers` (LLM API Settings)**: Configures API keys and base URLs.
-
-#### Supported Placement Specifiers (`opts.backends.<name>`)
-
-| Specifier | Category | Behavior |
-|---|---|---|
-| `"right-pane"` / `"right"` | Pane Split | Splits current pane to the right |
-| `"left-pane"` / `"left"` | Pane Split | Splits current pane to the left |
-| `"bottom-pane"` / `"down"` | Pane Split | Splits current pane downwards |
-| `"top-pane"` / `"up"` | Pane Split | Splits current pane upwards |
-| `"tab"` / `"new-tab"` | Tab | Creates a new tab/window in multiplexer or Neovim |
-| `"popup"` / `"floating"` | Floating Window | Spawns a floating popup window |
-| `"vsplit"` / `"hsplit"` | Native Split | Vertical or horizontal split in Neovim |
-| `false` | Opt-out | Disables active multiplexer for this task ➡️ falls back directly to `native` |
-
-#### Resolution Engine
-
-When `sagani.nvim` dispatches a task (`ask`, `review`, `code`, `chat`, or any custom key):
-
-- **Placement**: Evaluates `opts.backends[active_backend][task_name]`. If `false`, falls back directly to `native` (`opts.backends.native[task_name]`).
-- **UI Styling**: Merges `opts.window_opts` with `opts.backends[active_backend]` (`width`, `height`, `border`, `winblend`, `ratio`).
-- **Agent Harness**: Evaluates `opts.tasks[task_name]` (`harness`, `provider`, `model`, `effort`).
+| Keymap | Mode | User Command | Description |
+|---|---|---|---|
+| `<leader>aa` | Normal / Visual | `:SaganiAskAgent` | Ask general question in floating popup or pane |
+| `<leader>as` | Normal | `:SaganiStatus` | Display active backend topology and target pane status |
+| `<leader>as` | Visual | `:SaganiSend` | Send visual selection with prompt instruction to agent |
+| `<leader>ac` | Normal | `:SaganiSelectTarget` | Set manual target pane ID override |
+| `<leader>ac` | Visual | `:SaganiContext` | Send visual selection code context to agent |
+| `<leader>ad` | Normal / Visual | `:SaganiDiff` | Send formatted diff review comment & hunk to agent |
+| `<leader>ap` | Normal / Visual | `:SaganiPrompt` | Send custom prompt directly to target agent |
+| `<leader>an` | Normal | `:SaganiSpawnPane` | Spawn new agent pane in active multiplexer |
+| `<leader>ah` | Normal | `:SaganiSelectAgent` | Select target agent harness & model interactively |
+| `<leader>ar` | Normal | `:SaganiReview` | Toggle side-by-side agent edit review diff split |
+| `<leader>ay` | Normal | `:SaganiAccept` | Accept change hunk under cursor (or all pending edits) |
+| `<leader>ax` | Normal | `:SaganiReject` | Reject change hunk under cursor (or revert all edits) |
+| `<leader>a]` | Normal | `:SaganiNextHunk` | Navigate cursor to next edit hunk |
+| `<leader>a[` | Normal | `:SaganiPrevHunk` | Navigate cursor to previous edit hunk |
 
 ---
 
-## ⌨️ Keymaps & Commands
-
-### Keymaps Reference
-
-| Keymap | Modes | Command | Description |
-|---|---|---|---|
-| `<leader>as` | Normal | `:SaganiStatus` | Display Herdr session status, topology, and target pane |
-| `<leader>as` | Visual | `:SaganiSend` | Send visual selection with instruction prompt to agent |
-| `<leader>ac` | Normal | `:SaganiSelectTarget` | Set manual target pane ID override |
-| `<leader>ac` | Visual | `:SaganiContext` | Send visual selection code context to agent |
-| `<leader>ad` | Normal / Visual | `:SaganiDiff` | Send diff review comment & Markdown diff block to agent |
-| `<leader>ap` | Normal / Visual | `:SaganiPrompt` | Send custom prompt to target agent |
-| `<leader>an` | Normal | `:SaganiSpawnPane` | Spawn new Herdr pane for active agent harness |
-| `<leader>ah` | Normal | `:SaganiSelectAgent` | Open picker to select agent harness (`agy`, `codex`, etc.) |
-| `<leader>aa` | Normal / Visual | `:SaganiAskAgent` | Ask general questions to agent in a new pane |
-| `<leader>ar` | Normal | `:SaganiReview` | Toggle side-by-side agent edit review diff view |
-| `<leader>ay` | Normal | `:SaganiAccept` | Accept agent edit change (hunk under cursor or all) |
-| `<leader>ax` | Normal | `:SaganiReject` | Reject agent edit change (revert hunk under cursor or all) |
-| `<leader>a]` | Normal | `:SaganiNextHunk` | Jump cursor to next agent edit hunk |
-| `<leader>a[` | Normal | `:SaganiPrevHunk` | Jump cursor to previous agent edit hunk |
-
-### User Commands Reference
+### User Commands
 
 | Command | Description |
 |---|---|
-| `:SaganiStatus` | Show Herdr session topology and target agent pane state |
+| `:SaganiAskAgent [prompt]` | Ask agent general questions in floating popup or dedicated pane |
+| `:SaganiSelectAgent [harness]` | Select active agent harness & model dynamically |
+| `:SaganiPromote [placement]` | Promote active floating popup to split (`left`, `right`, `top`, `bottom`, `tab`) |
+| `:SaganiStatus` | Display multiplexer topology and target pane status |
 | `:SaganiSend` | Capture visual selection (`v`, `V`, `<C-v>`) and send with prompt instruction |
 | `:SaganiContext` | Capture visual selection code context and send directly to agent |
-| `:SaganiDiff` | Capture active diff hunk/selection and send formatted review comment |
-| `:SaganiSelectAgent [harness]` | Select target agent harness interactively or via argument |
-| `:SaganiAskAgent [prompt]` | Ask general questions/prompts to an agent in a new pane |
-| `:SaganiSelectHarness [harness]` | Alias for `:SaganiSelectAgent` |
-| `:SaganiSelectTarget` | Prompt interactively to set or clear manual target pane ID |
-| `:SaganiSpawnPane` | Spawn a Herdr pane and initialize the target agent harness |
-| `:SaganiPrompt [text]` | Dispatch custom prompt text directly to target agent pane |
+| `:SaganiDiff` | Capture active diff hunk and send formatted review comment |
 | `:SaganiReview` | Toggle side-by-side agent edit review diff split against baseline |
 | `:SaganiAccept [hunk\|all]` | Accept edit hunk at cursor (or all pending edits in buffer) |
 | `:SaganiReject [hunk\|all]` | Reject edit hunk at cursor (or revert all edits to baseline) |
-| `:SaganiNextHunk` | Navigate cursor to next change hunk in buffer |
-| `:SaganiPrevHunk` | Navigate cursor to previous change hunk in buffer |
-| `:SaganiClearCache` | Clear persistent model cache on disk (`stdpath('state')/sagani/models.json`) |
+| `:SaganiNextHunk` | Navigate cursor to next edit hunk in buffer |
+| `:SaganiPrevHunk` | Navigate cursor to previous edit hunk in buffer |
+| `:SaganiClearCache` | Flush persistent disk model cache (`stdpath('state')/sagani/models.json`) |
+| `:SaganiReload` | Hot-reload all `sagani.*` Lua modules without restarting Neovim |
 
-### ❓ Troubleshooting Missing Keymaps
+---
 
-If typing `<leader>a...` does not trigger any commands after installing:
+## 📌 Floating Popup & Single-Keypress Pin Mode
 
-1. **Ensure `opts = {}` or `config = true` is in your plugin spec**:
-   Lazy.nvim will **not** invoke `require("sagani").setup()` automatically unless `opts = {}` or `config = true` (or a custom `config` function) is specified:
-   ```lua
-   { "vikks/sagani.nvim", opts = {} }
-   ```
-2. **Order of `vim.g.mapleader`**:
-   Ensure `vim.g.mapleader = " "` (or your preferred leader key) is defined **before** lazy.nvim or plugin setups in your `init.lua`. If `mapleader` is set after setup runs, Neovim maps `<leader>` to default `\` (backslash).
-3. **Lazy-loading without `keys` declared**:
-   If using `lazy = true` or `cmd = { ... }`, lazy.nvim delays loading the plugin until a trigger occurs. Declare `keys` in your spec or load on startup.
+When asking questions via `:SaganiAskAgent` (`<leader>aa`), Sagani opens a floating Markdown popup window with interactive keybindings:
+
+```
+📌 Pin window: [h] Left | [l] Right | [k] Top | [j] Bottom | [t] Tab | [Esc/q] Cancel
+```
+
+- **`p`**: Enter **Single-Keypress Pin Mode**. Pressing `h`, `l`, `k`, `j`, or `t` immediately promotes the float into a vertical/horizontal split or new tab page.
+- **`<CR>` / `r`**: Send follow-up prompt to continue multi-turn session.
+- **`yr`**: Copy current turn's response text to clipboard register (`+`).
+- **`q` / `<Esc>`**: Close popup.
 
 ---
 
 ## 🧪 Testing & Verification
 
-Run the headless test suite to verify module behavior:
+Sagani includes a master headless test runner verifying **526 unit and integration tests**:
 
 ```bash
 nvim --headless -u NONE -c "luafile tests/run_tests.lua"
