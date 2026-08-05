@@ -56,9 +56,15 @@ This document lists all default keymaps and user commands available in **sagani.
 
 ## 📌 Floating Window Keybindings (Markdown Popup)
 
-When asking questions via `:SaganiAskAgent` (`<leader>aa`), the floating popup supports:
+When asking questions via `:SaganiAskAgent` (`<leader>aa`) in ACP mode, Sagani presents a persistent multi-turn floating layout with an attached prompt input box:
 
-- **`p`**: Enter **Single-Keypress Pin Mode**. Press `h`, `l`, `k`, `j`, or `t` to promote the float to a split or new tab page.
-- **`<CR>` / `r`**: Send follow-up prompt in multi-turn session.
-- **`yr`**: Copy current turn's response to clipboard (`+` register).
-- **`q` / `<Esc>`**: Close popup.
+### Attached Input Sub-Window Controls
+- **`<CR>` / `<C-m>`**: Submit prompt to agent, append turn to main Markdown buffer, and stream response.
+- **`<Esc>`**: Exit Insert mode and switch focus to main Markdown response window in Normal mode.
+- **`q` / `<C-c>`**: Close both floating windows (preserves conversation history in session buffer).
+
+### Main Markdown Response Window Controls
+- **`i` / `r` / `<CR>`**: Focus attached prompt input box in Insert mode.
+- **`yr`**: Copy complete response to clipboard (`+` register).
+- **`p`**: Enter **Single-Keypress Pin Mode**. Press `h`, `l`, `k`, `j`, or `t` to promote float to a split or new tab page.
+- **`q` / `<Esc>`**: Close both floating windows (preserves conversation history in session buffer).
