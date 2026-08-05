@@ -252,6 +252,25 @@ function M.run()
     vim.env.HERDR_ENV = original_herdr
   end)
 
+  test("deprecated options (target_agent, ask_agent, ports, task harness) trigger deprecation notices", function()
+    local sagani = require("sagani")
+    sagani._deprecation_warned = {}
+
+    sagani.setup({
+      target_agent = "agy",
+      ask_agent = { target_agent = "agy" },
+      ports = { opencode = 4096 },
+      tasks = { ask = { harness = "opencode" } },
+      agents = { opencode = { harness = "opencode" } },
+    })
+
+    assert(sagani._deprecation_warned["target_agent"] == true, "target_agent warned")
+    assert(sagani._deprecation_warned["ask_agent"] == true, "ask_agent warned")
+    assert(sagani._deprecation_warned["ports"] == true, "ports warned")
+    assert(sagani._deprecation_warned["task_harness_ask"] == true, "task_harness_ask warned")
+    assert(sagani._deprecation_warned["agent_harness_opencode"] == true, "agent_harness_opencode warned")
+  end)
+
   return { passed = passed, failed = failed, failures = failures }
 end
 
