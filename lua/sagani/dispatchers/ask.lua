@@ -1,5 +1,22 @@
+--- ==============================================================================
+--- Module: sagani.dispatchers.ask
+---
+--- Description:
+---   High-level workflow coordinator for asking agents general questions.
+---   Integrates buffer context decoration, ACP popup execution, and multiplexer
+---   pane spawning.
+---
+--- Responsibilities:
+---   - Interactive prompt collection via vim.ui.input.
+---   - Delegate context injection to sagani.dispatchers.context.
+---   - Delegate ACP floating popup execution to sagani.dispatchers.acp.
+---   - Delegate terminal pane spawning and delivery to sagani.dispatchers.delivery.
+--- ==============================================================================
+
 local notify = require("sagani.notify")
 local backend = require("sagani.backend")
+local context = require("sagani.dispatchers.context")
+local acp_dispatcher = require("sagani.dispatchers.acp")
 
 local M = {}
 
@@ -26,13 +43,7 @@ function M.ask_agent_prompt(prompt_text, opts)
 			return
 		end
 
-		local full_name = vim.api.nvim_buf_get_name(0)
-		if full_name and full_name ~= "" and not text:find("@%[") then
-			local abs_path = vim.fn.fnamemodify(full_name, ":p")
-			if abs_path and abs_path ~= "" then
-				text = string.format("%s @[%s]", text, abs_path)
-			end
-		end
+		text = context.inject_file_reference(text, 0)
 
 		local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(opts, "ask")
 		local harness = (type(agent_name) == "string" and agent_name ~= "") and agent_name
@@ -49,34 +60,7 @@ function M.ask_agent_prompt(prompt_text, opts)
 		})
 
 		if agent_opts and agent_opts.protocol == "acp" then
-			local markdown_popup = require("sagani.ui.markdown_popup")
-			local acp = require("sagani.protocol.acp")
-
-			local display_name = (agent_opts and agent_opts.alias) or harness:upper()
-			local win, buf = markdown_popup.open(string.format("Sagani Agent (%s)", display_name), popup_opts)
-			markdown_popup.set_prompt_header(buf, text, display_name)
-			pcall(vim.cmd, "redraw")
-
-			local progress_cb = function(status_msg)
-				vim.schedule(function()
-					markdown_popup.update_status(buf, status_msg)
-					pcall(vim.cmd, "redraw")
-				end)
-			end
-
-			acp.execute_prompt(harness, text, agent_opts, function(resp, acp_err, session_id)
-				markdown_popup.set_session(buf, harness, session_id, agent_opts, popup_opts)
-				if resp then
-					markdown_popup.set_response(buf, resp)
-					notify.info(string.format("Received response from '%s' via ACP", harness), opts)
-				else
-					markdown_popup.set_response(buf, "❌ Error: " .. (acp_err or "Unknown ACP error"))
-					notify.error(
-						string.format("ACP request to '%s' failed: %s", harness, acp_err or "Unknown error"),
-						opts
-					)
-				end
-			end, opts, progress_cb)
+			acp_dispatcher.execute_acp_popup(harness, text, agent_opts, popup_opts)
 			return
 		end
 
