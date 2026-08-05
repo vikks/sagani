@@ -196,10 +196,25 @@ local function extract_session_id(s_data)
   if type(s_data.id) == "string" and s_data.id ~= "" then return s_data.id end
   if type(s_data.session_id) == "string" and s_data.session_id ~= "" then return s_data.session_id end
   if type(s_data.sessionId) == "string" and s_data.sessionId ~= "" then return s_data.sessionId end
+  if type(s_data.sessionID) == "string" and s_data.sessionID ~= "" then return s_data.sessionID end
   if type(s_data.uuid) == "string" and s_data.uuid ~= "" then return s_data.uuid end
   if type(s_data.key) == "string" and s_data.key ~= "" then return s_data.key end
   if type(s_data.session) == "string" and s_data.session ~= "" then return s_data.session end
   if type(s_data.session) == "table" and type(s_data.session.id) == "string" and s_data.session.id ~= "" then return s_data.session.id end
+  if type(s_data.info) == "table" then
+    local info_id = extract_session_id(s_data.info)
+    if info_id then return info_id end
+  end
+  if type(s_data.parts) == "table" then
+    for _, p in ipairs(s_data.parts) do
+      if type(p) == "table" then
+        local p_id = p.sessionID or p.sessionId or p.session_id or p.id
+        if type(p_id) == "string" and p_id ~= "" then
+          return p_id
+        end
+      end
+    end
+  end
   if type(s_data.result) == "table" then
     local res_id = extract_session_id(s_data.result)
     if res_id then return res_id end
@@ -211,13 +226,32 @@ local function extract_session_id(s_data)
   return nil
 end
 
-function M.send_message(url, session_id, prompt_text, callback, progress_cb)
+function M.send_message(url, session_id, prompt_text, callback, progress_cb, agent_opts)
   if progress_cb then progress_cb("Generating response from OpenCode model...") end
-  local msg_payload = vim.json.encode({
+
+  local model_obj = nil
+  if agent_opts and agent_opts.model and type(agent_opts.model) == "string" and agent_opts.model ~= "" then
+    local provider_id = (type(agent_opts.provider) == "string" and agent_opts.provider ~= "") and agent_opts.provider or "opencode"
+    local model_id = agent_opts.model
+    if model_id:find("/") then
+      provider_id, model_id = model_id:match("([^/]+)/(.*)")
+    end
+    model_obj = {
+      providerID = provider_id,
+      modelID = model_id,
+    }
+  end
+
+  local msg_body = {
     parts = { { type = "text", text = prompt_text } },
     prompt = prompt_text,
     text = prompt_text,
-  })
+  }
+  if model_obj then
+    msg_body.model = model_obj
+  end
+
+  local msg_payload = vim.json.encode(msg_body)
   local msg_cmd = {
     "curl", "-s", "-X", "POST", url .. "/session/" .. session_id .. "/message",
     "-H", "Content-Type: application/json",
@@ -252,18 +286,13 @@ function M.send_message(url, session_id, prompt_text, callback, progress_cb)
   end)
 end
 
-function M.create_session_and_send(url, prompt_text, callback, progress_cb)
+function M.create_session_and_send(url, prompt_text, callback, progress_cb, agent_opts)
   if progress_cb then progress_cb("Connected to OpenCode ACP server! Creating session...") end
 
-  local create_payload = vim.json.encode({
-    parts = { { type = "text", text = prompt_text } },
-    prompt = prompt_text,
-    text = prompt_text,
-  })
   local create_cmd = {
     "curl", "-s", "-X", "POST", url .. "/session",
     "-H", "Content-Type: application/json",
-    "-d", create_payload,
+    "-d", "{}",
   }
 
   vim.system(create_cmd, { text = true }, function(s_obj)
@@ -272,17 +301,13 @@ function M.create_session_and_send(url, prompt_text, callback, progress_cb)
       local s_ok, s_data = pcall(vim.json.decode, stdout)
       local new_session_id = s_ok and extract_session_id(s_data)
 
-      -- Synthetic session ID fallback if server does not return explicit session ID
       if not new_session_id or new_session_id == "" then
         new_session_id = "sess_opencode_" .. tostring(os.time()) .. "_" .. math.random(1000, 9999)
       end
 
-      local text, _ = parse_opencode_response(s_obj)
-      if text and text ~= "" then
-        callback(text, nil, new_session_id)
-      else
-        M.send_message(url, new_session_id, prompt_text, callback, progress_cb)
-      end
+      M.send_message(url, new_session_id, prompt_text, function(resp, err, s_id)
+        callback(resp, err, s_id or new_session_id)
+      end, progress_cb, agent_opts)
     end)
   end)
 end
@@ -299,7 +324,8 @@ function M.execute(prompt_text, agent_opts, callback, progress_cb, session_id)
     if not ready then
       local cli_opencode = require("sagani.protocol.cli.opencode")
       cli_opencode.execute(prompt_text, agent_opts, function(resp, err)
-        callback(resp, err, nil)
+        local sess = session_id or ("sess_opencode_cli_" .. tostring(os.time()))
+        callback(resp, err, sess)
       end)
       return
     end
@@ -309,13 +335,16 @@ function M.execute(prompt_text, agent_opts, callback, progress_cb, session_id)
         if resp then
           callback(resp, nil, s_id or session_id)
         else
-          M.create_session_and_send(url, prompt_text, callback, progress_cb)
+          -- Session or server failed; auto-recover by creating a fresh session
+          M._server_proc = nil
+          M._server_port = nil
+          M.create_session_and_send(url, prompt_text, callback, progress_cb, agent_opts)
         end
-      end, progress_cb)
+      end, progress_cb, agent_opts)
       return
     end
 
-    M.create_session_and_send(url, prompt_text, callback, progress_cb)
+    M.create_session_and_send(url, prompt_text, callback, progress_cb, agent_opts)
   end)
 
   return true
