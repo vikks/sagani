@@ -37,14 +37,18 @@ function M.spawn_pane(opts)
   local placement = (type(opts.placement) == "string" and opts.placement ~= "") and opts.placement:lower() or "rightbelow vsplit"
 
   local cmd_split = "rightbelow vsplit"
-  if placement == "left-pane" or placement == "left" or placement == "left-vsplit" then
+  if placement == "left" or placement == "leftsplit" or placement == "left-pane" then
     cmd_split = "leftabove vsplit"
-  elseif placement == "right-pane" or placement == "right" or placement == "right-vsplit" or placement == "vsplit" then
+  elseif placement == "right" or placement == "rightsplit" or placement == "right-pane" then
     cmd_split = "rightbelow vsplit"
-  elseif placement == "top-pane" or placement == "top" or placement == "top-hsplit" or placement == "up" then
+  elseif placement == "top" or placement == "topsplit" or placement == "top-pane" or placement == "up" then
     cmd_split = "leftabove split"
-  elseif placement == "bottom-pane" or placement == "bottom" or placement == "bottom-hsplit" or placement == "down" or placement == "hsplit" then
+  elseif placement == "bottom" or placement == "bottomsplit" or placement == "bottom-pane" or placement == "down" then
     cmd_split = "rightbelow split"
+  elseif placement == "vsplit" then
+    cmd_split = "vsplit"
+  elseif placement == "hsplit" or placement == "split" then
+    cmd_split = "split"
   elseif placement == "tab" or placement == "new-tab" then
     cmd_split = "tabnew"
   end
