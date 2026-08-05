@@ -47,12 +47,23 @@ function M.ensure_server_async(port, progress_cb, on_ready)
 
   if progress_cb then progress_cb("Checking OpenCode ACP server health on port " .. port .. "...") end
 
-  local health_cmd = { "curl", "-s", "-m", "1", url .. "/global/health" }
-  vim.system(health_cmd, { text = true }, function(h_obj)
+  local check_cmd = { "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-m", "1", url .. "/session" }
+  vim.system(check_cmd, { text = true }, function(c_obj)
     vim.schedule(function()
-      if h_obj.code == 0 and h_obj.stdout and h_obj.stdout:find("healthy") then
+      local code_str = vim.trim((c_obj and c_obj.stdout) or "")
+      -- Any HTTP status code (200, 400, 404, 405) means the ACP server is already running!
+      if c_obj and c_obj.code == 0 and code_str ~= "" and code_str ~= "000" then
         on_ready(true)
         return
+      end
+
+      -- Check via lsof if port is already occupied by a running process
+      if vim.fn.executable("lsof") == 1 then
+        local pids = vim.system({ "lsof", "-ti", ":" .. tostring(port) }, { text = true }):wait()
+        if pids and pids.code == 0 and pids.stdout and pids.stdout:find("%d+") then
+          on_ready(true)
+          return
+        end
       end
 
       if progress_cb then progress_cb("Starting OpenCode ACP background server on port " .. port .. "...") end
@@ -79,9 +90,10 @@ function M.ensure_server_async(port, progress_cb, on_ready)
       if timer then
         timer:start(300, 300, function()
           attempts = attempts + 1
-          vim.system(health_cmd, { text = true }, function(check)
+          vim.system(check_cmd, { text = true }, function(check)
             vim.schedule(function()
-              if check and check.code == 0 and check.stdout and check.stdout:find("healthy") then
+              local check_code = vim.trim((check and check.stdout) or "")
+              if check and check.code == 0 and check_code ~= "" and check_code ~= "000" then
                 done(true)
               elseif attempts >= 20 then
                 done(false)
