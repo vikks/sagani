@@ -97,7 +97,7 @@ function M.run()
     local main_spec = find_spec(specs, "sagani.nvim")
 
     local custom_opts = {
-      target_agent = "my_custom_agy",
+      tasks = { ask = { agent = "my_custom_agy" } },
       auto_discover = false,
       pane_override = "pane_123",
       notify = { enabled = false, title = "Custom AGY Title" },
@@ -106,7 +106,7 @@ function M.run()
 
     main_spec.config(main_spec, custom_opts)
 
-    assert_eq(init.options.target_agent, "my_custom_agy", "custom target_agent preserved")
+    assert_eq(init.options.tasks.ask.agent, "my_custom_agy", "custom target_agent preserved")
     assert_eq(init.options.auto_discover, false, "custom auto_discover preserved")
     assert_eq(init.options.pane_override, "pane_123", "custom pane_override preserved")
     assert_eq(init.options.notify.enabled, false, "custom notify.enabled preserved")
@@ -118,9 +118,9 @@ function M.run()
     local specs = dofile(plugin_spec_path)
     local main_spec = find_spec(specs, "sagani.nvim")
 
-    main_spec.config(main_spec, { target_agent = "partial_agent" })
+    main_spec.config(main_spec, { tasks = { ask = { agent = "partial_agent" } } })
 
-    assert_eq(init.options.target_agent, "partial_agent", "target_agent updated")
+    assert_eq(init.options.tasks.ask.agent, "partial_agent", "tasks.ask.agent updated")
     assert_eq(init.options.auto_discover, true, "auto_discover defaults to true")
     assert_nil(init.options.pane_override, "pane_override defaults to nil")
     assert_eq(init.options.notify.enabled, true, "notify.enabled defaults to true")
@@ -275,7 +275,7 @@ function M.run()
 
     local ok = pcall(main_spec.config, main_spec, nil)
     assert_true(ok, "config(spec, nil) executes without exception")
-    assert_eq(init.options.tasks.ask, "agy", "options fall back to defaults")
+    assert_eq(init.options.tasks.ask.agent, "agy", "options fall back to defaults")
   end)
 
   run_test("adversarial_config: handles primitive non-table opts without crashing", function()

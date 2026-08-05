@@ -199,7 +199,7 @@ function M.run()
     local main_spec = find_spec(specs, "sagani.nvim")
     assert_true(main_spec ~= nil and type(main_spec.opts) == "table", "opts is table")
 
-    assert_eq(main_spec.opts.tasks.ask, "agy", "default task ask agy")
+    assert_eq(main_spec.opts.tasks.ask.agent, "agy", "default task ask agy")
     assert_eq(main_spec.opts.auto_discover, true, "default auto_discover")
   end)
 
@@ -224,7 +224,7 @@ function M.run()
 
   run_test("minimal_setup: setup({}) registers default keymaps and user commands cleanly", function()
     init.setup({})
-    assert_eq(init.options.tasks.ask, "agy", "minimal setup retains default task ask agy")
+    assert_eq(init.options.tasks.ask.agent, "agy", "minimal setup retains default task ask agy")
     assert_eq(init.options.default_keymaps, true, "default_keymaps enabled")
 
     local maps = vim.api.nvim_get_keymap("n")
@@ -274,17 +274,18 @@ function M.run()
 
   run_test("ask_agent_config: setup() merges ask_agent defaults and user overrides", function()
     init.setup({})
-    assert_eq(init.options.ask_agent.target_agent, nil, "default ask_agent.target_agent is nil")
+    assert_eq(init.options.ask_agent.target_agent, "agy", "default ask_agent.target_agent is agy")
     assert_eq(init.options.ask_agent.popup, true, "default ask_agent.popup is true")
 
     init.setup({
-      ask_agent = {
-        target_agent = "opencode",
-        popup = false,
+      tasks = {
+        ask = {
+          agent = "opencode",
+        },
       },
     })
     assert_eq(init.options.ask_agent.target_agent, "opencode", "user override ask_agent.target_agent set to opencode")
-    assert_eq(init.options.ask_agent.popup, false, "user override ask_agent.popup set to false")
+    assert_eq(init.options.ask_agent.popup, true, "user override ask_agent.popup set to true")
   end)
 
 

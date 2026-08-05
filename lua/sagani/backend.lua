@@ -21,7 +21,7 @@ end
 --- Resolves agent execution options for a given task type
 --- @param opts table Configuration options
 --- @param task_type string|nil Task identifier
---- @return table agent_opts Resolved agent options { harness, provider, model, effort, timeout }
+--- @return table agent_opts Resolved agent options { harness, provider, model, effort, timeout, cmd, instructions, is_local }
 function M.resolve_task_agent(opts, task_type)
   opts = type(opts) == "table" and opts or {}
   task_type = task_type or "chat"
@@ -36,8 +36,8 @@ function M.resolve_task_agent(opts, task_type)
   if not session_harness then
     if type(task_val) == "string" and task_val ~= "" then
       harness = task_val
-    elseif type(task_val) == "table" and task_val.harness then
-      harness = task_val.harness
+    elseif type(task_val) == "table" then
+      harness = task_val.agent or task_val.harness
     end
   end
   harness = (harness or "agy"):lower()
@@ -53,7 +53,6 @@ function M.resolve_task_agent(opts, task_type)
   }
 
   local provider = (type(task_val) == "table" and task_val.provider) or h_prov_map[harness] or "google"
-
   local model = session_model or (type(task_val) == "table" and task_val.model)
   local effort = session_effort or (type(task_val) == "table" and task_val.effort)
   local alias = (session_model and session_model ~= "") and session_model
@@ -66,6 +65,10 @@ function M.resolve_task_agent(opts, task_type)
     or (opts.harness_opts and opts.harness_opts[harness] and opts.harness_opts[harness].port)
     or 4096
 
+  local cmd = type(task_val) == "table" and task_val.cmd or nil
+  local instructions = type(task_val) == "table" and (task_val.instructions or task_val.prompt_template) or nil
+  local is_local = type(task_val) == "table" and (task_val["local"] or task_val.is_local) or false
+
   return {
     harness = harness,
     provider = provider,
@@ -75,6 +78,9 @@ function M.resolve_task_agent(opts, task_type)
     timeout = timeout,
     protocol = protocol,
     port = port,
+    cmd = cmd,
+    instructions = instructions,
+    is_local = is_local,
   }
 end
 
@@ -104,12 +110,16 @@ end
 function M.resolve_placement(opts, bname, task_type)
   task_type = task_type or "chat"
   
-  -- 1. Backend-specific override
+  -- 1. Backend-specific task override (exact task_type match)
   if opts and opts.backends and opts.backends[bname] and opts.backends[bname][task_type] ~= nil then
     return opts.backends[bname][task_type]
   end
 
-  -- 2. Hardcoded fallback
+  -- 2. Fallback to default chat placement or task default
+  if opts and opts.backends and opts.backends[bname] and opts.backends[bname].chat ~= nil then
+    return opts.backends[bname].chat
+  end
+
   if task_type == "ask" then
     return false
   end

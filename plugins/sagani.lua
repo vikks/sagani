@@ -62,21 +62,24 @@ return {
 		},
 		opts = {
 			tasks = {
-				ask = "agy",
-				review = "codex",
-				code = "opencode",
 				chat = "agy",
+				ask = {
+					agent = "agy",
+					instructions = "Answer the user's question concisely and accurately.",
+				},
+				review = {
+					agent = "codex",
+					instructions = "Review the provided code changes and offer actionable feedback.",
+				},
+				code = {
+					agent = "opencode",
+					port = 4096,
+					instructions = "Fulfill the user's coding request directly in the buffer.",
+				},
 			},
 			auto_discover = true,
 			startup_delay = 5000,
 			auto_spawn = false,
-			ask_agent = {
-				popup = true,
-			},
-			review = {
-				enabled = true,
-				auto_open = true,
-			},
 		},
 		config = function(_, opts)
 			require("sagani").setup(opts)

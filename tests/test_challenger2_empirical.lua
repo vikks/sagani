@@ -228,11 +228,13 @@ function M.run()
     assert_equal("function", type(main_spec.config), "Config must be a function")
 
     sagani.setup(main_spec.opts)
-    assert_equal("agy", sagani.options.tasks.ask, "Default task ask should be agy")
+    local ask_agent_name = type(sagani.options.tasks.ask) == "table" and sagani.options.tasks.ask.agent or sagani.options.tasks.ask
+    assert_equal("agy", ask_agent_name, "Default task ask should be agy")
     assert_equal(true, sagani.options.ask_agent.popup, "ask_agent.popup default should be true")
 
     sagani.setup({ tasks = { ask = "codex" } })
-    assert_equal("codex", sagani.options.tasks.ask, "Partial tasks.ask override should apply")
+    local override_ask_name = type(sagani.options.tasks.ask) == "table" and sagani.options.tasks.ask.agent or sagani.options.tasks.ask
+    assert_equal("codex", override_ask_name, "Partial tasks.ask override should apply")
     assert_equal(true, sagani.options.ask_agent.popup, "Unspecified ask_agent.popup should retain default value")
 
     sagani.setup({ review = { auto_open = true } })
