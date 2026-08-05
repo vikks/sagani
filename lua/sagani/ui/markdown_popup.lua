@@ -80,6 +80,9 @@ function M.open(title, opts)
   vim.keymap.set("n", "r", prompt_followup, { buffer = buf, silent = true, desc = "Reply / Ask follow-up question" })
   vim.keymap.set("n", "i", prompt_followup, { buffer = buf, silent = true, desc = "Ask follow-up question" })
 
+  -- 'p' Pin mode keymap (single keypress window pinning: h/l/k/j/t)
+  vim.keymap.set("n", "p", function() M.enter_pin_mode(buf) end, { buffer = buf, silent = true, desc = "Pin window to split/tab" })
+
   -- Promote floating popup to split/tab keymaps (<C-w>h/j/k/l/t)
   vim.keymap.set("n", "<C-w>h", function() M.promote(buf, "left") end, { buffer = buf, silent = true, desc = "Promote popup to left split" })
   vim.keymap.set("n", "<C-w>H", function() M.promote(buf, "left") end, { buffer = buf, silent = true, desc = "Promote popup to left split" })
@@ -120,6 +123,62 @@ function M.open(title, opts)
 
   M._active_wins[buf] = win
   return win, buf
+end
+
+--- Enters single-keypress Pin Mode for moving/promoting popup window
+--- @param buf number Buffer handle
+function M.enter_pin_mode(buf)
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+
+  local pin_hint = "> 📌 *Pin window to: [h] Left | [l] Right | [k] Top | [j] Bottom | [t] Tab | [Esc/q] Cancel*"
+  local std_hint = "> 💡 *Press <CR> or 'r' to reply | 'p' to pin window | 'yr' to copy | 'q' to close*"
+
+  -- Update footer line
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local found = false
+  for i = #lines, 1, -1 do
+    if lines[i]:find("^> [💡📌]") then
+      lines[i] = pin_hint
+      found = true
+      break
+    end
+  end
+  if not found then
+    table.insert(lines, "")
+    table.insert(lines, pin_hint)
+  end
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+
+  local function clear_pin_keymaps(restore_hint)
+    pcall(vim.keymap.del, "n", "h", { buffer = buf })
+    pcall(vim.keymap.del, "n", "l", { buffer = buf })
+    pcall(vim.keymap.del, "n", "k", { buffer = buf })
+    pcall(vim.keymap.del, "n", "j", { buffer = buf })
+    pcall(vim.keymap.del, "n", "t", { buffer = buf })
+    if restore_hint then
+      local cur_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      for i = #cur_lines, 1, -1 do
+        if cur_lines[i]:find("^> 📌") then
+          cur_lines[i] = std_hint
+          vim.api.nvim_buf_set_lines(buf, 0, -1, false, cur_lines)
+          break
+        end
+      end
+    end
+  end
+
+  local function do_pin(target)
+    clear_pin_keymaps(false)
+    M.promote(buf, target)
+  end
+
+  vim.keymap.set("n", "h", function() do_pin("left") end, { buffer = buf, silent = true, desc = "Pin window to left split" })
+  vim.keymap.set("n", "l", function() do_pin("right") end, { buffer = buf, silent = true, desc = "Pin window to right split" })
+  vim.keymap.set("n", "k", function() do_pin("top") end, { buffer = buf, silent = true, desc = "Pin window to top split" })
+  vim.keymap.set("n", "j", function() do_pin("bottom") end, { buffer = buf, silent = true, desc = "Pin window to bottom split" })
+  vim.keymap.set("n", "t", function() do_pin("tab") end, { buffer = buf, silent = true, desc = "Pin window to new tab" })
 end
 
 --- Promotes a floating popup window to a split or tab page
@@ -322,7 +381,7 @@ function M.set_response(buf, response_text)
     if lines[i]:find("^⏳") then
       lines[i] = response_text
       table.insert(lines, "")
-      table.insert(lines, "> 💡 *Press <CR> or 'r' to reply | 'a' to promote window (h/j/k/l/t) | 'yr' to copy | 'q' to close*")
+      table.insert(lines, "> 💡 *Press <CR> or 'r' to reply | 'p' to pin window | 'yr' to copy | 'q' to close*")
       replaced = true
       break
     end

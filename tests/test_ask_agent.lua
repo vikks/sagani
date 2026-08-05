@@ -157,6 +157,19 @@ function M.run()
     pcall(vim.api.nvim_win_close, split_win, true)
   end)
 
+  run_test("markdown_popup.enter_pin_mode: updates footer line with pin hints", function()
+    local popup = require("sagani.ui.markdown_popup")
+    local float_win, buf = popup.open("Test Pin Popup", {})
+    popup.set_response(buf, "Sample response text")
+
+    popup.enter_pin_mode(buf)
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    local last_line = lines[#lines] or ""
+    assert_true(last_line:find("Pin window to:") ~= nil, "footer hint updated with Pin Mode directions")
+
+    pcall(vim.api.nvim_win_close, float_win, true)
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,
