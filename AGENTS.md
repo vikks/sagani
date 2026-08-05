@@ -104,6 +104,13 @@ Every backend adapter **must** implement the following interface:
 4. **Interactive Onboarding**:
    If an unconfigured task is executed without active session state, Sagani prompts the user interactively via the `<leader>ah` selection flow instead of throwing errors or using missing CLI fallbacks.
 
+5. **Dual Mode Execution (ACP vs CLI TUI)**:
+   - **Mode A (ACP Protocol)**: When `agent_opts.protocol == "acp"`, execution uses native Markdown floating UI (`markdown_popup.open_attached_layout`) with persistent multi-turn session buffers (`bufhidden = "hide"`) and an attached floating input box anchored to the bottom.
+   - **Mode B (CLI TUI)**: When no ACP protocol is configured, agents run directly inside Neovim terminal buffers (`vim.fn.termopen`). Focus enters `startinsert` directly into the agent CLI's native TUI; never trigger modal `vim.ui.input` or prompt boxes.
+
+6. **Paired Window Autocmd Synchronization**:
+   - Paired sub-window layouts MUST register a `WinClosed` autocmd matching all constituent window IDs so closing any individual window cleanly destroys the entire layout pair without leaving orphan sub-windows.
+
 ### Code & Documentation Quality Standards
 
 1. **Mandatory Standardized LuaDoc Top Headers**:
