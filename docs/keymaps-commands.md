@@ -12,7 +12,7 @@ This document lists all default keymaps and user commands available in **sagani.
 | `<leader>ab` | Normal | `:SaganiToggleBackend` | Toggle backend mode between `auto` multiplexer detection & `native` Neovim |
 | `<leader>as` | Normal | `:SaganiStatus` | Display active backend topology and target pane status |
 | `<leader>as` | Visual | `:SaganiSend` | Send visual selection with prompt instruction to agent |
-| `<leader>ac` | Normal | `:SaganiSelectTarget` | Set manual target pane ID override |
+| `<leader>ac` | Normal | `:SaganiSelectTarget` | Interactively select target agent pane from running multiplexer & native panes (or clear override) |
 | `<leader>ac` | Visual | `:SaganiContext` | Send visual selection code context to agent |
 | `<leader>ad` | Normal / Visual | `:SaganiDiff` | Send formatted diff review comment & hunk to agent |
 | `<leader>ap` | Normal / Visual | `:SaganiPrompt` | Send custom prompt directly to target agent |
@@ -38,6 +38,7 @@ This document lists all default keymaps and user commands available in **sagani.
 | `:SaganiToggleBackend [mode]` | Toggle active session backend transport mode between `auto` and `native` (or set explicit backend) |
 | `:SaganiBackend [mode]` | Alias for `:SaganiToggleBackend` |
 | `:SaganiAskAgent [prompt]` | Ask agent general questions in floating popup or dedicated pane |
+| `:SaganiSelectTarget [pane]` | Open interactive target pane picker querying running agent panes across Herdr, Tmux, Zellij, and Native Neovim (or clear override) |
 | `:SaganiSelectAgent [harness]` | Select active agent harness & model dynamically |
 | `:SaganiPromote [placement]` | Promote active floating popup to split (`left`, `right`, `top`, `bottom`, `tab`) |
 | `:SaganiStatus` | Display multiplexer topology and target pane status |

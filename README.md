@@ -39,7 +39,7 @@ return {
 | `<leader>aa` | Normal / Visual | `:SaganiAskAgent` | Ask general question in floating popup or pane |
 | `<leader>ab` | Normal | `:SaganiToggleBackend` | Toggle active backend transport between `auto` & `native` |
 | `<leader>as` | Normal / Visual | `:SaganiStatus` / `:SaganiSend` | Show status / Send visual selection to agent |
-| `<leader>ac` | Normal / Visual | `:SaganiSelectTarget` / `:SaganiContext` | Set target pane / Send code context to agent |
+| `<leader>ac` | Normal / Visual | `:SaganiSelectTarget` / `:SaganiContext` | Select target pane interactively / Send code context to agent |
 | `<leader>ad` | Normal / Visual | `:SaganiDiff` | Send diff review comment to agent |
 | `<leader>ah` | Normal | `:SaganiSelectAgent` | Select target agent harness & model interactively |
 | `<leader>ar` | Normal | `:SaganiReview` | Toggle side-by-side edit review diff view |

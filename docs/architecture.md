@@ -45,8 +45,8 @@
 
 | Layer | Responsibility | Key Modules |
 |---|---|---|
-| **1. Neovim Layer** | Visual selections, diff review, prompt formatting, user commands, keymaps, native Markdown floating UI | `init.lua`, `selection.lua`, `diff.lua`, `format.lua`, `notify.lua`, `ui/markdown_popup.lua` |
-| **2. Backend Registry Layer** | Multiplexer auto-detection (`Herdr` → `Tmux` → `Zellij` → `Native`), layout placement, facade adapter resolution | `backend.lua`, `backend/*.lua` |
+| **1. Neovim Layer** | Visual selections, diff review, prompt formatting, user commands, keymaps, native Markdown floating UI | `init.lua`, `selection.lua`, `diff/` (`baseline`, `hunks`, `view`, `actions`), `format.lua`, `notify.lua`, `ui/markdown_popup/`, `ui/picker/` (`agent`, `target`, `mode`) |
+| **2. Backend Registry Layer** | Multiplexer auto-detection (`Herdr` → `Tmux` → `Zellij` → `Native`), layout placement, facade adapter resolution | `backend/` (`registry`, `task`, `herdr`, `tmux`, `zellij`, `native`) |
 | **3. Protocol & IPC Layer** | Harness-agnostic agent protocol drivers (`acp`, `http`, `cli`, `json_rpc`) and CLI command builders | `protocol/init.lua`, `protocol/acp.lua`, `protocol/http.lua`, `protocol/cli.lua` |
 | **4. Model Cache & State Layer** | 100% dynamic CLI/API model discovery and persistent local disk cache | `cache.lua` (`stdpath('state')/sagani/models.json`) |
 
