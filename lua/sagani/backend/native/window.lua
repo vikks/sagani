@@ -37,13 +37,13 @@ function M.spawn_pane(opts)
   local placement = (type(opts.placement) == "string" and opts.placement ~= "") and opts.placement:lower() or "rightbelow vsplit"
 
   local cmd_split = "rightbelow vsplit"
-  if placement == "left" or placement == "leftsplit" or placement == "left-pane" then
+  if placement == "left" or placement == "left-split" or placement == "leftsplit" or placement == "left-pane" then
     cmd_split = "leftabove vsplit"
-  elseif placement == "right" or placement == "rightsplit" or placement == "right-pane" then
+  elseif placement == "right" or placement == "right-split" or placement == "rightsplit" or placement == "right-pane" then
     cmd_split = "rightbelow vsplit"
-  elseif placement == "top" or placement == "topsplit" or placement == "top-pane" or placement == "up" then
+  elseif placement == "top" or placement == "top-split" or placement == "topsplit" or placement == "top-pane" or placement == "up" then
     cmd_split = "leftabove split"
-  elseif placement == "bottom" or placement == "bottomsplit" or placement == "bottom-pane" or placement == "down" then
+  elseif placement == "bottom" or placement == "bottom-split" or placement == "bottomsplit" or placement == "bottom-pane" or placement == "down" then
     cmd_split = "rightbelow split"
   elseif placement == "vsplit" then
     cmd_split = "vsplit"
