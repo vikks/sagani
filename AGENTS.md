@@ -149,8 +149,8 @@ Every backend adapter **must** implement the following interface:
 ### `lua/sagani/init.lua`
 - `init.setup(user_opts)`: Initializes default options, registers all user commands, binds default keymaps, and registers WhichKey group. Routes all dispatch through `backend.get_backend(opts)` rather than calling topology or herdr directly. **Called exclusively via the `config` function in `plugins/sagani.lua`** — there is no `plugin/` auto-init.
 - `init.dispatch_prompt(prompt_text, target_pane, opts)`: Main dispatch entry point. Calls `adapter.discover_target(opts)` if no pane given, then `adapter.prompt_target(pane_id, text, opts)`. Pre-captures diff baseline snapshot. Contains safety guard `_G.RUNNING_TEST_SUITE`.
-- `init.ask_agent_prompt(prompt_text, opts)`: Spawns a popup via `adapter.spawn_popup(popup_opts)` and dispatches prompt. Resolves target agent via `ask_agent.target_agent` → `M.options.target_agent` (set via `<leader>ah` / `:SaganiSelectAgent` or config). Appends `@[abs_path]` file reference.
-- `init.select_agent_harness(arg, opts)`: Switches target agent harness interactively (`vim.ui.select`) or via argument.
+- `init.ask_agent_prompt(prompt_text, opts)`: Spawns a popup via `adapter.spawn_popup(popup_opts)` and dispatches prompt. Resolves target agent via active session override (`_session_harness`) → `opts.ask_agent.target_agent` → task config (`opts.tasks.ask.harness`). If unconfigured, automatically triggers interactive `<leader>ah` selection onboarding flow. Appends `@[abs_path]` file reference.
+- `init.select_agent_harness(arg, opts, on_complete)`: Switches target agent harness interactively (`vim.ui.select`), queries live models dynamically, intelligently filters reasoning effort prompts via `supports_effort`, and invokes optional `on_complete` callback.
 
 **Registered Commands:**
 
@@ -170,6 +170,7 @@ Every backend adapter **must** implement the following interface:
 | `:SaganiReject` / `:SaganiRejectHunk` / `:SaganiRejectAll` | `<leader>ax` (n) | Reject edit hunk or all |
 | `:SaganiNextHunk` | `<leader>a]` (n) | Jump to next edit hunk |
 | `:SaganiPrevHunk` | `<leader>a[` (n) | Jump to previous edit hunk |
+| `:SaganiClearCache` | — | Invalidate dynamic CLI model cache at `stdpath('state')/sagani/models.json` |
 | `:SaganiReload` | — | Hot-reload all sagani modules |
 
 ### `lua/sagani/backend.lua`
@@ -286,6 +287,7 @@ sagani.nvim/
 │   └── sagani/
 │       ├── init.lua         # Plugin setup, commands, keymaps, dispatch entry point
 │       ├── backend.lua      # Backend registry & auto-detection router
+│       ├── cache.lua        # Persistent disk & memory cache for dynamic models
 │       ├── topology.lua     # Herdr-specific topology discovery & CLI transport
 │       ├── selection.lua    # Visual selection extraction & prompt dispatch
 │       ├── diff.lua         # Diff hunk review, accept/reject, watcher
@@ -335,19 +337,16 @@ sagani.nvim/
 
 ---
 
-## 🗺️ 6. Decoupling Roadmap (In Progress)
-
-The three-layer separation is partially complete. Below is the current state and remaining work:
+## 🗺️ 6. Decoupling Roadmap (Complete)
 
 ### ✅ Done
 - **Backend registry** (`backend.lua`): `register` / `get_backend` contract is live.
 - **Four backend adapters** fully implemented: `native`, `herdr`, `tmux`, `zellij`.
 - **`init.lua` routes through `backend.get_backend(opts)`** for all `dispatch_prompt`, `spawn_popup`, `spawn_pane` calls.
-
-### 🔲 Planned / In Progress
-- **Transport abstraction layer** (`transport/`) — a generic interface to unify socket, CLI subprocess, HTTP REST, and other comms behind a single `transport.send(method, params)` contract. This would allow `backend/herdr.lua` to use any transport without knowing the implementation.
-- **Agent protocol adapters** — separate "how to format a message for `agy` vs `codex`" from "where to send it." Currently prompt formatting is done inline in `init.lua` and `selection.lua`.
-- **`topology.lua` refactored** — moved into `lua/sagani/backend/herdr/topology.lua` so Herdr topology discovery is encapsulated within its adapter package.
+- **Protocol & transport abstraction layer** (`lua/sagani/protocol/`): Standardized transport contracts (`acp`, `http`, `cli`, `json_rpc`).
+- **100% Dynamic Model Discovery**: All harnesses fetch models dynamically (live CLIs, `gemini --acp` stdio JSON-RPC initialization, `~/.codex/models_cache.json`) cached under `stdpath('state')/sagani/models.json`.
+- **Background ACP Server Lifecycle**: Auto-cleanup of background server processes (`kill(9)`, `lsof`, `pkill`) bound to `VimLeavePre`, `VimLeave`, and `ExitPre`.
+- **`topology.lua` refactored**: Moved into `lua/sagani/backend/herdr/topology.lua` so Herdr topology discovery is encapsulated within its adapter package.
 
 ---
 
@@ -359,3 +358,4 @@ The three-layer separation is partially complete. Below is the current state and
 4. **Test Isolation**: All CLI and shell execution code must honour `_G.RUNNING_TEST_SUITE`. Pass `opts.runner` to mock external commands in tests.
 5. **No Unneeded File Churn**: Do not commit local `.agents/` workspace logs to git. Keep `.gitignore` updated.
 6. **Decoupling Direction**: When adding new transport mechanisms (HTTP, stdio, etc.), add a new module under `lib/`. When adding new multiplexer support, add a new adapter under `backend/`. Never mix transport logic into `init.lua` or `selection.lua`/`diff.lua`.
+7. **Task-Driven & Dynamic Model Principles**: Always resolve task execution options via `backend.resolve_task_agent(opts, task_type)`. Never hardcode model lists or introduce top-level global default harness options.
