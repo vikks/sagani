@@ -159,19 +159,13 @@ end
 --- @return string|boolean placement Placement specifier or false for opt-out
 function M.resolve_placement(opts, bname, task_type)
   task_type = task_type or "chat"
-  local task_val = (type(opts.tasks) == "table") and opts.tasks[task_type] or nil
   
-  -- 0. Direct task-level placement override
-  if type(task_val) == "table" and task_val.placement ~= nil then
-    return task_val.placement
-  end
-
-  -- 1. Backend-specific task override (exact task_type match)
+  -- 1. Backend-specific task placement (exact task_type match under opts.backends[bname])
   if opts and opts.backends and opts.backends[bname] and opts.backends[bname][task_type] ~= nil then
     return opts.backends[bname][task_type]
   end
 
-  -- 2. Fallback to default chat placement or task default
+  -- 2. Fallback to default chat placement under opts.backends[bname]
   if opts and opts.backends and opts.backends[bname] and opts.backends[bname].chat ~= nil then
     return opts.backends[bname].chat
   end

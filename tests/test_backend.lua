@@ -198,25 +198,29 @@ function M.run()
     assert(backend.resolve_agent_cmd(res) == "opencode --port 4096 --model deepseek-r1", "resolve_agent_cmd produces string")
   end)
 
-  test("resolves task-level backend and placement overrides", function()
+  test("resolves task-level backend override and obtains placement from backend table", function()
     local original_herdr = vim.env.HERDR_ENV
     vim.env.HERDR_ENV = "1"
 
     local opts = {
       tasks = {
-        ask = { agent = "opencode", backend = "native", placement = "popup" },
-        review = { agent = "codex", backend = "herdr", placement = "left-pane" },
+        ask = { agent = "opencode", backend = "native" },
+        review = { agent = "codex", backend = "herdr" },
         code = { agent = "opencode" }, -- Omitted backend defaults to "auto"
+      },
+      backends = {
+        native = { ask = "popup" },
+        herdr = { review = "right-pane", code = "right-pane" },
       },
     }
 
     local _, ask_name, ask_place = backend.get_backend(opts, "ask")
     assert(ask_name == "native", "Expected explicit task backend 'native' for ask")
-    assert(ask_place == "popup", "Expected explicit task placement 'popup' for ask")
+    assert(ask_place == "popup", "Expected native backend placement 'popup' for ask")
 
     local _, rev_name, rev_place = backend.get_backend(opts, "review")
     assert(rev_name == "herdr", "Expected explicit task backend 'herdr' for review")
-    assert(rev_place == "left-pane", "Expected explicit task placement 'left-pane' for review")
+    assert(rev_place == "right-pane", "Expected herdr backend placement 'right-pane' for review")
 
     local _, code_name = backend.get_backend(opts, "code")
     assert(code_name == "herdr", "Expected auto-detected herdr for code task")
