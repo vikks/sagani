@@ -289,28 +289,45 @@ function M.select_target_pane(opts, on_complete)
   end
 
   if type(agent_panes) == "table" then
+    local current_cwd = vim.fn.getcwd()
     for _, a in ipairs(agent_panes) do
       if type(a) == "table" and (a.pane_id or a.id) then
-        local p_id = tostring(a.pane_id or a.id)
+        local raw_p_id = tostring(a.pane_id or a.id)
         local agent_name = (a.agent or a.harness or "agent"):upper()
-        local location_info = {}
-        if a.tab_id and a.tab_id ~= "" then
-          table.insert(location_info, "Tab: " .. tostring(a.tab_id))
-        end
-        if a.workspace_id and a.workspace_id ~= "" then
-          table.insert(location_info, "Workspace: " .. tostring(a.workspace_id))
-        end
+        local status = (a.agent_status and a.agent_status ~= "") and string.format("[%s]", a.agent_status) or ""
+
+        -- CWD directory formatting (short folder name or current dir indicator)
+        local dir_str = ""
         if a.cwd and a.cwd ~= "" then
-          table.insert(location_info, tostring(a.cwd))
+          if a.cwd == current_cwd then
+            dir_str = " (current dir)"
+          else
+            local folder_name = vim.fn.fnamemodify(a.cwd, ":t")
+            dir_str = string.format(" in %s", (folder_name ~= "" and folder_name or a.cwd))
+          end
         end
-        local loc_str = #location_info > 0 and (" (" .. table.concat(location_info, ", ") .. ")") or ""
-        local is_active = (active_override and tostring(active_override) == p_id)
-        local label = string.format("Pane [%s] %s%s%s", p_id, agent_name, loc_str, is_active and " (active override)" or "")
+
+        -- Terminal title formatting (if custom)
+        local title_str = ""
+        if a.terminal_title and a.terminal_title ~= "" and a.terminal_title:lower() ~= a.agent:lower() then
+          title_str = string.format(" — \"%s\"", a.terminal_title)
+        end
+
+        local is_active = (active_override and tostring(active_override) == raw_p_id)
+        local label = string.format(
+          "[%s] %s %s%s%s%s",
+          raw_p_id,
+          agent_name,
+          status,
+          dir_str,
+          title_str,
+          is_active and " (active override)" or ""
+        )
 
         table.insert(choices, {
-          id = p_id,
+          id = raw_p_id,
           label = label,
-          pane_id = p_id,
+          pane_id = raw_p_id,
           agent_name = agent_name,
         })
       end
