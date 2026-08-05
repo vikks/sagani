@@ -34,11 +34,17 @@ function M.spawn_pane(opts)
   local backend_lib = require("sagani.backend")
   local agent = (opts.target_agent or "agy"):lower()
   local agent_cmd = (opts.agent_opts and backend_lib.resolve_agent_cmd(opts.agent_opts)) or agent
-  local placement = opts.placement or "vsplit"
+  local placement = (type(opts.placement) == "string" and opts.placement ~= "") and opts.placement:lower() or "rightbelow vsplit"
 
-  local cmd_split = "vsplit"
-  if placement == "hsplit" or placement == "bottom-pane" or placement == "down" then
-    cmd_split = "split"
+  local cmd_split = "rightbelow vsplit"
+  if placement == "left-pane" or placement == "left" or placement == "left-vsplit" then
+    cmd_split = "leftabove vsplit"
+  elseif placement == "right-pane" or placement == "right" or placement == "right-vsplit" or placement == "vsplit" then
+    cmd_split = "rightbelow vsplit"
+  elseif placement == "top-pane" or placement == "top" or placement == "top-hsplit" or placement == "up" then
+    cmd_split = "leftabove split"
+  elseif placement == "bottom-pane" or placement == "bottom" or placement == "bottom-hsplit" or placement == "down" or placement == "hsplit" then
+    cmd_split = "rightbelow split"
   elseif placement == "tab" or placement == "new-tab" then
     cmd_split = "tabnew"
   end
