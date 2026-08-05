@@ -112,6 +112,12 @@ Every backend adapter **must** implement the following interface:
 6. **Paired Window Autocmd Synchronization**:
    - Paired sub-window layouts MUST register a `WinClosed` autocmd matching all constituent window IDs so closing any individual window cleanly destroys the entire layout pair without leaving orphan sub-windows.
 
+7. **Interactive Target Pane Selection**:
+   - Manual target pane override selection (`<leader>ac` / `:SaganiSelectTarget`) presents an interactive `vim.ui.select` picker querying active agent panes via `adapter.list_agents(runner)`. Raw text input (`vim.ui.input`) is used only as a manual fallback option.
+
+8. **Universal Native Backend Visibility**:
+   - Because the Native Neovim backend is always active in Neovim regardless of the current multiplexer (`herdr`, `tmux`, `zellij`), target pane selection pickers (`picker.select_target_pane`) MUST query and present active Native Neovim agent panes alongside multiplexer agent panes.
+
 ### Code & Documentation Quality Standards
 
 1. **Mandatory Standardized LuaDoc Top Headers**:
