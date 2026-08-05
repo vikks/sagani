@@ -9,6 +9,10 @@ on:
       - 'docs/**'
   workflow_dispatch:
 
+# Enforce least-privilege permissions (contents: write required to update repository wiki)
+permissions:
+  contents: write
+
 jobs:
   sync-wiki:
     runs-on: ubuntu-latest
