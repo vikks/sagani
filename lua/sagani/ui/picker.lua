@@ -281,11 +281,43 @@ function M.select_target_pane(opts, on_complete)
   }
 
   local agent_panes = {}
+  local seen_panes = {}
+
+  -- 1. Query active backend agent panes (Herdr, Tmux, Zellij)
   if adapter and adapter.list_agents then
-    agent_panes = adapter.list_agents(opts.runner) or {}
+    local backend_agents = adapter.list_agents(opts.runner) or {}
+    for _, a in ipairs(backend_agents) do
+      if type(a) == "table" and (a.pane_id or a.id) then
+        table.insert(agent_panes, a)
+        seen_panes[tostring(a.pane_id or a.id)] = true
+      end
+    end
   elseif backend_name == "herdr" then
     local herdr_cli = require("sagani.backend.herdr.cli")
-    agent_panes = herdr_cli.list_agents(opts.runner) or {}
+    local herdr_agents = herdr_cli.list_agents(opts.runner) or {}
+    for _, a in ipairs(herdr_agents) do
+      if type(a) == "table" and (a.pane_id or a.id) then
+        table.insert(agent_panes, a)
+        seen_panes[tostring(a.pane_id or a.id)] = true
+      end
+    end
+  end
+
+  -- 2. Query Native Neovim agent panes (always available as fallback/option)
+  if backend_name ~= "native" then
+    local native_adapter = require("sagani.backend.native")
+    if native_adapter and native_adapter.list_agents then
+      local native_agents = native_adapter.list_agents(opts.runner) or {}
+      for _, na in ipairs(native_agents) do
+        if type(na) == "table" and (na.pane_id or na.id) then
+          local p_id = tostring(na.pane_id or na.id)
+          if not seen_panes[p_id] then
+            table.insert(agent_panes, na)
+            seen_panes[p_id] = true
+          end
+        end
+      end
+    end
   end
 
   if type(agent_panes) == "table" then
