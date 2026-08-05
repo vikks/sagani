@@ -31,7 +31,9 @@ end
 --- @return string win_id_str, string|nil err, table metadata
 function M.spawn_pane(opts)
   opts = type(opts) == "table" and opts or {}
+  local backend_lib = require("sagani.backend")
   local agent = (opts.target_agent or "agy"):lower()
+  local agent_cmd = (opts.agent_opts and backend_lib.resolve_agent_cmd(opts.agent_opts)) or agent
   local placement = opts.placement or "vsplit"
 
   local cmd_split = "vsplit"
@@ -56,8 +58,8 @@ function M.spawn_pane(opts)
 
   local win_id_str = tostring(win)
 
-  if not _G.RUNNING_TEST_SUITE and vim.fn.executable(agent) == 1 then
-    vim.fn.termopen(agent)
+  if not _G.RUNNING_TEST_SUITE and vim.fn.executable(agent_cmd:match("^%S+")) == 1 then
+    vim.fn.termopen(agent_cmd)
   else
     local welcome = {
       string.format("--- Native Sagani Agent Pane (%s) ---", agent:upper()),

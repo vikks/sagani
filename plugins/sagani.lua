@@ -61,6 +61,13 @@ return {
 			{ "<leader>a[", "<cmd>SaganiPrevHunk<cr>", desc = "Previous Agent Edit Hunk", mode = "n" },
 		},
 		opts = {
+			agents = {
+				agy = { harness = "agy", cmd = { "agy" }, name = "Antigravity CLI" },
+				codex = { harness = "codex", cmd = { "codex" }, name = "Codex CLI" },
+				opencode = { harness = "opencode", cmd = { "opencode" }, name = "Opencode Agent", port = 4096 },
+				hermes = { harness = "hermes", cmd = { "hermes" }, name = "Hermes Agent" },
+				gemini = { harness = "gemini", cmd = { "gemini" }, name = "Gemini CLI" },
+			},
 			tasks = {
 				chat = "agy",
 				ask = {

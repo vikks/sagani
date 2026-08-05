@@ -74,6 +74,36 @@ M.defaults = {
 		opencode = 4096,
 		gemini = 4097,
 	},
+	-- Agent Definitions Registry (Logical Agent ID -> Harness Driver & Execution Command)
+	agents = {
+		agy = {
+			harness = "agy",
+			cmd = { "agy" },
+			name = "Antigravity CLI",
+		},
+		codex = {
+			harness = "codex",
+			cmd = { "codex" },
+			name = "Codex CLI",
+		},
+		opencode = {
+			harness = "opencode",
+			cmd = { "opencode" },
+			name = "Opencode Agent",
+			port = 4096,
+		},
+		hermes = {
+			harness = "hermes",
+			cmd = { "hermes" },
+			name = "Hermes Agent",
+		},
+		gemini = {
+			harness = "gemini",
+			cmd = { "gemini" },
+			name = "Gemini CLI",
+		},
+	},
+
 	-- Configuration for agents grouped by tasks (built-in or custom user tasks)
 	tasks = {
 		chat = "agy",

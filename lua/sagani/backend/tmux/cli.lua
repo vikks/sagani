@@ -53,7 +53,8 @@ end
 --- @return string|nil pane_id, string|nil err, table metadata
 function M.spawn_pane(opts)
   opts = type(opts) == "table" and opts or {}
-  local agent = opts.target_agent or "agy"
+  local backend_lib = require("sagani.backend")
+  local agent = (opts.agent_opts and backend_lib.resolve_agent_cmd(opts.agent_opts)) or opts.target_agent or "agy"
   local placement = opts.placement or "right-pane"
 
   if placement == "popup" or placement == "floating" then
@@ -97,7 +98,8 @@ end
 --- @return string|nil target_id, string|nil err, table metadata
 function M.spawn_popup(opts)
   opts = type(opts) == "table" and opts or {}
-  local agent = opts.target_agent or "agy"
+  local backend_lib = require("sagani.backend")
+  local agent = (opts.agent_opts and backend_lib.resolve_agent_cmd(opts.agent_opts)) or opts.target_agent or "agy"
 
   if _G.RUNNING_TEST_SUITE and not opts.runner then
     return "%popup", nil, { spawned = true, is_popup = true }

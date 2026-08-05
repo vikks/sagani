@@ -160,6 +160,44 @@ function M.run()
     end
   end)
 
+  test("resolve_task_agent resolves from opts.agents registry", function()
+    local test_opts = {
+      agents = {
+        codex_fast = {
+          harness = "codex",
+          cmd = { "codex", "--model", "gpt-4o-mini" },
+          name = "Codex Fast",
+        },
+      },
+      tasks = {
+        review = { agent = "codex_fast" },
+      },
+    }
+    local res = backend.resolve_task_agent(test_opts, "review")
+    assert(res.harness == "codex", "harness resolved to codex")
+    assert(res.alias == "Codex Fast", "alias resolved to Codex Fast")
+    assert(res.cmd[1] == "codex" and res.cmd[2] == "--model", "cmd array preserved")
+    assert(backend.resolve_agent_cmd(res) == "codex --model gpt-4o-mini", "resolve_agent_cmd produces string")
+  end)
+
+  test("resolve_task_agent resolves inline agent table with custom cmd", function()
+    local test_opts = {
+      tasks = {
+        code = {
+          agent = {
+            harness = "opencode",
+            cmd = { "opencode", "--port", "4096", "--model", "deepseek-r1" },
+            name = "Opencode DeepSeek",
+          },
+        },
+      },
+    }
+    local res = backend.resolve_task_agent(test_opts, "code")
+    assert(res.harness == "opencode", "harness resolved to opencode")
+    assert(res.alias == "Opencode DeepSeek", "alias resolved to Opencode DeepSeek")
+    assert(backend.resolve_agent_cmd(res) == "opencode --port 4096 --model deepseek-r1", "resolve_agent_cmd produces string")
+  end)
+
   return { passed = passed, failed = failed, failures = failures }
 end
 
