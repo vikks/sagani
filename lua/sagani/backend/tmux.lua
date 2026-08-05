@@ -27,6 +27,10 @@ function M.detect_env(runner)
   return cli.detect_env(runner)
 end
 
+function M.list_agents(runner)
+  return cli.list_agents(runner)
+end
+
 function M.discover_target(opts)
   return cli.discover_target(opts)
 end

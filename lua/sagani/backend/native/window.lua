@@ -26,6 +26,46 @@ function M.detect_env(_)
   return { active = true, id = "native", metadata = { name = "Neovim Native" } }
 end
 
+--- Lists active native agent windows and terminal buffers
+--- @param _ function|nil Mock runner
+--- @return table|nil agents, string|nil err
+function M.list_agents(_)
+  local agents = {}
+  for harness, buf in pairs(M._popup_buffers) do
+    if buf and vim.api.nvim_buf_is_valid(buf) then
+      local win = M._active_win
+      local p_id = (win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf) and tostring(win) or tostring(buf)
+      table.insert(agents, {
+        pane_id = p_id,
+        agent = harness,
+        terminal_title = string.format("Native Popup (%s)", harness:upper()),
+        cwd = vim.fn.getcwd(),
+      })
+    end
+  end
+
+  if M._active_buf and vim.api.nvim_buf_is_valid(M._active_buf) then
+    local buf_name = vim.api.nvim_buf_get_name(M._active_buf)
+    local harness = buf_name:match("%[(.-)%-agent%]") or "agent"
+    local win = M._active_win
+    local p_id = (win and vim.api.nvim_win_is_valid(win)) and tostring(win) or tostring(M._active_buf)
+    local exists = false
+    for _, a in ipairs(agents) do
+      if a.pane_id == p_id then exists = true break end
+    end
+    if not exists then
+      table.insert(agents, {
+        pane_id = p_id,
+        agent = harness,
+        terminal_title = string.format("Native Split (%s)", harness:upper()),
+        cwd = vim.fn.getcwd(),
+      })
+    end
+  end
+
+  return agents, nil
+end
+
 --- Discovers active or fallback target window handle for native backend
 --- @param opts table Options table
 --- @return string target_id, string|nil err, table metadata

@@ -47,6 +47,13 @@ function M.detect_env(_)
   }
 end
 
+--- Lists active zellij panes
+--- @param _ function|nil Mock runner
+--- @return table|nil agents, string|nil err
+function M.list_agents(_)
+  return {}, nil
+end
+
 --- Discovers target zellij pane ID from options or override
 --- @param opts table Options table
 --- @return string|nil pane_id, string|nil err, table metadata

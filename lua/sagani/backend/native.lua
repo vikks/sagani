@@ -27,6 +27,10 @@ function M.detect_env(runner)
   return window.detect_env(runner)
 end
 
+function M.list_agents(runner)
+  return window.list_agents(runner)
+end
+
 function M.discover_target(opts)
   return window.discover_target(opts)
 end

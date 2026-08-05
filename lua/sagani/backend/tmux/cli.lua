@@ -47,6 +47,33 @@ function M.detect_env(_)
   }
 end
 
+--- Lists active tmux panes
+--- @param runner function|nil Mock runner for tests
+--- @return table|nil agents, string|nil err
+function M.list_agents(runner)
+  local cmd = { "tmux", "list-panes", "-a", "-F", "#{pane_id}\t#{pane_current_command}\t#{pane_title}\t#{pane_current_path}" }
+  local stdout, code = M.exec_cmd(cmd, { runner = runner })
+
+  if code ~= 0 or not stdout or stdout == "" then
+    return {}, nil
+  end
+
+  local agents = {}
+  for line in stdout:gmatch("[^\r\n]+") do
+    local p_id, p_cmd, p_title, p_path = line:match("^([^\t]+)\t([^\t]*)\t([^\t]*)\t?(.*)$")
+    if p_id then
+      table.insert(agents, {
+        pane_id = p_id,
+        agent = (p_cmd and p_cmd ~= "") and p_cmd or "agent",
+        terminal_title = p_title,
+        cwd = p_path,
+      })
+    end
+  end
+
+  return agents, nil
+end
+
 --- Discovers target tmux pane ID from options or override
 --- @param opts table Options table
 --- @return string|nil pane_id, string|nil err, table metadata

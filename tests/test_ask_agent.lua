@@ -323,6 +323,34 @@ function M.run()
     assert_eq(res_pane, nil, "initial select_target_pane without user selection returns nil override")
   end)
 
+  run_test("tmux.list_agents: parses tmux list-panes output correctly", function()
+    local tmux_cli = require("sagani.backend.tmux.cli")
+    local fake_runner = function(cmd)
+      if cmd[1] == "tmux" and cmd[2] == "list-panes" then
+        return "%1\topencode\tOC | Refactoring\t/tmp/repo\n%2\tagy\tagy\t/tmp/repo", 0
+      end
+      return "", 0
+    end
+
+    local agents = tmux_cli.list_agents(fake_runner)
+    assert_eq(#agents, 2, "tmux list_agents parsed 2 panes")
+    assert_eq(agents[1].pane_id, "%1", "pane 1 id is %1")
+    assert_eq(agents[1].agent, "opencode", "pane 1 agent is opencode")
+    assert_eq(agents[1].terminal_title, "OC | Refactoring", "pane 1 title parsed")
+  end)
+
+  run_test("native.list_agents: lists active native popup/split buffers", function()
+    local native_win = require("sagani.backend.native.window")
+    native_win.reset_popup("opencode")
+    native_win.spawn_popup({ agent_opts = { harness = "opencode" } })
+
+    local agents = native_win.list_agents(nil)
+    assert_true(#agents >= 1, "native list_agents found active popup agent")
+    assert_eq(agents[1].agent, "opencode", "native agent is opencode")
+
+    native_win.reset_popup("opencode")
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,
