@@ -52,17 +52,8 @@ function M.register_commands(opts)
 
   vim.api.nvim_create_user_command("SaganiSelectTarget", function()
     local sagani = require("sagani")
-    local options = sagani.options or opts
-    vim.ui.input({ prompt = "Enter target Herdr pane ID (or empty to clear override): " }, function(input)
-      if input and input ~= "" then
-        options.pane_override = input
-        notify.info("Target pane override set to: " .. input, options)
-      else
-        options.pane_override = nil
-        notify.info("Target pane override cleared. Reverted to auto-discovery.", options)
-      end
-    end)
-  end, { desc = "Set manual target pane ID override" })
+    sagani.select_target_pane(sagani.options or opts)
+  end, { desc = "Select target agent pane interactively or set manual override" })
 
   vim.api.nvim_create_user_command("SaganiSelectAgent", function(cmd_args)
     local sagani = require("sagani")

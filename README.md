@@ -2,7 +2,7 @@
 
 [![Neovim](https://img.shields.io/badge/Neovim-0.9+-57A143?style=for-the-badge&logo=neovim&logoColor=white)](https://neovim.io)
 [![Lua](https://img.shields.io/badge/Lua-5.1%20%2F%20JIT-2C2D72?style=for-the-badge&logo=lua&logoColor=white)](https://www.lua.org)
-[![Tests](https://img.shields.io/badge/Tests-555%20Passed-success?style=for-the-badge&logo=github)](tests/run_tests.lua)
+[![Tests](https://img.shields.io/badge/Tests-556%20Passed-success?style=for-the-badge&logo=github)](tests/run_tests.lua)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 **sagani.nvim** is a harness-agnostic, decoupled AI coding agent integration plugin for [Neovim](https://neovim.io) (tailored for [LazyVim](https://www.lazyvim.org/)). It bridges your buffer workflows directly with terminal multiplexers ([`herdr`](https://github.com/herdr/herdr), `tmux`, `zellij`, or native Neovim splits/floats) and AI agent harnesses (`agy`, `codex`, `opencode`, `hermes`, `gemini`, etc.).

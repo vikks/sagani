@@ -300,6 +300,29 @@ function M.run()
     window.reset_session("opencode")
   end)
 
+  run_test("picker.select_target_pane: lists active agent panes and returns override status", function()
+    local picker = require("sagani.ui.picker")
+    local test_opts = {
+      pane_override = nil,
+      runner = function(cmd)
+        if cmd[1] == "herdr" and cmd[2] == "agent" and cmd[3] == "list" then
+          return vim.json.encode({
+            result = {
+              agents = {
+                { pane_id = "p1", agent = "opencode", tab_id = "t1", workspace_id = "w1" },
+                { pane_id = "p2", agent = "agy", tab_id = "t1", workspace_id = "w1" },
+              },
+            },
+          }), 0
+        end
+        return "", 0
+      end,
+    }
+
+    local res_pane = picker.select_target_pane(test_opts)
+    assert_eq(res_pane, nil, "initial select_target_pane without user selection returns nil override")
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,

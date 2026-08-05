@@ -261,4 +261,106 @@ function M.select_mode(opts)
   end
 end
 
+--- Interactively selects target agent pane from list of running agent panes or resets to auto-discovery
+--- @param opts table|nil Options table
+--- @param on_complete function|nil Optional callback on selection
+--- @return string|nil selected_pane_id
+function M.select_target_pane(opts, on_complete)
+  local sagani = require("sagani")
+  opts = type(opts) == "table" and opts or sagani.options or {}
+
+  local adapter, backend_name = backend.get_backend(opts)
+  local active_override = opts.pane_override
+
+  local choices = {
+    {
+      id = "auto",
+      label = "[Auto-Discover Target Pane] (Clear Manual Override)",
+      pane_id = nil,
+    },
+  }
+
+  local agent_panes = {}
+  if adapter and adapter.list_agents then
+    agent_panes = adapter.list_agents(opts.runner) or {}
+  elseif backend_name == "herdr" then
+    local herdr_cli = require("sagani.backend.herdr.cli")
+    agent_panes = herdr_cli.list_agents(opts.runner) or {}
+  end
+
+  if type(agent_panes) == "table" then
+    for _, a in ipairs(agent_panes) do
+      if type(a) == "table" and (a.pane_id or a.id) then
+        local p_id = tostring(a.pane_id or a.id)
+        local agent_name = (a.agent or a.harness or "agent"):upper()
+        local location_info = {}
+        if a.tab_id and a.tab_id ~= "" then
+          table.insert(location_info, "Tab: " .. tostring(a.tab_id))
+        end
+        if a.workspace_id and a.workspace_id ~= "" then
+          table.insert(location_info, "Workspace: " .. tostring(a.workspace_id))
+        end
+        if a.cwd and a.cwd ~= "" then
+          table.insert(location_info, tostring(a.cwd))
+        end
+        local loc_str = #location_info > 0 and (" (" .. table.concat(location_info, ", ") .. ")") or ""
+        local is_active = (active_override and tostring(active_override) == p_id)
+        local label = string.format("Pane [%s] %s%s%s", p_id, agent_name, loc_str, is_active and " (active override)" or "")
+
+        table.insert(choices, {
+          id = p_id,
+          label = label,
+          pane_id = p_id,
+          agent_name = agent_name,
+        })
+      end
+    end
+  end
+
+  table.insert(choices, {
+    id = "manual",
+    label = "[Manual Pane ID Input...]",
+    pane_id = "manual",
+  })
+
+  if not _G.RUNNING_TEST_SUITE and vim.ui and vim.ui.select then
+    local prompt_title = string.format(
+      "Select Target Agent Pane (Backend: %s | Override: %s):",
+      (backend_name or "auto"):upper(),
+      active_override and tostring(active_override) or "Auto"
+    )
+
+    vim.ui.select(choices, {
+      prompt = prompt_title,
+      format_item = function(item)
+        return item.label
+      end,
+    }, function(choice)
+      if not choice then
+        return
+      end
+
+      if choice.id == "auto" then
+        opts.pane_override = nil
+        notify.info("Target pane override cleared. Reverted to auto-discovery.", opts)
+        if on_complete then on_complete(nil) end
+      elseif choice.id == "manual" then
+        vim.ui.input({ prompt = "Enter target pane ID: " }, function(input)
+          if input and input ~= "" then
+            opts.pane_override = vim.trim(input)
+            notify.info("Target pane override set to: " .. input, opts)
+            if on_complete then on_complete(opts.pane_override) end
+          end
+        end)
+      else
+        opts.pane_override = choice.pane_id
+        notify.info(string.format("Target pane override set to: %s (%s)", choice.pane_id, choice.agent_name or "Agent"), opts)
+        if on_complete then on_complete(choice.pane_id) end
+      end
+    end)
+  end
+
+  return opts.pane_override
+end
+
 return M

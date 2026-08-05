@@ -125,6 +125,10 @@ function M.select_agent_harness(arg, opts, on_complete)
 	return M.select_agent(arg, opts, on_complete)
 end
 
+function M.select_target_pane(opts, on_complete)
+	return picker.select_target_pane(opts or M.options, on_complete)
+end
+
 function M.ask_agent_prompt(prompt_text, opts)
 	return dispatchers.ask_agent_prompt(prompt_text, opts)
 end
