@@ -326,7 +326,7 @@ end
 function M.spawn_agent_popup(opts)
   opts = type(opts) == "table" and opts or {}
   local runner = opts.runner
-  local target_agent = opts.target_agent or "agy"
+  local target_agent = (opts.agent_opts and (opts.agent_opts.harness or opts.agent_opts.agent)) or opts.target_agent or "agy"
   local current_cwd = opts.cwd or vim.fn.getcwd()
 
   -- Test-suite fast-path (or mock runner path)
@@ -420,7 +420,7 @@ function M.discover_target_pane(opts)
     caller_pane_id = nil
   end
   local current_cwd = opts.cwd or env.cwd or vim.fn.getcwd()
-  local target_agent = opts.target_agent or "agy"
+  local target_agent = (opts.agent_opts and (opts.agent_opts.harness or opts.agent_opts.agent)) or opts.target_agent or "agy"
   if type(target_agent) ~= "string" then
     return nil, "Invalid target_agent: must be a string"
   end

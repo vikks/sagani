@@ -46,7 +46,7 @@ end
 function M.spawn_pane(opts)
   opts = type(opts) == "table" and opts or {}
   local backend_lib = require("sagani.backend")
-  local agent = (opts.target_agent or "agy"):lower()
+  local agent = ((opts.agent_opts and (opts.agent_opts.harness or opts.agent_opts.agent)) or opts.target_agent or "agy"):lower()
   local agent_cmd = (opts.agent_opts and backend_lib.resolve_agent_cmd(opts.agent_opts)) or agent
   local placement = (type(opts.placement) == "string" and opts.placement ~= "") and opts.placement:lower() or "rightbelow vsplit"
 
@@ -101,7 +101,9 @@ end
 --- @return string win_id_str, string|nil err, table metadata
 function M.spawn_popup(opts)
   opts = type(opts) == "table" and opts or {}
-  local agent = (opts.target_agent or "agy"):lower()
+  local backend_lib = require("sagani.backend")
+  local agent = ((opts.agent_opts and (opts.agent_opts.harness or opts.agent_opts.agent)) or opts.target_agent or "agy"):lower()
+  local agent_cmd = (opts.agent_opts and backend_lib.resolve_agent_cmd(opts.agent_opts)) or agent
   local ui_opts = opts.ui_opts or {}
 
   local w_spec = ui_opts.width or 0.8
@@ -162,8 +164,9 @@ function M.spawn_popup(opts)
       vim.bo[buf].swapfile = false
     end)
 
-    if not _G.RUNNING_TEST_SUITE and vim.fn.executable(agent) == 1 then
-      vim.fn.termopen(agent)
+    local exec_target = agent_cmd:match("^%S+") or agent_cmd
+    if not _G.RUNNING_TEST_SUITE and vim.fn.executable(exec_target) == 1 then
+      vim.fn.termopen(agent_cmd)
     else
       local welcome = {
         string.format("--- Sagani Popup Window (%s) ---", agent:upper()),

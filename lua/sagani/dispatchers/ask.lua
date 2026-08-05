@@ -50,6 +50,7 @@ function M.ask_agent_prompt(prompt_text, opts)
 			or (agent_opts and agent_opts.harness)
 			or "agy"
 		agent_opts.harness = harness
+		agent_opts.agent = harness
 		local popup_opts = vim.tbl_deep_extend("force", opts, {
 			adapter = adapter,
 			backend_name = backend_name,
@@ -57,6 +58,7 @@ function M.ask_agent_prompt(prompt_text, opts)
 			placement = placement,
 			ui_opts = ui_opts,
 			agent_opts = agent_opts,
+			target_agent = harness,
 		})
 
 		if agent_opts and agent_opts.protocol == "acp" then

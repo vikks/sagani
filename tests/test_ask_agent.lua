@@ -248,6 +248,23 @@ function M.run()
     assert_eq(task_agent.port, 4096, "resolve_task_agent inherits agent port 4096")
   end)
 
+  run_test("native.spawn_popup: resolves agent harness from agent_opts when target_agent is absent", function()
+    local native_backend = require("sagani.backend.native")
+    native_backend.reset_popup("opencode")
+
+    local win_str, _, meta = native_backend.spawn_popup({
+      agent_opts = { harness = "opencode", agent = "opencode" },
+    })
+    local win = tonumber(win_str)
+    local buf = vim.api.nvim_win_get_buf(win)
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    local text = table.concat(lines, "\n")
+
+    assert_true(text:find("OPENCODE") ~= nil, "native popup welcome text contains OPENCODE")
+    pcall(vim.api.nvim_win_close, win, false)
+    native_backend.reset_popup("opencode")
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,
