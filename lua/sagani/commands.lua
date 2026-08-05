@@ -209,6 +209,16 @@ function M.register_commands(opts)
     require("sagani.cache").clear_cache()
     notify.info("Cleared Sagani persistent model cache", sagani.options or opts)
   end, { desc = "Clear persistent model cache" })
+
+  vim.api.nvim_create_user_command("SaganiToggleBackend", function(cmd_args)
+    local sagani = require("sagani")
+    sagani.toggle_backend(cmd_args.args)
+  end, { nargs = "?", desc = "Toggle backend transport mode between auto and native (or specify explicit backend)" })
+
+  vim.api.nvim_create_user_command("SaganiBackend", function(cmd_args)
+    local sagani = require("sagani")
+    sagani.toggle_backend(cmd_args.args)
+  end, { nargs = "?", desc = "Alias for SaganiToggleBackend" })
 end
 
 return M

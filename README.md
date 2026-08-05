@@ -97,6 +97,7 @@ require("sagani").setup({
   },
 
   -- Backend Placements & Overrides (WHERE tasks get placed per multiplexer)
+  -- This is only for UI placement; the actual agent harness to backend link is determined by the `tasks` table below.
   backends = {
     native = {
       ask = "popup",       -- Native creates a Neovim floating popup for 'ask'
@@ -178,15 +179,18 @@ require("sagani").setup({
     chat = "agy",
     ask = {
       agent = "agy",
+      backend = "native",
       instructions = "Answer the user's question concisely and accurately.",
     },
     review = {
       agent = "codex",
+      backend = "default",
       instructions = "Review the provided code changes and offer actionable feedback.",
     },
     code = {
       agent = "opencode",
       port = 4096,
+      backend = "default",
       instructions = "Fulfill the user's coding request directly in the buffer.",
     },
   },
@@ -215,6 +219,7 @@ require("sagani").setup({
 | Keymap | Mode | User Command | Description |
 |---|---|---|---|
 | `<leader>aa` | Normal / Visual | `:SaganiAskAgent` | Ask general question in floating popup or pane |
+| `<leader>ab` | Normal | `:SaganiToggleBackend` | Toggle backend mode between `auto` multiplexer detection & `native` Neovim |
 | `<leader>as` | Normal | `:SaganiStatus` | Display active backend topology and target pane status |
 | `<leader>as` | Visual | `:SaganiSend` | Send visual selection with prompt instruction to agent |
 | `<leader>ac` | Normal | `:SaganiSelectTarget` | Set manual target pane ID override |
@@ -235,6 +240,8 @@ require("sagani").setup({
 
 | Command | Description |
 |---|---|
+| `:SaganiToggleBackend [mode]` | Toggle backend transport mode between `auto` and `native` (or set explicit backend) |
+| `:SaganiBackend [mode]` | Alias for `:SaganiToggleBackend` |
 | `:SaganiAskAgent [prompt]` | Ask agent general questions in floating popup or dedicated pane |
 | `:SaganiSelectAgent [harness]` | Select active agent harness & model dynamically |
 | `:SaganiPromote [placement]` | Promote active floating popup to split (`left`, `right`, `top`, `bottom`, `tab`) |

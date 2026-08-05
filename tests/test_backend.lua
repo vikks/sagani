@@ -228,6 +228,29 @@ function M.run()
     vim.env.HERDR_ENV = original_herdr
   end)
 
+  test("toggle_backend toggles active session backend and overrides auto-detection", function()
+    local original_herdr = vim.env.HERDR_ENV
+    vim.env.HERDR_ENV = "1"
+
+    local sagani = require("sagani")
+    sagani._session_backend = nil
+
+    sagani.toggle_backend()
+    assert(sagani._session_backend == "native", "Expected session_backend toggled to native")
+
+    local _, name = backend.get_backend({ backend = "auto" }, "code")
+    assert(name == "native", "Expected session backend override to force native backend")
+
+    sagani.toggle_backend()
+    assert(sagani._session_backend == "auto", "Expected session_backend toggled back to auto")
+
+    sagani.toggle_backend("herdr")
+    assert(sagani._session_backend == "herdr", "Expected explicit session_backend set to herdr")
+
+    sagani._session_backend = nil
+    vim.env.HERDR_ENV = original_herdr
+  end)
+
   return { passed = passed, failed = failed, failures = failures }
 end
 

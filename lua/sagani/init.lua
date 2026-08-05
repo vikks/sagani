@@ -70,31 +70,27 @@ M.defaults = {
 		openai = { api_key_env = "OPENAI_API_KEY", alias = "OpenAI" },
 		anthropic = { api_key_env = "ANTHROPIC_API_KEY", alias = "Anthropic" },
 	},
-	-- Agent Definitions Registry (Logical Agent ID -> Harness Driver & Execution Command)
+
+	-- Agent Definitions Registry (Logical Agent ID -> Actual Execution Command)
 	agents = {
 		agy = {
-			harness = "agy",
 			cmd = { "agy" },
 			name = "Antigravity CLI",
 		},
 		codex = {
-			harness = "codex",
 			cmd = { "codex" },
 			name = "Codex CLI",
 		},
 		opencode = {
-			harness = "opencode",
 			cmd = { "opencode" },
 			name = "Opencode Agent",
 			port = 4096,
 		},
 		hermes = {
-			harness = "hermes",
 			cmd = { "hermes" },
 			name = "Hermes Agent",
 		},
 		gemini = {
-			harness = "gemini",
 			cmd = { "gemini" },
 			name = "Gemini CLI",
 		},
@@ -105,15 +101,18 @@ M.defaults = {
 		chat = "agy",
 		ask = {
 			agent = "agy",
+			backend = "native",
 			instructions = "Answer the user's question concisely and accurately.",
 		},
 		review = {
 			agent = "codex",
+			backend = "default",
 			instructions = "Review the provided code changes and offer actionable feedback.",
 		},
 		code = {
 			agent = "opencode",
 			port = 4096,
+			backend = "default",
 			instructions = "Fulfill the user's coding request directly in the buffer.",
 		},
 	},
@@ -130,41 +129,50 @@ M.defaults = {
 
 --- Ensures backward compatibility for legacy opts.ask_agent and opts.review property access
 local function ensure_compat_getters(opts)
-  if type(opts) ~= "table" then
-    return opts
-  end
+	if type(opts) ~= "table" then
+		return opts
+	end
 
-  -- If raw review table exists, backfill default values if missing
-  local raw_review = rawget(opts, "review")
-  if type(raw_review) == "table" then
-    if raw_review.enabled == nil then raw_review.enabled = true end
-    if raw_review.auto_open == nil then raw_review.auto_open = false end
-    if raw_review.mode == nil then raw_review.mode = "inline" end
-  end
+	-- If raw review table exists, backfill default values if missing
+	local raw_review = rawget(opts, "review")
+	if type(raw_review) == "table" then
+		if raw_review.enabled == nil then
+			raw_review.enabled = true
+		end
+		if raw_review.auto_open == nil then
+			raw_review.auto_open = false
+		end
+		if raw_review.mode == nil then
+			raw_review.mode = "inline"
+		end
+	end
 
-  setmetatable(opts, {
-    __index = function(t, k)
-      if k == "ask_agent" then
-        local ask_task = type(t.tasks) == "table" and t.tasks.ask or {}
-        local agent_name = (type(ask_task) == "string" and ask_task) or (type(ask_task) == "table" and ask_task.agent)
-        return {
-          target_agent = agent_name,
-          popup = true,
-        }
-      elseif k == "review" then
-        local review_task = type(t.tasks) == "table" and t.tasks.review or {}
-        return {
-          enabled = true,
-          auto_open = false,
-          mode = "inline",
-          agent = (type(review_task) == "string" and review_task) or (type(review_task) == "table" and review_task.agent) or "codex",
-        }
-      end
-      return nil
-    end,
-  })
+	setmetatable(opts, {
+		__index = function(t, k)
+			if k == "ask_agent" then
+				local ask_task = type(t.tasks) == "table" and t.tasks.ask or {}
+				local agent_name = (type(ask_task) == "string" and ask_task)
+					or (type(ask_task) == "table" and ask_task.agent)
+				return {
+					target_agent = agent_name,
+					popup = true,
+				}
+			elseif k == "review" then
+				local review_task = type(t.tasks) == "table" and t.tasks.review or {}
+				return {
+					enabled = true,
+					auto_open = false,
+					mode = "inline",
+					agent = (type(review_task) == "string" and review_task)
+						or (type(review_task) == "table" and review_task.agent)
+						or "codex",
+				}
+			end
+			return nil
+		end,
+	})
 
-  return opts
+	return opts
 end
 
 M.options = ensure_compat_getters(vim.tbl_deep_extend("force", {}, M.defaults))
@@ -172,10 +180,31 @@ M._session_ask_agent = nil
 M._session_harness = nil
 M._session_model = nil
 M._session_effort = nil
+M._session_backend = nil
 
 M.format = format
 M.selection = selection
 M.diff = diff
+
+--- Toggles or explicitly sets active backend mode ("auto" vs "native" or custom)
+--- @param mode_arg string|nil Optional backend mode string ("auto", "native", "herdr", "tmux", "zellij")
+--- @return string active_backend Active backend mode
+function M.toggle_backend(mode_arg)
+	if mode_arg and mode_arg ~= "" then
+		M._session_backend = mode_arg:lower()
+	else
+		local current = M._session_backend or M.options.backend or "auto"
+		if current == "auto" then
+			M._session_backend = "native"
+		else
+			M._session_backend = "auto"
+		end
+	end
+
+	local active_mode = (M._session_backend or "auto"):upper()
+	notify.info(string.format("Sagani backend mode set to: %s", active_mode), M.options)
+	return M._session_backend
+end
 
 --- Setup function called by LazyVim plugin spec or user init.lua
 --- @param user_opts table|nil User configuration options
@@ -185,6 +214,7 @@ function M.setup(user_opts)
 	M._session_harness = nil
 	M._session_model = nil
 	M._session_effort = nil
+	M._session_backend = nil
 
 	keymaps.setup_keymaps(M.options)
 	commands.register_commands(M.options)

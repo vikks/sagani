@@ -189,9 +189,12 @@ function M.get_backend(opts, task_type)
   opts = type(opts) == "table" and opts or {}
   task_type = task_type or "chat"
 
+  local sagani = pcall(require, "sagani") and require("sagani") or {}
+  local session_backend = sagani._session_backend
+
   local task_val = (type(opts.tasks) == "table") and opts.tasks[task_type] or nil
   local task_backend = (type(task_val) == "table" and type(task_val.backend) == "string" and task_val.backend ~= "") and task_val.backend or nil
-  local requested = task_backend or opts.backend or "auto"
+  local requested = session_backend or task_backend or opts.backend or "auto"
 
   local agent_opts = M.resolve_task_agent(opts, task_type)
 
