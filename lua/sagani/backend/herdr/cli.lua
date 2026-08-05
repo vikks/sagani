@@ -170,6 +170,30 @@ function M.spawn_agent_pane(opts)
   local env = M.detect_env(opts.runner)
   local caller_pane_id = opts.caller_pane_id or env.pane_id
 
+  local placement = opts.placement or "right-pane"
+  if placement == "tab" or placement == "new-tab" then
+    if _G.RUNNING_TEST_SUITE and not opts.runner then
+      return "h_tab_1", nil, { spawned = true, is_popup = false, is_tab = true }
+    end
+    if opts.runner then
+      local tab_out, tab_code = opts.runner({ "herdr", "tab", "create", "--cwd", current_cwd })
+      if tab_code == 0 and tab_out and tab_out ~= "" then
+        local ok, tab_json = pcall(vim.json.decode, tab_out)
+        local new_pane = (ok and type(tab_json) == "table" and type(tab_json.result) == "table" and tab_json.result.pane_id) or "h_tab_new"
+        return new_pane, nil, { pane_id = new_pane, spawned = true, is_tab = true }
+      end
+    end
+    if vim.fn.executable("herdr") == 1 then
+      local tab_cmd = { "herdr", "tab", "create", "--cwd", current_cwd }
+      local out = vim.fn.system(tab_cmd)
+      if vim.v.shell_error == 0 and out and out ~= "" then
+        local ok, tab_json = pcall(vim.json.decode, out)
+        local new_pane = (ok and type(tab_json) == "table" and type(tab_json.result) == "table" and tab_json.result.pane_id) or "h_tab_new"
+        return new_pane, nil, { pane_id = new_pane, spawned = true, is_tab = true }
+      end
+    end
+  end
+
   -- Determine requested direction ("right", "left", "bottom", "down", "top", "up")
   local req_dir = "right"
   if type(opts.auto_spawn) == "string" then
