@@ -231,9 +231,25 @@ function M.register_commands(opts)
   end, {
     nargs = "?",
     complete = function()
-      return { "review", "learn", "off" }
+      local sagani = require("sagani")
+      local options = sagani.options or opts
+      local mode_set = { review = true, learn = true }
+      if type(options.tasks) == "table" then
+        for t_name, _ in pairs(options.tasks) do
+          if type(t_name) == "string" then
+            mode_set[t_name] = true
+          end
+        end
+      end
+      local res = {}
+      for m_name, _ in pairs(mode_set) do
+        table.insert(res, m_name)
+      end
+      table.sort(res)
+      table.insert(res, "off")
+      return res
     end,
-    desc = "Set or toggle active operating mode (review, learn, off)",
+    desc = "Set or toggle active operating mode (review, learn, or custom tasks)",
   })
 
   vim.api.nvim_create_user_command("SaganiLearn", function()

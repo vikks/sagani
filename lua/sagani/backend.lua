@@ -25,10 +25,15 @@ end
 --- @return table agent_opts Resolved agent options { agent_id, harness, provider, model, effort, alias, timeout, protocol, port, cmd, instructions, is_local }
 function M.resolve_task_agent(opts, task_type)
   opts = type(opts) == "table" and opts or {}
-  task_type = task_type or "chat"
+  local sagani = pcall(require, "sagani") and require("sagani") or {}
+  if sagani._session_mode and type(opts.tasks) == "table" and opts.tasks[sagani._session_mode] ~= nil then
+    task_type = sagani._session_mode
+  else
+    task_type = task_type or "chat"
+  end
+
   local task_val = opts.tasks and opts.tasks[task_type]
 
-  local sagani = pcall(require, "sagani") and require("sagani") or {}
   local session_agent = sagani._session_agent or sagani._session_harness
   local session_model = sagani._session_model
   local session_effort = sagani._session_effort
@@ -170,6 +175,11 @@ end
 --- @param task_type string|nil Task identifier ("ask", "review", "code", "chat", or custom)
 --- @return string|boolean placement Placement specifier or false for opt-out
 function M.resolve_placement(opts, bname, task_type)
+  local sagani = pcall(require, "sagani") and require("sagani") or {}
+  if sagani._session_mode and opts and opts.backends and opts.backends[bname] and opts.backends[bname][sagani._session_mode] ~= nil then
+    return opts.backends[bname][sagani._session_mode]
+  end
+
   task_type = task_type or "chat"
   
   -- 1. Backend-specific task placement (exact task_type match under opts.backends[bname])
@@ -199,9 +209,13 @@ end
 --- @return table agent_opts Resolved agent execution options
 function M.get_backend(opts, task_type)
   opts = type(opts) == "table" and opts or {}
-  task_type = task_type or "chat"
-
   local sagani = pcall(require, "sagani") and require("sagani") or {}
+  if sagani._session_mode and type(opts.tasks) == "table" and opts.tasks[sagani._session_mode] ~= nil then
+    task_type = sagani._session_mode
+  else
+    task_type = task_type or "chat"
+  end
+
   local session_backend = sagani._session_backend
 
   local task_val = (type(opts.tasks) == "table") and opts.tasks[task_type] or nil

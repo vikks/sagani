@@ -76,6 +76,35 @@ function M.run()
     sagani._session_mode = nil
   end)
 
+  run_test("modes: resolve_task_agent routes to opts.tasks[active_mode] when mode is active", function()
+    local backend = require("sagani.backend")
+    local opts = {
+      tasks = {
+        chat = "agy",
+        learn = {
+          agent = "opencode",
+          instructions = "Learn Mode Instructions",
+        },
+        refactor = {
+          agent = "codex",
+          instructions = "Refactor Mode Instructions",
+        },
+      },
+    }
+
+    sagani._session_mode = "learn"
+    local learn_agent = backend.resolve_task_agent(opts, "chat")
+    assert_eq(learn_agent.agent, "opencode", "active learn mode resolves opencode agent from opts.tasks.learn")
+    assert_eq(learn_agent.instructions, "Learn Mode Instructions", "learn mode resolves custom instructions")
+
+    sagani._session_mode = "refactor"
+    local refactor_agent = backend.resolve_task_agent(opts, "chat")
+    assert_eq(refactor_agent.agent, "codex", "active refactor mode resolves codex agent from opts.tasks.refactor")
+    assert_eq(refactor_agent.instructions, "Refactor Mode Instructions", "refactor mode resolves custom instructions")
+
+    sagani._session_mode = nil
+  end)
+
   return {
     passed = passed_count,
     failed = failed_count,
