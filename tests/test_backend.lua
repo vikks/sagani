@@ -198,6 +198,32 @@ function M.run()
     assert(backend.resolve_agent_cmd(res) == "opencode --port 4096 --model deepseek-r1", "resolve_agent_cmd produces string")
   end)
 
+  test("resolves task-level backend and placement overrides", function()
+    local original_herdr = vim.env.HERDR_ENV
+    vim.env.HERDR_ENV = "1"
+
+    local opts = {
+      tasks = {
+        ask = { agent = "opencode", backend = "native", placement = "popup" },
+        review = { agent = "codex", backend = "herdr", placement = "left-pane" },
+        code = { agent = "opencode" }, -- Omitted backend defaults to "auto"
+      },
+    }
+
+    local _, ask_name, ask_place = backend.get_backend(opts, "ask")
+    assert(ask_name == "native", "Expected explicit task backend 'native' for ask")
+    assert(ask_place == "popup", "Expected explicit task placement 'popup' for ask")
+
+    local _, rev_name, rev_place = backend.get_backend(opts, "review")
+    assert(rev_name == "herdr", "Expected explicit task backend 'herdr' for review")
+    assert(rev_place == "left-pane", "Expected explicit task placement 'left-pane' for review")
+
+    local _, code_name = backend.get_backend(opts, "code")
+    assert(code_name == "herdr", "Expected auto-detected herdr for code task")
+
+    vim.env.HERDR_ENV = original_herdr
+  end)
+
   return { passed = passed, failed = failed, failures = failures }
 end
 

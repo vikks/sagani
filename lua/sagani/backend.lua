@@ -159,7 +159,13 @@ end
 --- @return string|boolean placement Placement specifier or false for opt-out
 function M.resolve_placement(opts, bname, task_type)
   task_type = task_type or "chat"
+  local task_val = (type(opts.tasks) == "table") and opts.tasks[task_type] or nil
   
+  -- 0. Direct task-level placement override
+  if type(task_val) == "table" and task_val.placement ~= nil then
+    return task_val.placement
+  end
+
   -- 1. Backend-specific task override (exact task_type match)
   if opts and opts.backends and opts.backends[bname] and opts.backends[bname][task_type] ~= nil then
     return opts.backends[bname][task_type]
@@ -188,7 +194,10 @@ end
 function M.get_backend(opts, task_type)
   opts = type(opts) == "table" and opts or {}
   task_type = task_type or "chat"
-  local requested = opts.backend or "auto"
+
+  local task_val = (type(opts.tasks) == "table") and opts.tasks[task_type] or nil
+  local task_backend = (type(task_val) == "table" and type(task_val.backend) == "string" and task_val.backend ~= "") and task_val.backend or nil
+  local requested = task_backend or opts.backend or "auto"
 
   local agent_opts = M.resolve_task_agent(opts, task_type)
 
