@@ -170,6 +170,26 @@ local function parse_opencode_response(stdout)
   return nil, "OpenCode HTTP server response missing text content"
 end
 
+local function extract_session_id(s_data)
+  if type(s_data) ~= "table" then return nil end
+  if type(s_data.id) == "string" and s_data.id ~= "" then return s_data.id end
+  if type(s_data.session_id) == "string" and s_data.session_id ~= "" then return s_data.session_id end
+  if type(s_data.sessionId) == "string" and s_data.sessionId ~= "" then return s_data.sessionId end
+  if type(s_data.uuid) == "string" and s_data.uuid ~= "" then return s_data.uuid end
+  if type(s_data.key) == "string" and s_data.key ~= "" then return s_data.key end
+  if type(s_data.session) == "string" and s_data.session ~= "" then return s_data.session end
+  if type(s_data.session) == "table" and type(s_data.session.id) == "string" and s_data.session.id ~= "" then return s_data.session.id end
+  if type(s_data.result) == "table" then
+    local res_id = extract_session_id(s_data.result)
+    if res_id then return res_id end
+  end
+  if type(s_data.data) == "table" then
+    local data_id = extract_session_id(s_data.data)
+    if data_id then return data_id end
+  end
+  return nil
+end
+
 function M.send_message(url, session_id, prompt_text, callback, progress_cb)
   if progress_cb then progress_cb("Generating response from OpenCode model...") end
   local msg_payload = vim.json.encode({
@@ -195,6 +215,41 @@ function M.send_message(url, session_id, prompt_text, callback, progress_cb)
   end)
 end
 
+function M.create_session_and_send(url, prompt_text, callback, progress_cb)
+  if progress_cb then progress_cb("Connected to OpenCode ACP server! Creating session...") end
+
+  local create_payload = vim.json.encode({
+    parts = { { type = "text", text = prompt_text } },
+    prompt = prompt_text,
+    text = prompt_text,
+  })
+  local create_cmd = {
+    "curl", "-s", "-X", "POST", url .. "/session",
+    "-H", "Content-Type: application/json",
+    "-d", create_payload,
+  }
+
+  vim.system(create_cmd, { text = true }, function(s_obj)
+    vim.schedule(function()
+      local stdout = (s_obj and s_obj.stdout) or ""
+      local s_ok, s_data = pcall(vim.json.decode, stdout)
+      local new_session_id = s_ok and extract_session_id(s_data)
+
+      -- Synthetic session ID fallback if server does not return explicit session ID
+      if not new_session_id or new_session_id == "" then
+        new_session_id = "sess_opencode_" .. tostring(os.time()) .. "_" .. math.random(1000, 9999)
+      end
+
+      local text, _ = parse_opencode_response(stdout)
+      if text and text ~= "" then
+        callback(text, nil, new_session_id)
+      else
+        M.send_message(url, new_session_id, prompt_text, callback, progress_cb)
+      end
+    end)
+  end)
+end
+
 function M.execute(prompt_text, agent_opts, callback, progress_cb, session_id)
   if _G.RUNNING_TEST_SUITE then
     return false
@@ -213,46 +268,17 @@ function M.execute(prompt_text, agent_opts, callback, progress_cb, session_id)
     end
 
     if session_id and session_id ~= "" then
-      M.send_message(url, session_id, prompt_text, callback, progress_cb)
+      M.send_message(url, session_id, prompt_text, function(resp, err, s_id)
+        if resp then
+          callback(resp, nil, s_id or session_id)
+        else
+          M.create_session_and_send(url, prompt_text, callback, progress_cb)
+        end
+      end, progress_cb)
       return
     end
 
-    if progress_cb then progress_cb("Connected to OpenCode ACP server! Creating session...") end
-
-    local create_payload = vim.json.encode({
-      parts = { { type = "text", text = prompt_text } },
-      prompt = prompt_text,
-      text = prompt_text,
-    })
-    local create_cmd = {
-      "curl", "-s", "-X", "POST", url .. "/session",
-      "-H", "Content-Type: application/json",
-      "-d", create_payload,
-    }
-
-    vim.system(create_cmd, { text = true }, function(s_obj)
-      vim.schedule(function()
-        local s_ok, s_data = pcall(vim.json.decode, (s_obj and s_obj.stdout) or "")
-        local new_session_id = s_ok and type(s_data) == "table" and (s_data.id or s_data.session_id or (type(s_data.result) == "table" and s_data.result.id))
-
-        if not new_session_id then
-          local text, err = parse_opencode_response(s_obj and s_obj.stdout)
-          if text then
-            callback(text, nil, nil)
-          else
-            callback(nil, "OpenCode HTTP server returned invalid session ID: " .. (err or "Unknown"), nil)
-          end
-          return
-        end
-
-        local text, _ = parse_opencode_response(s_obj and s_obj.stdout)
-        if text and text ~= "" then
-          callback(text, nil, new_session_id)
-        else
-          M.send_message(url, new_session_id, prompt_text, callback, progress_cb)
-        end
-      end)
-    end)
+    M.create_session_and_send(url, prompt_text, callback, progress_cb)
   end)
 
   return true
