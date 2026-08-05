@@ -107,7 +107,11 @@ function M.run()
     -- Test SaganiReload user command behavior
     sagani.setup({})
     sagani._session_ask_agent = "opencode"
-    package.loaded["sagani"] = nil
+    for k in pairs(package.loaded) do
+      if k:find("^sagani") then
+        package.loaded[k] = nil
+      end
+    end
     sagani = require("sagani")
     assert_equal(nil, sagani._session_ask_agent, "Fresh module require after reload should reset session cache")
   end)
