@@ -62,32 +62,22 @@ function M.ensure_server_async(port, progress_cb, on_ready)
     return
   end
 
-  if progress_cb then progress_cb("Checking OpenCode ACP server health on port " .. port .. "...") end
-
+  -- Fast-check if port is already listening via HTTP probe
   local check_cmd = { "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-m", "1", url .. "/" }
   vim.system(check_cmd, { text = true }, function(c_obj)
     vim.schedule(function()
       local code_str = vim.trim((c_obj and c_obj.stdout) or "")
-      -- Any HTTP status code (200, 400, 404, 405) means the ACP server is already running!
       if c_obj and c_obj.code == 0 and code_str ~= "" and code_str ~= "000" then
         M._server_port = port
         on_ready(true)
         return
       end
 
-      -- Check via lsof if port is already occupied by a running process
-      if vim.fn.executable("lsof") == 1 then
-        local pids = vim.system({ "lsof", "-ti", ":" .. tostring(port) }, { text = true }):wait()
-        if pids and pids.code == 0 and pids.stdout and pids.stdout:find("%d+") then
-          on_ready(true)
-          return
-        end
-      end
-
-      if progress_cb then progress_cb("Starting OpenCode ACP background server on port " .. port .. "...") end
+      -- Port is not responding. Spawn detached background daemon
+      if progress_cb then progress_cb("Starting OpenCode ACP background daemon on port " .. port .. "...") end
       local spawn_cmd = { "opencode", "acp", "--port", tostring(port) }
       pcall(function()
-        M._server_proc = vim.system(spawn_cmd)
+        M._server_proc = vim.system(spawn_cmd, { detach = true })
         M._server_port = port
       end)
 
