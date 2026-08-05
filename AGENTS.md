@@ -8,17 +8,18 @@ This document serves as the authoritative developer and agent manual for **sagan
 
 **sagani.nvim** is a harness-agnostic Lua plugin for Neovim (tailored for [LazyVim](https://www.lazyvim.org/)) that connects Neovim buffer workflows with AI coding agent harnesses (`agy`, `codex`, `opencode`, `hermes`, etc.) across multiple terminal multiplexers.
 
-### Three-Layer Decoupled Architecture
+### Four-Layer Decoupled Architecture
 
-The plugin is being deliberately decoupled into three independent layers:
+The plugin is decoupled into four independent, single-responsibility layers:
 
 | Layer | Responsibility | Key Modules |
 |-------|----------------|-------------|
-| **Neovim Layer** | Visual selections, diff review, prompt formatting, user commands, keymaps | `init.lua`, `selection.lua`, `diff.lua`, `format.lua`, `notify.lua` |
-| **Backend Registry** | Multiplexer detection, routing, and adapter resolution | `backend.lua`, `backend/herdr.lua`, `backend/native.lua`, `backend/tmux.lua`, `backend/zellij.lua` |
-| **Transport / IPC Layer** | CLI subprocess communication (`vim.system`) | `backend/herdr/topology.lua` |
+| **Neovim Layer** | Visual selections, diff review, prompt formatting, user commands, keymaps, native Markdown floating UI | `init.lua`, `selection.lua`, `diff.lua`, `format.lua`, `notify.lua`, `ui/markdown_popup.lua` |
+| **Backend Registry Layer** | Multiplexer auto-detection, layout placement, and pane/popup adapter resolution | `backend.lua`, `backend/herdr.lua`, `backend/native.lua`, `backend/tmux.lua`, `backend/zellij.lua` |
+| **Protocol & IPC Layer** | Harness-agnostic agent protocol drivers (`acp`, `http`, `cli`, `json_rpc`) and CLI command builders | `protocol/init.lua`, `protocol/acp.lua`, `protocol/http.lua`, `protocol/cli.lua`, `protocol/json_rpc.lua`, `protocol/cli/*.lua` |
+| **Model Cache & State Layer** | 100% dynamic CLI/API model discovery and persistent local disk cache | `cache.lua` (`stdpath('state')/sagani/models.json`) |
 
-> **Status**: Decoupling complete. The Neovim layer routes all dispatch through `backend.get_backend(opts)` → adapter contract. Herdr topology discovery resides in `lua/sagani/backend/herdr/topology.lua`.
+> **Status**: Decoupling complete. The Neovim layer routes all multiplexer operations through `backend.get_backend(opts)` and all agent communication through `protocol` drivers (`acp`, `http`, `cli`, `json_rpc`).
 
 ### System Architecture Diagram
 
@@ -30,53 +31,43 @@ The plugin is being deliberately decoupled into three independent layers:
  |  | plugins/sagani.lua       |          | lua/sagani/init.lua            |          |
  |  | (LazyVim Plugin Spec &   |--------->| (Setup, Commands, Keymaps,     |          |
  |  |  WhichKey Configuration) |          |  dispatch_prompt entry point)  |          |
- |  +--------------------------+          +----------------+---------------+          |
- |                                                         |                         |
- |        +-------------------+   +------------------+    |    +------------------+ |
- |        | selection.lua     |   | diff.lua         |    |    | format.lua       | |
- |        | (Visual selection |   | (Diff hunk       |<---+    | (Markdown prompt | |
- |        |  extraction)      |   |  review/accept/  |         |  & diff builder) | |
- |        +--+----------------+   |  reject)         |         +------------------+ |
- |           |                    +------------------+                               |
- |           |         +----------------------------------------------+             |
- |           +-------->| notify.lua (LazyVim-aware notifications)      |             |
- |                     +----------------------------------------------+             |
+ |  +--------------------------+          +--------+---------------+-------+          |
+ |                                                 |               |                  |
+ |        +-------------------+   +------------------+             |   +------------+ |
+ |        | selection.lua     |   | diff.lua         |             +-->| ui/        | |
+ |        | (Visual selection |   | (Diff hunk       |                 | markdown_  | |
+ |        |  extraction)      |   |  review/accept)  |                 | popup.lua  | |
+ |        +--+----------------+   +------------------+                 +------------+ |
+ +-----------|-----------------------------------------------------------------------+
+             |                                    |
+             | dispatch_prompt                    | get_backend(opts, task_type)
+             v                                    v
+ +-----------------------------------+   +-------------------------------------------+
+ |       Protocol & IPC Layer        |   |           Backend Registry Layer          |
+ |                                   |   |                                           |
+ |   +---------------------------+   |   |   backend.get_backend(opts) auto-detects: |
+ |   | protocol/ (ACP/HTTP/CLI)  |   |   |   Herdr -> Tmux -> Zellij -> Native       |
+ |   +-------------+-------------+   |   +-------+---------+--------+--------+-------+
+ |                 |                 |           |         |        |        |       |
+ |  +--------------+--------------+  |           v         v        v        v       |
+ |  | protocol/cli/ (agy, codex,  |  |  +--------+  +------+--+ +---+----+ +--+----+ |
+ |  |  opencode, gemini, hermes)  |  |  |backend/|  |backend/ | |backend/| |backend| |
+ |  +-----------------------------+  |  |herdr   |  |tmux     | |zellij  | |native |
+ +-----------------------------------+  +---+----+  +----+----+ +---+----+ +---+----+
+                   |                        |            |          |          |
+                   v                        v            v          v          v
  +-----------------------------------------------------------------------------------+
-                                         |
-                          dispatch_prompt / spawn_popup
-                                         |
-                                         v
- +-----------------------------------------------------------------------------------+
- |                               Backend Registry Layer                               |
+ |                             Transport / Execution Layer                           |
  |                                                                                   |
- |   +-------------------------------+  backend.get_backend(opts) auto-detects:      |
- |   | backend.lua                   |  Herdr -> Tmux -> Zellij -> Native            |
- |   | (Registry & auto-detection)   |                                               |
- |   +-------+-------+-------+-------+                                               |
- |           |       |       |       |                                               |
- |           v       v       v       v                                               |
- |  +--------+  +----+--+ +-+-----+ +-------+   Each adapter implements:            |
- |  |backend/|  |backend| |backend| |backend|   - detect_env(runner)                |
- |  |herdr   |  |tmux   | |zellij | |native |   - discover_target(opts)             |
- |  +---+----+  +---+---+ +--+----+ +--+----+   - spawn_pane(opts)                 |
- |      |           |        |         |         - spawn_popup(opts)                |
- +------|-----------|--------|---------|------------------------------------------+
-        |           |        |         |           - prompt_target(id, text, opts)
-        v           v        v         v
+ |  +-------------------+  +-------------------+  +----------+  +------------------+ |
+ |  | cache.lua         |  | topology.lua      |  | tmux CLI |  | zellij action    | |
+ |  | (stdpath state    |  | (Herdr CLI        |  | cmds     |  | CLI cmds         | |
+ |  |  models.json)     |  |  agent prompt)    |  +----------+  +------------------+ |
+ |  +-------------------+  +-------------------+                                     |
  +-----------------------------------------------------------------------------------+
- |                          Transport / Multiplexer Layer                             |
- |                                                                                   |
- |  +-------------------+  +--------+  +---------------+                            |
- |  | topology.lua      |  | tmux   |  | zellij action |                            |
- |  | (Herdr CLI:       |  | CLI    |  | CLI           |                            |
- |  |  pane/agent cmds, |  | cmds   |  | cmds          |                            |
- |  |  env detection,   |  +--------+  +---------------+                            |
- |  |  topology)        |                                                            |
- |  +-------------------+                                                            |
- +-----------------------------------------------------------------------------------+
-                                |
-                      Subshell Process Execution
-                           (vim.system)
+                                        |
+                             Subshell Process Execution
+                                    (vim.system)
 ```
 
 ### Backend Adapter Contract
