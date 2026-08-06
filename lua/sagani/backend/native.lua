@@ -16,10 +16,11 @@ local window = require("sagani.backend.native.window")
 local M = {
   name = "native",
   capabilities = {
-    ask = true,
-    review = true,
-    code = true,
-    chat = true,
+    placements = { "popup", "float", "vsplit", "hsplit", "tab", "pane" },
+    float = true,
+    split = true,
+    tab = true,
+    pane = { "left", "right", "top", "bottom" },
   },
 }
 

@@ -16,10 +16,11 @@ local cli = require("sagani.backend.zellij.cli")
 local M = {
   name = "zellij",
   capabilities = {
-    ask = true,
-    review = true,
-    code = true,
-    chat = true,
+    placements = { "floating", "pane" },
+    float = true,
+    split = false,
+    tab = false,
+    pane = { "left", "right", "top", "bottom" },
   },
 }
 

@@ -16,10 +16,11 @@ local cli = require("sagani.backend.tmux.cli")
 local M = {
   name = "tmux",
   capabilities = {
-    ask = true,
-    review = true,
-    code = true,
-    chat = true,
+    placements = { "popup", "float", "pane" },
+    float = true,
+    split = false,
+    tab = false,
+    pane = { "left", "right", "top", "bottom" },
   },
 }
 

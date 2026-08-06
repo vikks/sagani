@@ -16,10 +16,11 @@ local cli = require("sagani.backend.herdr.cli")
 local M = {
 	name = "herdr",
 	capabilities = {
-		ask = false, -- Herdr does not support floating popups out-of-the-box -> falls back to native popup
-		review = true,
-		code = true,
-		chat = true,
+		placements = { "tab", "pane" },
+		float = false,
+		split = false,
+		tab = true,
+		pane = { "left", "right", "top", "bottom" },
 	},
 }
 
