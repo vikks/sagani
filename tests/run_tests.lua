@@ -3,6 +3,7 @@
 local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. project_root .. "/?.lua;" .. package.path
 
+_G.SAGANI_PROJECT_ROOT = project_root
 _G.RUNNING_TEST_SUITE = true
 
 -- Fallback mock for vim.ui.input in headless test runs
@@ -21,7 +22,7 @@ print("  sagani.nvim Master Test Runner")
 print("==========================================================")
 
 local tests_dir = project_root .. "/tests"
-local test_files = vim.fn.globpath(tests_dir, "test_*.lua", false, true)
+local test_files = vim.fn.globpath(tests_dir, "**/*_spec.lua", false, true)
 
 if type(test_files) == "string" then
   test_files = { test_files }
@@ -30,7 +31,7 @@ end
 table.sort(test_files)
 
 if #test_files == 0 then
-  print("ERROR: No test files matching 'test_*.lua' found in " .. tests_dir)
+  print("ERROR: No test files matching '*_spec.lua' found in " .. tests_dir)
   vim.cmd("cquit 1")
 end
 

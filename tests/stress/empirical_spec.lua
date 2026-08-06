@@ -1,7 +1,7 @@
 -- tests/test_challenger2_empirical.lua
 -- Empirical stress testing & boundary verification suite by Challenger 2
 
-local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
+local project_root = _G.SAGANI_PROJECT_ROOT or vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. project_root .. "/?.lua;" .. package.path
 
 _G.RUNNING_TEST_SUITE = true

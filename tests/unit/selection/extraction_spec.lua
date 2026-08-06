@@ -1,5 +1,5 @@
 -- Headless Neovim Unit Test Suite for sagani.nvim visual selection module
-local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
+local project_root = _G.SAGANI_PROJECT_ROOT or vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
 local selection = require("sagani.selection")
@@ -271,7 +271,7 @@ function M.run()
       return true, nil
     end
 
-    init.ask_agent_prompt("How do I optimize this function?", { ask_agent = { target_agent = "agy" }, notify = { enabled = false } })
+    init.ask_agent_prompt("How do I optimize this function?", { tasks = { ask = "agy" }, notify = { enabled = false } })
 
     init.dispatch_prompt = orig_dispatch
 
@@ -293,7 +293,7 @@ function M.run()
       return true, nil
     end
 
-    init.ask_agent_prompt("Check @[/tmp/custom_file.lua#L10]", { ask_agent = { target_agent = "agy" }, notify = { enabled = false } })
+    init.ask_agent_prompt("Check @[/tmp/custom_file.lua#L10]", { tasks = { ask = "agy" }, notify = { enabled = false } })
 
     init.dispatch_prompt = orig_dispatch
 
@@ -313,7 +313,7 @@ function M.run()
       return true, nil
     end
 
-    init.ask_agent_prompt("What is this code?", { ask_agent = { target_agent = "agy" }, notify = { enabled = false } })
+    init.ask_agent_prompt("What is this code?", { tasks = { ask = "agy" }, notify = { enabled = false } })
 
     init.dispatch_prompt = orig_dispatch
 

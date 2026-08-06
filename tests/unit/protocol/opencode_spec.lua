@@ -1,5 +1,5 @@
 -- Headless Neovim Unit Test Suite for sagani.nvim opencode HTTP protocol module
-local project_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
+local project_root = _G.SAGANI_PROJECT_ROOT or vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h:h")
 package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. package.path
 
 local opencode_http = require("sagani.protocol.http.opencode")
