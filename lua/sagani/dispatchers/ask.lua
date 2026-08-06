@@ -26,7 +26,6 @@ local M = {}
 function M.ask_agent_prompt(prompt_text, opts)
 	local sagani_mod = package.loaded["sagani"] or require("sagani")
 	opts = vim.tbl_deep_extend("force", sagani_mod.options, type(opts) == "table" and opts or {})
-	local ask_opts = type(opts.ask_agent) == "table" and opts.ask_agent or {}
 	local calling_buf = vim.api.nvim_get_current_buf()
 
 	local function do_ask(agent_name, text)
@@ -107,9 +106,8 @@ function M.ask_agent_prompt(prompt_text, opts)
 	end
 
 	local task_val = opts.tasks and opts.tasks.ask
-	local has_config = ask_opts.target_agent
-		or sagani_mod._session_harness
-		or (task_val and (type(task_val) == "string" or (type(task_val) == "table" and (task_val.agent or task_val.harness))))
+	local has_config = sagani_mod._session_harness
+		or (task_val and (type(task_val) == "string" or (type(task_val) == "table" and task_val.agent)))
 
 	if not has_config and not _G.RUNNING_TEST_SUITE and vim.ui and vim.ui.select then
 		notify.info("No active agent harness configured for 'ask'. Please select your target agent harness:", opts)
@@ -122,7 +120,7 @@ function M.ask_agent_prompt(prompt_text, opts)
 	end
 
 	local task_agent = backend.resolve_task_agent(opts, "ask")
-	local configured_agent = ask_opts.target_agent or (task_agent and task_agent.harness)
+	local configured_agent = task_agent and task_agent.harness
 	local agent_name = (type(configured_agent) == "string" and configured_agent ~= "") and configured_agent or "agy"
 	do_ask(agent_name, prompt_text)
 end

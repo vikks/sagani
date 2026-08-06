@@ -24,7 +24,6 @@ local commands = require("sagani.commands")
 local watchers = require("sagani.watchers")
 local picker = require("sagani.ui.picker")
 local defaults = require("sagani.defaults")
-local deprecations = require("sagani.deprecations")
 local dispatchers = require("sagani.dispatchers")
 local state = require("sagani.state")
 
@@ -37,7 +36,7 @@ backend.register("zellij", require("sagani.backend.zellij"))
 local M = {}
 
 M.defaults = defaults.defaults
-M.options = defaults.ensure_compat_getters(vim.tbl_deep_extend("force", {}, M.defaults))
+M.options = vim.tbl_deep_extend("force", {}, M.defaults)
 M.format = format
 M.selection = selection
 M.diff = diff
@@ -45,9 +44,7 @@ M.state = state
 
 setmetatable(M, {
 	__index = function(_, k)
-		if k == "_deprecation_warned" then
-			return deprecations._deprecation_warned
-		elseif k == "_session_mode" then
+		if k == "_session_mode" then
 			return state.mode._session_mode
 		elseif k == "_session_backend" then
 			return state.backend._session_backend
@@ -66,9 +63,7 @@ setmetatable(M, {
 	end,
 
 	__newindex = function(_, k, v)
-		if k == "_deprecation_warned" then
-			deprecations._deprecation_warned = v
-		elseif k == "_session_mode" then
+		if k == "_session_mode" then
 			state.mode._session_mode = v
 		elseif k == "_session_backend" then
 			state.backend._session_backend = v
@@ -90,10 +85,6 @@ setmetatable(M, {
 	end,
 })
 
-function M.notify_deprecation(key, msg, opts)
-	return deprecations.notify_deprecation(key, msg, opts)
-end
-
 function M.set_mode(mode_arg)
 	return state.set_mode(mode_arg, M.options)
 end
@@ -108,8 +99,7 @@ end
 
 function M.setup(user_opts)
 	user_opts = type(user_opts) == "table" and user_opts or {}
-	deprecations.check_deprecations(user_opts)
-	M.options = defaults.ensure_compat_getters(vim.tbl_deep_extend("force", M.defaults, user_opts))
+	M.options = vim.tbl_deep_extend("force", M.defaults, user_opts)
 	state.reset_session()
 
 	keymaps.setup_keymaps(M.options)

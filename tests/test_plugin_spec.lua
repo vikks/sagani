@@ -272,10 +272,10 @@ function M.run()
     assert_eq(agent_opts.harness, "hermes", "backend.get_backend resolves target_agent hermes for chat task")
   end)
 
-  run_test("ask_agent_config: setup() merges ask_agent defaults and user overrides", function()
+  run_test("ask_agent_config: setup() merges tasks.ask defaults and user overrides", function()
     init.setup({})
-    assert_eq(init.options.ask_agent.target_agent, "agy", "default ask_agent.target_agent is agy")
-    assert_eq(init.options.ask_agent.popup, true, "default ask_agent.popup is true")
+    local task_agent = require("sagani.backend").resolve_task_agent(init.options, "ask")
+    assert_eq(task_agent.agent, "agy", "default tasks.ask agent is agy")
 
     init.setup({
       tasks = {
@@ -284,8 +284,8 @@ function M.run()
         },
       },
     })
-    assert_eq(init.options.ask_agent.target_agent, "opencode", "user override ask_agent.target_agent set to opencode")
-    assert_eq(init.options.ask_agent.popup, true, "user override ask_agent.popup set to true")
+    local overridden_task_agent = require("sagani.backend").resolve_task_agent(init.options, "ask")
+    assert_eq(overridden_task_agent.agent, "opencode", "user override tasks.ask agent set to opencode")
   end)
 
 

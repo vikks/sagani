@@ -45,15 +45,6 @@ function M.resolve_task_agent(opts, task_type)
     raw_agent_ref = task_val
   elseif type(task_val) == "table" then
     raw_agent_ref = task_val.agent or task_val.harness
-    if rawget(task_val, "harness") ~= nil then
-      pcall(function()
-        require("sagani").notify_deprecation(
-          "task_harness_" .. tostring(task_type),
-          string.format("Specifying 'harness' in opts.tasks.%s is deprecated. Use 'agent' instead.", tostring(task_type)),
-          opts
-        )
-      end)
-    end
     task_instructions = task_val.instructions or task_val.prompt_template
   end
 
