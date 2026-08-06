@@ -12,10 +12,9 @@
 ---   - Invoke sagani.setup(opts) on plugin load.
 --- ==============================================================================
 
-local plugin_dir = vim.fn.expand("~/CreatorSpace/Coder/OpenSource/NeovimPlugins/sagani.nvim")
-if vim.fn.isdirectory(plugin_dir) == 0 then
-	plugin_dir = "."
-end
+local local_repo = vim.fn.expand("~/CreatorSpace/Coder/OpenSource/NeovimPlugins/sagani.nvim")
+local is_dev_env = vim.env.NVIM_PLUGIN_DEV_MODE == "true" or vim.env.NVIM_PLUGIN_DEV_MODE == "1"
+local plugin_dir = (is_dev_env or vim.fn.isdirectory(local_repo) == 1) and local_repo or nil
 
 return {
 	-- Optional WhichKey integration for Sagani keymap group
