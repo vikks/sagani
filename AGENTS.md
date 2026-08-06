@@ -158,7 +158,7 @@ Every backend adapter **must** implement the following interface:
 | 6 | **F6: Context Dispatch to Agent** | Format selection context (file path, line range, filetype, snippet) with user input (`vim.ui.input`), dispatch via backend | `lua/sagani/selection.lua` | ✅ Done |
 | 7 | **F7: Interactive Diff Review** | Integration with `diffview.nvim` and Neovim split diffs (`vim.wo.diff`), calculate hunks via `vim.diff()`, capture range comments | `lua/sagani/diff.lua` | ✅ Done |
 | 8 | **F8: Structured Diff Formatting** | Format diff feedback as markdown diff blocks with file path, line range, and user commentary sent to agent | `lua/sagani/format.lua` | ✅ Done |
-| 9 | **F9: Automated Testing Suite** | Headless Neovim test runner (`tests/run_tests.lua`) and Plenary test harness (`tests/minimal_init.lua`) | `tests/` | ✅ Done |
+| 9 | **F9: Automated Testing Suite** | Headless Neovim test runner (`tests/run_tests.lua`) executing modular specs (`unit/`, `integration/`, `stress/`) | `tests/` | ✅ Done |
 | 10 | **F10: Harness-Agnostic Agent Selection** | Dynamic agent harness switching (`:SaganiSelectAgent`, `:SaganiSelectHarness`, `<leader>ah`) supporting `agy`, `codex`, `opencode`, `hermes`, etc. | `lua/sagani/init.lua` | ✅ Done |
 | 11 | **F11: Agent Edit Review & Accept/Reject** | Interactive edit review (`:SaganiReview`, `<leader>ar`), hunk navigation, change acceptance (`:SaganiAccept`) or rejection (`:SaganiReject`) | `lua/sagani/diff.lua` | ✅ Done |
 | 12 | **F12: Ask General Agent in Popup** | Asks general questions to agent in a popup pane (`:SaganiAskAgent`, `<leader>aa`), using configurable or session-cached target agent, routed via active backend | `lua/sagani/init.lua` | ✅ Done |
