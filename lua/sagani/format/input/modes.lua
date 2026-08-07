@@ -1,18 +1,8 @@
---- ==============================================================================
---- Module: sagani.format.input.modes
----
---- Description:
----   Operating mode educational banner decorator for sagani.nvim. Decorates input
----   prompts with educational guidance when active session modes (Learn, Refactor, Review)
----   are enabled.
----
---- Responsibilities:
----   - Resolve and format active mode banner prefixes (`get_mode_prefix`).
---- ==============================================================================
+local modes_registry = require("sagani.modes")
 
 local M = {}
 
---- Formats active mode educational or operational prompt prefix based on active session mode
+--- Formats active mode educational or operational prompt prefix based on active session mode strategy
 --- @param mode_override string|nil Optional mode identifier override
 --- @return string Formatted mode banner string or empty string
 function M.get_mode_prefix(mode_override)
@@ -27,23 +17,12 @@ function M.get_mode_prefix(mode_override)
     return ""
   end
 
-  local default_prefixes = {
-    learn = "🎓 Learning Mode Active: Provide a clear educational breakdown of the core concepts, syntax, architectural decisions, and trade-offs.",
-    review = "🔍 Review Mode Active: Perform a strict code review focusing on security vulnerabilities, edge cases, performance bottlenecks, and style.",
-    refactor = "🛠️ Refactor Mode Active: Propose clean refactoring improvements adhering to SOLID principles and clean architecture.",
-  }
-
-  local custom_prefix = nil
-  if type(sagani.options) == "table" and type(sagani.options.modes) == "table" and type(sagani.options.modes[active_mode]) == "table" then
-    custom_prefix = sagani.options.modes[active_mode].prompt_prefix
+  local strategy = modes_registry.get_strategy(active_mode, sagani.options)
+  if strategy and strategy.prompt_prefix then
+    return string.format("\n\n> %s **%s**", strategy.icon or "⚙️", strategy.prompt_prefix)
   end
 
-  local prefix = custom_prefix or default_prefixes[active_mode]
-  if prefix then
-    return string.format("\n\n> **%s**", prefix)
-  end
-
-  return string.format("\n\n> ⚙️ **%s Mode Active**", active_mode:sub(1, 1):upper() .. active_mode:sub(2))
+  return ""
 end
 
 return M
