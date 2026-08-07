@@ -76,12 +76,14 @@ function M.ensure_server_async(port, progress_cb, on_ready)
     return
   end
 
-  -- 3. HTTP health probe with generous timeout (5s) for initial startup
-  local check_cmd = { "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-m", "5", url .. "/" }
+  -- 3. HTTP health probe checking for valid JSON API server (not Web GUI HTML page)
+  local check_cmd = { "curl", "-s", "-m", "3", url .. "/models" }
   vim.system(check_cmd, { text = true }, function(c_obj)
     vim.schedule(function()
-      local code_str = vim.trim((c_obj and c_obj.stdout) or "")
-      if c_obj and c_obj.code == 0 and code_str ~= "" and code_str ~= "000" then
+      local stdout = vim.trim((c_obj and c_obj.stdout) or "")
+      local is_html = stdout:lower():sub(1, 15):find("<!doctype") or stdout:lower():sub(1, 6):find("<html")
+      local ok, data = pcall(vim.json.decode, stdout)
+      if c_obj and c_obj.code == 0 and not is_html and (ok or stdout ~= "") then
         M._server_port = port
         on_ready(true)
         return
