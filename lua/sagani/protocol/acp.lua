@@ -47,9 +47,11 @@ end
 --- @param session_id string|nil Optional existing session ID
 function M.execute_prompt(harness, prompt_text, agent_opts, callback, opts, progress_cb, session_id)
   opts = type(opts) == "table" and opts or {}
+  agent_opts = type(agent_opts) == "table" and agent_opts or {}
   harness = (harness or "agy"):lower()
 
-  if harness == "opencode" and not opts.runner then
+  local proto = agent_opts.protocol
+  if harness == "opencode" and (proto == "acp" or proto == "http") and not opts.runner then
     local handled = http_transport.execute(prompt_text, agent_opts, callback, progress_cb, session_id)
     if handled then
       return

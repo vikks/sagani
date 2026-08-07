@@ -160,8 +160,12 @@ local function parse_opencode_response(m_obj)
 
   local ok, data = pcall(vim.json.decode, stdout)
   if not ok or type(data) ~= "table" then
-    if stdout and vim.trim(stdout) ~= "" then
-      return vim.trim(stdout), nil
+    local trimmed = vim.trim(stdout or "")
+    if trimmed:lower():sub(1, 15):find("<!doctype") or trimmed:lower():sub(1, 6):find("<html") then
+      return nil, "OpenCode HTTP server returned HTML web page instead of JSON API response"
+    end
+    if stdout and trimmed ~= "" then
+      return trimmed, nil
     end
     return nil, "Invalid JSON response: " .. (stdout:sub(1, 100))
   end
