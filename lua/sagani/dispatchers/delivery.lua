@@ -44,12 +44,9 @@ function M.deliver_prompt(prompt_text, target_pane, opts)
 		target_pane = nil
 	end
 
-	local adapter = opts.adapter
-	local backend_name = opts.backend_name
-	if not adapter then
-		local task_type = opts.task_type or "chat"
-		adapter, backend_name = backend.get_backend(opts, task_type)
-	end
+	local plan = opts.plan or require("sagani.resolver").build_plan(opts.task_type or "chat", prompt_text, opts)
+	local adapter = plan.backend.adapter
+	local backend_name = plan.backend.name
 
 	local pane_override = (type(opts.pane_override) == "string" and opts.pane_override ~= "") and opts.pane_override
 		or (type(opts.pane_override) == "number" and tostring(opts.pane_override) or nil)

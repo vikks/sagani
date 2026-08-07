@@ -27,13 +27,14 @@ function M.register_commands(opts)
   vim.api.nvim_create_user_command("SaganiStatus", function()
     local sagani = require("sagani")
     local options = sagani.options or opts
-    local adapter, backend_name = backend.get_backend(options)
+    local plan = require("sagani.resolver").build_plan("chat", nil, options)
+    local adapter = plan.backend.adapter
+    local backend_name = plan.backend.name
+    local harness = plan.agent.id
     local env_info = adapter.detect_env and adapter.detect_env(options.runner) or {}
     local env = env_info.metadata or env_info
     local status_opts = vim.tbl_deep_extend("force", options, { auto_spawn = false })
     local pane_id, err, _ = adapter.discover_target(status_opts)
-    local task_agent = backend.resolve_task_agent(options, "chat")
-    local harness = (task_agent and task_agent.harness) or "agy"
     local msg = string.format(
       "Backend: %s | Pane: %s | Tab: %s | Workspace: %s\nTarget Pane (%s): %s",
       backend_name:upper(),
@@ -73,12 +74,14 @@ function M.register_commands(opts)
   vim.api.nvim_create_user_command("SaganiSpawnPane", function()
     local sagani = require("sagani")
     local options = sagani.options or opts
-    local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(options, "chat")
-    local harness = (agent_opts and agent_opts.harness) or "agy"
+    local plan = require("sagani.resolver").build_plan("chat", nil, options)
+    local adapter = plan.backend.adapter
+    local backend_name = plan.backend.name
+    local harness = plan.agent.id
     local spawn_opts = vim.tbl_deep_extend(
       "force",
       options,
-      { placement = placement, ui_opts = ui_opts, agent_opts = agent_opts }
+      { placement = plan.ui.placement, ui_opts = plan.ui, agent_opts = plan.agent, plan = plan }
     )
     local pane_id, err, _ = adapter.spawn_pane(spawn_opts)
     if pane_id then
