@@ -241,7 +241,7 @@ function M.register_commands(opts)
     complete = function()
       local sagani = require("sagani")
       local options = sagani.options or opts
-      local mode_set = { review = true, learn = true }
+      local mode_set = { edit_review = true, review = true, learn = true }
       if type(options.tasks) == "table" then
         for t_name, _ in pairs(options.tasks) do
           if type(t_name) == "string" then
@@ -249,15 +249,35 @@ function M.register_commands(opts)
           end
         end
       end
-      local res = {}
+      local modes = {}
       for m_name, _ in pairs(mode_set) do
-        table.insert(res, m_name)
+        table.insert(modes, m_name)
       end
-      table.sort(res)
-      table.insert(res, "off")
-      return res
+      table.insert(modes, "off")
+      table.sort(modes)
+      return modes
     end,
-    desc = "Set or toggle active operating mode (review, learn, or custom tasks)",
+    desc = "Set or toggle active Neovim operational mode (edit_review, learn, off)",
+  })
+
+  vim.api.nvim_create_user_command("SaganiPersona", function(cmd_args)
+    local sagani = require("sagani")
+    local persona_arg = cmd_args.args
+    if persona_arg and persona_arg ~= "" then
+      sagani.set_persona(persona_arg)
+    else
+      local state = require("sagani.state")
+      state.set_persona(nil, sagani.options or opts)
+    end
+  end, {
+    nargs = "?",
+    complete = function()
+      local personas = require("sagani.personas").list_personas()
+      table.insert(personas, "off")
+      table.sort(personas)
+      return personas
+    end,
+    desc = "Set or toggle active prompt persona profile (tutor, refactor, audit, off)",
   })
 
   vim.api.nvim_create_user_command("SaganiLearn", function()

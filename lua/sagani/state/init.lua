@@ -15,6 +15,7 @@
 --- ==============================================================================
 
 local mode = require("sagani.state.mode")
+local persona = require("sagani.state.persona")
 local backend = require("sagani.state.backend")
 local agent = require("sagani.state.agent")
 local model = require("sagani.state.model")
@@ -23,6 +24,7 @@ local session = require("sagani.state.session")
 
 local M = {
 	mode = mode,
+	persona = persona,
 	backend = backend,
 	agent = agent,
 	model = model,
@@ -34,6 +36,8 @@ setmetatable(M, {
 	__index = function(_, k)
 		if k == "_session_mode" then
 			return mode._session_mode
+		elseif k == "_session_persona" then
+			return persona._session_persona
 		elseif k == "_session_backend" then
 			return backend._session_backend
 		elseif k == "_session_agent" then
@@ -53,6 +57,8 @@ setmetatable(M, {
 	__newindex = function(_, k, v)
 		if k == "_session_mode" then
 			mode._session_mode = v
+		elseif k == "_session_persona" then
+			persona._session_persona = v
 		elseif k == "_session_backend" then
 			backend._session_backend = v
 		elseif k == "_session_agent" then
@@ -79,6 +85,14 @@ end
 
 function M.toggle_mode(mode_arg, options)
 	return mode.toggle_mode(mode_arg, options)
+end
+
+function M.set_persona(persona_arg, options)
+	return persona.set_persona(persona_arg, options)
+end
+
+function M.toggle_persona(persona_arg, options)
+	return persona.toggle_persona(persona_arg, options)
 end
 
 function M.toggle_backend(mode_arg, options)

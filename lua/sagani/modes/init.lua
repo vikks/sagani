@@ -2,57 +2,48 @@
 --- Module: sagani.modes
 ---
 --- Description:
----   Master operating modes strategy registry for sagani.nvim. Resolves strategy
----   modules (learn, review, refactor, custom) and provides strategy query APIs.
+---   Master operational Neovim modes strategy package for sagani.nvim. Controls
+---   how Neovim renders and behaves (edit_review, learn, off).
 ---
---- Responsibilities:
----   - Register built-in mode strategy modules (`learn`, `review`, `refactor`).
----   - Resolve strategy contract object for any given mode (`get_strategy`).
----   - List available mode strategy identifiers (`list_modes`).
+--- Submodules:
+---   - edit_review: Interactive buffer edit diff review mode (inline/split accept/reject).
+---   - learn: Pedagogical learning mode (educational split/popup UI).
 --- ==============================================================================
 
-local learn_mod = require("sagani.modes.learn")
-local review_mod = require("sagani.modes.review")
-local refactor_mod = require("sagani.modes.refactor")
-local custom_mod = require("sagani.modes.custom")
+local edit_review = require("sagani.modes.edit_review")
+local learn = require("sagani.modes.learn")
+local state_mode = require("sagani.state.mode")
 
 local M = {
-  _builtins = {
-    learn = learn_mod,
-    review = review_mod,
-    refactor = refactor_mod,
-  },
+  edit_review = edit_review,
+  learn = learn,
+
+  set_mode = state_mode.set_mode,
+  toggle_mode = state_mode.toggle_mode,
 }
 
---- Resolves a mode strategy object by mode identifier name
---- @param mode_name string|nil Mode identifier (e.g. "learn", "review", "refactor", "audit")
---- @param opts table|nil Optional user options table
---- @return table|nil Strategy object or nil
-function M.get_strategy(mode_name, opts)
+--- Resolves operational mode strategy module by name
+--- @param mode_name string|nil Mode identifier ("edit_review", "learn", "review")
+--- @return table|nil Operational mode strategy table
+function M.get_mode(mode_name)
   if type(mode_name) ~= "string" or mode_name == "" or mode_name:lower() == "off" then
     return nil
   end
 
   local m = mode_name:lower()
-  if M._builtins[m] then
-    local strat = M._builtins[m]
-    -- Allow user options to override prompt_prefix
-    if opts and type(opts.modes) == "table" and type(opts.modes[m]) == "table" and opts.modes[m].prompt_prefix then
-      local custom_prefix = opts.modes[m].prompt_prefix
-      return setmetatable({ prompt_prefix = custom_prefix }, { __index = strat })
-    end
-    return strat
+  if m == "edit_review" or m == "review" then
+    return edit_review
+  elseif m == "learn" then
+    return learn
   end
 
-  -- Dynamic custom mode strategy
-  local mode_cfg = (opts and type(opts.modes) == "table" and type(opts.modes[m]) == "table") and opts.modes[m] or nil
-  return custom_mod.build_strategy(m, mode_cfg)
+  return nil
 end
 
---- Returns list of available mode strategy identifiers
---- @return table Array of mode names
+--- Returns list of supported operational Neovim mode identifiers
+--- @return table Array of operational mode names
 function M.list_modes()
-  return { "learn", "review", "refactor" }
+  return { "edit_review", "learn" }
 end
 
 return M
