@@ -23,7 +23,7 @@ local function flush_disk_file(bufnr)
   local file_path = vim.api.nvim_buf_get_name(bufnr)
   if file_path ~= "" and not file_path:find("%[No Name%]") and vim.bo[bufnr].buftype == "" then
     vim.api.nvim_buf_call(bufnr, function()
-      pcall(vim.cmd, "noautocmd write")
+      pcall(vim.cmd, "noautocmd write!")
     end)
   end
 end

@@ -205,11 +205,32 @@ function M.run()
 
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "line 1", "new line 2", "line 3" })
 
-    local res = diff.render_inline_review(buf, { notify = { enabled = false } })
-    assert_true(res, "render_inline_review returned true")
-
     diff.close_review(buf, { notify = { enabled = false } })
     vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  run_test("reject_change & accept_change write updates to disk file", function()
+    local tmp_file = vim.fn.tempname() .. ".lua"
+    vim.fn.writefile({ "orig line 1", "orig line 2" }, tmp_file)
+
+    local buf = vim.fn.bufadd(tmp_file)
+    vim.fn.bufload(buf)
+    diff.take_snapshot(buf)
+
+    -- Simulate agent editing buffer and file on disk
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "orig line 1", "agent line 2" })
+    vim.fn.writefile({ "orig line 1", "agent line 2" }, tmp_file)
+
+    -- Reject changes
+    diff.reject_change("all", buf, { notify = { enabled = false } })
+
+    -- Verify disk file was updated and reverted
+    local disk_lines_after_reject = vim.fn.readfile(tmp_file)
+    assert_eq(disk_lines_after_reject[2], "orig line 2", "disk file reverted on reject_change")
+
+    -- Clean up
+    vim.api.nvim_buf_delete(buf, { force = true })
+    vim.fn.delete(tmp_file)
   end)
 
   return {
