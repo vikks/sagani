@@ -38,23 +38,33 @@ function M.ask_agent_prompt(prompt_text, opts)
 			text = context.inject_file_reference(text, calling_buf)
 		end
 
-		local adapter, backend_name, placement, ui_opts, agent_opts = backend.get_backend(opts, "ask")
-		local harness = (type(agent_name) == "string" and agent_name ~= "") and agent_name
-			or (agent_opts and agent_opts.harness)
-			or "agy"
-		agent_opts.harness = harness
-		agent_opts.agent = harness
+		local plan = require("sagani.resolver").build_plan("ask", text, opts)
+		local adapter = plan.backend.adapter
+		local backend_name = plan.backend.name
+		local placement = plan.ui.placement
+		local harness = plan.agent.id
+		local agent_opts = {
+			harness = harness,
+			agent = harness,
+			model = plan.agent.model,
+			effort = plan.agent.effort,
+			provider = plan.agent.provider,
+			protocol = plan.agent.protocol,
+			port = plan.agent.port,
+			timeout = plan.agent.timeout,
+		}
 		local popup_opts = vim.tbl_deep_extend("force", opts, {
 			adapter = adapter,
 			backend_name = backend_name,
 			task_type = "ask",
 			placement = placement,
-			ui_opts = ui_opts,
+			ui_opts = plan.ui,
 			agent_opts = agent_opts,
 			target_agent = harness,
+			plan = plan,
 		})
 
-		if agent_opts and agent_opts.protocol == "acp" then
+		if agent_opts.protocol == "acp" then
 			acp_dispatcher.execute_acp_popup(harness, text, agent_opts, popup_opts)
 			return
 		end

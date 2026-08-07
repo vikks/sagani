@@ -99,6 +99,7 @@ end
 
 function M.setup(user_opts)
 	user_opts = type(user_opts) == "table" and user_opts or {}
+	require("sagani.config.validator").validate(user_opts)
 	M.options = vim.tbl_deep_extend("force", M.defaults, user_opts)
 	state.reset_session()
 

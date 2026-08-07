@@ -33,6 +33,7 @@ function M.build_plan(task_type, raw_prompt, opts, session_state, env_overrides)
   raw_prompt = raw_prompt or ""
 
   -- 1. Resolve Target Agent ID
+  local sagani_mod = pcall(require, "sagani") and require("sagani") or {}
   local task_config = opts.tasks and opts.tasks[task_type]
   local task_agent_id = nil
   if type(task_config) == "string" then
@@ -41,7 +42,9 @@ function M.build_plan(task_type, raw_prompt, opts, session_state, env_overrides)
     task_agent_id = task_config.agent or task_config.harness
   end
 
-  local agent_id = session_state._session_harness or task_agent_id or "agy"
+  local session_harness = session_state._session_harness or sagani_mod._session_harness
+  local target_override = opts.target_agent or (type(opts.ask_agent) == "table" and opts.ask_agent.target_agent)
+  local agent_id = session_harness or target_override or task_agent_id or "agy"
   local agent_mod = agents_registry.get(agent_id) or agents_registry.get("agy")
 
   -- 2. Resolve Agent Execution Parameters & Capabilities
@@ -49,7 +52,7 @@ function M.build_plan(task_type, raw_prompt, opts, session_state, env_overrides)
   agent_opts.harness = agent_id
   agent_opts.agent = agent_id
 
-  local protocol = session_state._session_protocol or (agent_mod and agent_mod.capabilities and agent_mod.capabilities.default_protocol) or "cli"
+  local protocol = session_state._session_protocol or agent_opts.protocol or (agent_mod and agent_mod.capabilities and agent_mod.capabilities.default_protocol) or "cli"
   local cmd = (agent_mod and agent_mod.build_cmd) and agent_mod.build_cmd(agent_opts) or { agent_id }
 
   local agent_plan = {
