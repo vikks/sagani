@@ -45,7 +45,7 @@
 
 | Layer | Responsibility | Key Modules |
 |---|---|---|
-| **1. Neovim Layer** | Visual selections, diff review, input/output formatting, user commands, keymaps, native Markdown floating UI | `init.lua`, `selection.lua`, `diff/` (`baseline`, `hunks`, `view`, `actions`), `format/` (`input/`, `output/`), `notify.lua`, `ui/markdown_popup/`, `ui/picker/` |
+| **1. Neovim & Session Modes Layer** | Visual selections, diff review, input/output formatting, operating mode strategy registry (`learn`, `review`, `refactor`, `custom`), user commands, keymaps, native Markdown floating UI | `init.lua`, `selection.lua`, `diff/` (`baseline`, `hunks`, `view`, `actions`), `format/` (`input/`, `output/`), `modes/` (`learn`, `review`, `refactor`, `custom`), `notify.lua`, `ui/markdown_popup/`, `ui/picker/` |
 | **2. Deterministic Resolver & Validator Layer** | Fail-fast config validation and single-pass compilation (`build_plan`) into immutable `ExecutionPlan` tables | `resolver.lua`, `config/validator.lua` |
 | **3. Backend Registry Layer** | Multiplexer auto-detection (`Herdr` → `Tmux` → `Zellij` → `Native`), layout placement, declarative geometry capabilities | `backend/` (`registry`, `task`, `herdr`, `tmux`, `zellij`, `native`) |
 | **4. Protocol & Agent Harness Layer** | System IPC protocols (`acp`, `http`, `cli`, `json_rpc`) decoupled from declarative agent harness definitions (`agy`, `codex`, `opencode`, `hermes`, `gemini`) | `protocol/`, `agents/` |

@@ -129,10 +129,13 @@ require("sagani").setup({
       auto_open = false,         -- Automatically open review view when agent modifies buffer on disk
       mode = "inline",           -- Review display style: "inline" (virtual text) or "split" (side-by-side)
     },
-    learn = {
-      enabled = false,           -- Enable pedagogical AI assistant explanations
-      auto_open = false,         -- Automatically open explanation view when agent responds
-      mode = "split",            -- Explanation display style: "split" (side-by-side) or "popup"
+    refactor = {
+      enabled = false,           -- Enable clean code refactoring strategy & SOLID guidance
+      prompt_prefix = "🛠️ Refactor Mode Active: Propose clean refactoring improvements adhering to SOLID principles.",
+    },
+    custom_mode = {
+      prompt_prefix = "⚙️ Custom Mode Active: Perform specialized domain operations.",
+      icon = "💡",
     },
   },
 
