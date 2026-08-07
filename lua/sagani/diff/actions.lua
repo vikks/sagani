@@ -16,6 +16,18 @@ local view = require("sagani.diff.view")
 
 local M = {}
 
+local function flush_disk_file(bufnr)
+  if not (type(bufnr) == "number" and bufnr > 0 and vim.api.nvim_buf_is_valid(bufnr)) then
+    return
+  end
+  local file_path = vim.api.nvim_buf_get_name(bufnr)
+  if file_path ~= "" and not file_path:find("%[No Name%]") and vim.bo[bufnr].buftype == "" then
+    vim.api.nvim_buf_call(bufnr, function()
+      pcall(vim.cmd, "noautocmd write")
+    end)
+  end
+end
+
 --- Accepts agent edit changes (hunk under cursor or all changes in buffer).
 --- @param target string|nil "hunk", "all", or nil.
 --- @param bufnr number|nil Buffer handle.
@@ -36,6 +48,7 @@ function M.accept_change(target, bufnr, opts)
   if target == "all" then
     local cur_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
     baseline._snapshots[bufnr] = cur_lines
+    flush_disk_file(bufnr)
     view.close_review(bufnr, opts)
     notify.info("Accepted all changes in buffer", opts)
     return true
@@ -80,6 +93,8 @@ function M.accept_change(target, bufnr, opts)
   end
 
   baseline._snapshots[bufnr] = new_base
+  flush_disk_file(bufnr)
+
   local remaining_hunks = hunks.get_hunks(bufnr)
   if #remaining_hunks == 0 then
     view.close_review(bufnr, opts)
@@ -119,6 +134,7 @@ function M.reject_change(target, bufnr, opts)
   if target == "all" then
     local base_lines = baseline.get_baseline_lines(bufnr)
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, base_lines)
+    flush_disk_file(bufnr)
     view.close_review(bufnr, opts)
     notify.info("Rejected all changes: buffer reverted to baseline", opts)
     return true
@@ -152,6 +168,7 @@ function M.reject_change(target, bufnr, opts)
   local start_idx = target_hunk.sb - 1
   local end_idx = (target_hunk.cb > 0) and (target_hunk.sb + target_hunk.cb - 1) or (target_hunk.sb - 1)
   vim.api.nvim_buf_set_lines(bufnr, start_idx, end_idx, false, target_hunk.orig_lines)
+  flush_disk_file(bufnr)
 
   local remaining_hunks = hunks.get_hunks(bufnr)
   if #remaining_hunks == 0 then

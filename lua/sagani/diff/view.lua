@@ -32,6 +32,11 @@ function M.render_inline_review(bufnr, opts)
 
   if vim.api.nvim_buf_is_valid(bufnr) then
     vim.api.nvim_buf_clear_namespace(bufnr, ns_inline, 0, -1)
+    pcall(function()
+      vim.api.nvim_buf_call(bufnr, function()
+        vim.cmd("checktime")
+      end)
+    end)
   end
 
   local hunk_list = hunks.get_hunks(bufnr)
