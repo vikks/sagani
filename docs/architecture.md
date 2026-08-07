@@ -45,10 +45,11 @@
 
 | Layer | Responsibility | Key Modules |
 |---|---|---|
-| **1. Neovim Layer** | Visual selections, diff review, prompt formatting, user commands, keymaps, native Markdown floating UI | `init.lua`, `selection.lua`, `diff/` (`baseline`, `hunks`, `view`, `actions`), `format.lua`, `notify.lua`, `ui/markdown_popup/`, `ui/picker/` (`agent`, `target`, `mode`) |
-| **2. Backend Registry Layer** | Multiplexer auto-detection (`Herdr` → `Tmux` → `Zellij` → `Native`), layout placement, facade adapter resolution | `backend/` (`registry`, `task`, `herdr`, `tmux`, `zellij`, `native`) |
-| **3. Protocol & IPC Layer** | Harness-agnostic agent protocol drivers (`acp`, `http`, `cli`, `json_rpc`) and CLI command builders | `protocol/init.lua`, `protocol/acp.lua`, `protocol/http.lua`, `protocol/cli.lua` |
-| **4. Model Cache & State Layer** | 100% dynamic CLI/API model discovery and persistent local disk cache | `cache.lua` (`stdpath('state')/sagani/models.json`) |
+| **1. Neovim Layer** | Visual selections, diff review, input/output formatting, user commands, keymaps, native Markdown floating UI | `init.lua`, `selection.lua`, `diff/` (`baseline`, `hunks`, `view`, `actions`), `format/` (`input/`, `output/`), `notify.lua`, `ui/markdown_popup/`, `ui/picker/` |
+| **2. Deterministic Resolver & Validator Layer** | Fail-fast config validation and single-pass compilation (`build_plan`) into immutable `ExecutionPlan` tables | `resolver.lua`, `config/validator.lua` |
+| **3. Backend Registry Layer** | Multiplexer auto-detection (`Herdr` → `Tmux` → `Zellij` → `Native`), layout placement, declarative geometry capabilities | `backend/` (`registry`, `task`, `herdr`, `tmux`, `zellij`, `native`) |
+| **4. Protocol & Agent Harness Layer** | System IPC protocols (`acp`, `http`, `cli`, `json_rpc`) decoupled from declarative agent harness definitions (`agy`, `codex`, `opencode`, `hermes`, `gemini`) | `protocol/`, `agents/` |
+| **5. Model Cache & State Layer** | 100% dynamic CLI/API model discovery and persistent local disk cache | `cache.lua` (`stdpath('state')/sagani/models.json`) |
 
 ---
 
